@@ -1,9 +1,15 @@
 cmake_minimum_required(VERSION 3.8)
 project(image_pipeline)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
+
+set(exec_name ${PROJECT_NAME}_node)
+set(src_dir src/)
+set(srcs ${src_dir}main.cpp)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
@@ -24,4 +30,8 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+add_executable(${exec_name} ${srcs})
+ament_target_dependencies(${exec_name} rclcpp std_msgs sensor_msgs cv_bridge)
+
+install(TARGETS ${exec_name} DESTINATION lib/${PROJECT_NAME})
 ament_package()
