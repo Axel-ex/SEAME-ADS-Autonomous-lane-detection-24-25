@@ -20,7 +20,7 @@ class VisionNode : public rclcpp::Node
         // ----> produces edges
 
     private:
-        rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_img_sub;
+        rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_img_sub_;
         void processImage(sensor_msgs::msg::Image::SharedPtr img);
         // Subscription to image_topic
         //

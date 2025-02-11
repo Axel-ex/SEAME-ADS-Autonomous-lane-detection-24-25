@@ -1,15 +1,11 @@
 #include "VisionNode.hpp"
-#include <functional>
+#include "cv_bridge/cv_bridge.h"
 
 VisionNode::VisionNode() : Node("vision_node")
 {
     auto qos = rclcpp::QoS(60);
-    //
-    // this->create_subscription<sensor_msgs::msg::Image>(
-    //     "image_raw", qos,
-    //     std::bind(&VisionNode::processImage, this, std::placeholders::_1));
 
-    this->create_subscription<sensor_msgs::msg::Image>(
+    raw_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
         "image_raw", qos,
         [this](sensor_msgs::msg::Image::SharedPtr img)
         { VisionNode::processImage(img); });
@@ -19,6 +15,7 @@ VisionNode::VisionNode() : Node("vision_node")
 
 void VisionNode::processImage(sensor_msgs::msg::Image::SharedPtr img)
 {
-    (void)img;
+    auto converted = cv_bridge::toCvShare(img);
+
     RCLCPP_INFO(this->get_logger(), "Image received");
 }
