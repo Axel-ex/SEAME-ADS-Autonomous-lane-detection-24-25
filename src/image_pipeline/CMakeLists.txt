@@ -9,7 +9,11 @@ endif()
 
 set(exec_name ${PROJECT_NAME}_node)
 set(src_dir src/)
-set(srcs ${src_dir}main.cpp)
+set(srcs 
+	${src_dir}main.cpp
+	${src_dir}VisionNode.cpp)
+
+include_directories(includes)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
