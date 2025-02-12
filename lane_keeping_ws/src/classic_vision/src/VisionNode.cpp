@@ -48,50 +48,66 @@ void VisionNode::processImage(sensor_msgs::msg::Image::SharedPtr img)
         // Upload the image to GPU
         cuda::GpuMat gpu_img;
         gpu_img.upload(converted->image);
-        RCLCPP_INFO(this->get_logger(), "Image uploaded to GPU");
 
         // Convert to grayscale
-        cuda::cvtColor(gpu_img, gpu_img, COLOR_BGR2GRAY);
-        RCLCPP_INFO(this->get_logger(), "Converted to grayscale");
-        Mat cpu_colored;
-        gpu_img.download(cpu_colored);
-        imwrite("processed/grey.jpg", cpu_colored);
+        cuda::GpuMat gpu_gray;
+        cuda::cvtColor(gpu_img, gpu_gray, COLOR_BGR2GRAY);
 
         // Apply Gaussian blur
-        auto gaussian_filter =
-            cuda::createGaussianFilter(CV_8UC1, CV_8UC1, {3, 3}, 1);
-        gaussian_filter->apply(gpu_img, gpu_img);
-        RCLCPP_INFO(this->get_logger(), "Applied Gaussian blur");
-        Mat cpu_filtered;
-        gpu_img.download(cpu_filtered);
-        imwrite("processed/gaussian.jpg", cpu_filtered);
+        cuda::GpuMat gpu_blurred;
+        Ptr<cuda::Filter> gaussian_filter =
+            cuda::createGaussianFilter(CV_8UC1, CV_8UC1, Size(3, 3), 1);
+        gaussian_filter->apply(gpu_gray, gpu_blurred);
+
+        // Edge detection
+        // cuda::GpuMat gpu_edges;
+        // auto canny = cuda::createCannyEdgeDetector(50, 150);
+        // canny->detect(gpu_blurred, gpu_edges);
 
         // Detect lines using Hough Transform
+        cuda::GpuMat gpu_lines;
         auto line_detector =
-            cuda::createHoughSegmentDetector(1, CV_PI / 180, 50, 50, 10);
-        cuda::GpuMat d_lines;
-        line_detector->detect(gpu_img, d_lines);
-        RCLCPP_INFO(this->get_logger(), "Detected lines");
+            cuda::createHoughSegmentDetector(1.0f,           // rho
+                                             CV_PI / 180.0f, // theta
+                                             50, // minimum line length
+                                             5,  // maximum line gap
+                                             300 // maximum number of lines
+            );
+        line_detector->detect(gpu_gray, gpu_lines);
 
         // Download lines from GPU to CPU
+        Mat lines_cpu;
+        gpu_lines.download(lines_cpu);
+
+        // Convert to vector of Vec4i
         std::vector<Vec4i> lines;
-        if (!d_lines.empty())
+        lines.reserve(lines_cpu.size().width);
+        if (!lines_cpu.empty())
         {
-            lines.resize(d_lines.cols);
-            Mat lines_cpu(d_lines.size(), d_lines.type(), lines.data());
-            d_lines.download(lines_cpu);
+            // Debug info
+            RCLCPP_INFO(this->get_logger(), "Lines matrix size: %d x %d",
+                        lines_cpu.rows, lines_cpu.cols);
+
+            gpu_lines.row(0).download(Mat(lines).reshape(4, 1));
         }
 
-        // Draw lines on the original image
+        // Draw lines on a copy of the original image
+        Mat result = converted->image.clone();
         for (const auto& line : lines)
         {
-            cv::line(converted->image, Point(line[0], line[1]),
-                     Point(line[2], line[3]), Scalar(0, 255, 255), 2);
+            cv::line(result, Point(line[0], line[1]), Point(line[2], line[3]),
+                     Scalar(0, 255, 255), 2);
         }
 
-        // Display the result
-        imwrite("processed/out.jpg", converted->image);
-        RCLCPP_INFO(this->get_logger(), "Image processing complete");
+        // Save intermediate results for debugging
+        Mat cpu_gray, cpu_edges;
+        gpu_gray.download(cpu_gray);
+        // gpu_edges.download(cpu_edges);
+        imwrite("processed/gray.jpg", cpu_gray);
+        // imwrite("processed/edges.jpg", cpu_edges);
+        imwrite("processed/result.jpg", result);
+
+        RCLCPP_INFO(this->get_logger(), "Detected %zu lines", lines.size());
     }
     catch (const cv::Exception& e)
     {
