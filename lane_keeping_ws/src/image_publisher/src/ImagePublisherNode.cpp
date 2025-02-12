@@ -11,7 +11,7 @@ ImagePublisherNode::ImagePublisherNode() : Node("image_publisher_node")
 {
     image_pub_ =
         this->create_publisher<sensor_msgs::msg::Image>("image_raw", 10);
-    timer_ = this->create_wall_timer(std::chrono::seconds(1),
+    timer_ = this->create_wall_timer(std::chrono::seconds(10),
                                      [this]() { publishImage(); });
     RCLCPP_INFO(this->get_logger(), "%s initialized", this->get_name());
 }
@@ -32,7 +32,7 @@ void ImagePublisherNode::publishImage()
     header.frame_id = "cam_frame";
 
     auto img_bridge =
-        cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, img);
+        cv_bridge::CvImage(header, sensor_msgs::image_encodings::BGR8, img);
 
     sensor_msgs::msg::Image::SharedPtr img_msg = img_bridge.toImageMsg();
     image_pub_->publish(*img_msg);
