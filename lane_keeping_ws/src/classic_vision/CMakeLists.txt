@@ -10,6 +10,7 @@ set(CMAKE_CUDA_ARCHITECTURES 53)  # Jetson Nano uses sm_53
 set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-O3)
 find_package(CUDA REQUIRED)
 enable_language(CUDA)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui cudaimgproc cudawarping cudafilters)
 
 # Enable C++17
 set(CMAKE_CXX_STANDARD 17)
@@ -25,10 +26,6 @@ set(srcs
         ${src_dir}main.cpp
         ${src_dir}VisionNode.cpp)
 
-# Find OpenCV using pkg-config
-find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui cudaimgproc cudawarping cudafilters)
-message(STATUS "OpenCV version: ${OpenCV_VERSION}")
-message(STATUS "OpenCV CUDA modules: ${OpenCV_CUDA_VERSION}")
 
 # Include directories
 include_directories(${OpenCV_INCLUDE_DIRS} includes)
