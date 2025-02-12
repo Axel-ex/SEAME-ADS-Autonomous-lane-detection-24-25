@@ -1,4 +1,18 @@
 {
-        "pythonPath": "/usr/bin/python3"
+    "pythonPath": "/usr/bin/python3",
+    "typeCheckingMode": "basic",
+    "extraPaths": [
+        "/usr/local/lib/python3.6/dist-packages",
+        "/usr/local/lib/python3.6/dist-packages/cv2/python-3.6",
+        "/opt/ros/eloquent/lib/python3.6/site-packages",
+        "/usr/lib/python3.6/dist-packages"
+    ],
+    "reportMissingImports": true,
+    "reportMissingTypeStubs": false,
+    "pythonVersion": "3.6",
+    "stubPath": "./typings",
+    "exclude": [
+        "**/node_modules",
+        "**/__pycache__"
+    ]
 }
-

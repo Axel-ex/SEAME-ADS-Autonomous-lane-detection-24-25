@@ -11,7 +11,7 @@ class VisionNode : public rclcpp::Node
 {
     public:
         VisionNode();
-        ~VisionNode() = default;
+        ~VisionNode();
 
         // process:
         // Grayscale

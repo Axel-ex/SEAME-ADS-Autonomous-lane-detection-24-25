@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 import numpy as np
+import cv2 as cv
 
 class ImagePublisher(Node):
     def __init__(self):
@@ -12,6 +13,8 @@ class ImagePublisher(Node):
 
     def timer_callback(self):
         msg = Image()
+
+        cv.imread("../assets/800px-Road_in_Norway.jpg")
         msg.header.stamp = self.get_clock().now().to_msg()
         msg.header.frame_id = 'camera_frame'
         msg.height = 480
