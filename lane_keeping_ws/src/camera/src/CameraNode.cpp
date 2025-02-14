@@ -9,7 +9,11 @@ using namespace cv;
 
 CameraNode::CameraNode() : Node("camera_node"), running_(true)
 {
-    cap_ = VideoCapture(0, cv::CAP_V4L2);
+    std::string pipeline =
+        "nvarguscamerasrc ! video/x-raw(memory:NVMM), format=NV12, width=640, "
+        "height=480, framerate=30/1 ! nvvidconv ! video/x-raw, format=BGRx ! "
+        "videoconvert ! video/x-raw, format=BGR ! appsink";
+    cap_ = VideoCapture(pipeline, cv::CAP_GSTREAMER);
     if (!cap_.isOpened())
     {
         RCLCPP_ERROR(this->get_logger(), "Couldn't open the camera");
@@ -37,20 +41,21 @@ void CameraNode::initPublisherAndCapture()
 
 void CameraNode::captureFrame()
 {
-    Mat frame;
+    Mat frame(Size(1280, 720), CV_8UC3);
 
     while (rclcpp::ok() && running_)
     {
-        cap_.read(frame);
-        if (frame.empty())
+        if (cap_.read(frame)) // Non-blocking read
+        {
+            std_msgs::msg::Header hdr;
+            sensor_msgs::msg::Image::SharedPtr msg;
+            msg = cv_bridge::CvImage(hdr, "bgr8", frame).toImageMsg();
+            image_pub_.publish(msg);
+        }
+        else
         {
             RCLCPP_ERROR(this->get_logger(), "Error getting frame");
             break;
         }
-        std_msgs::msg::Header hdr;
-        sensor_msgs::msg::Image::SharedPtr msg;
-        msg = cv_bridge::CvImage(hdr, "bgr8", frame).toImageMsg();
-        image_pub_.publish(msg);
-        capture_rate_.sleep();
     }
 }
