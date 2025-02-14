@@ -8,7 +8,6 @@ def generate_launch_description():
             node_executable='classic_vision_node',
             node_name='classic_vision',
             arguments=['--ros-args', '--log-level', 'debug'],
-
         ),
         Node (
             package='image_publisher',
@@ -16,4 +15,10 @@ def generate_launch_description():
             node_name='image_publisher',
             arguments=['--ros-args', '--log-level', 'debug'],
         ),
+        Node (
+            package='camera',
+            node_executable='camera_node',
+            node_name='camera_node',
+            arguments=['--ros-args', '--log-level', 'debug'],
+        )
     ])
