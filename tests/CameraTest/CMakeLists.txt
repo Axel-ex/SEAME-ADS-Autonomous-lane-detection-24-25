@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(camera)
+project(camera_test)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -20,31 +20,11 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-set(exec_name ${PROJECT_NAME}_node)
-set(src_dir src/)
-set(srcs
-        ${src_dir}main.cpp
-		${src_dir}CameraNode.cpp)
-
+set(exec_name ${PROJECT_NAME})
+set(srcs main.cpp)
 
 # Include directories
 include_directories(${OpenCV_INCLUDE_DIRS} includes)
-
-# Find dependencies
-find_package(ament_cmake REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(cv_bridge REQUIRED)
-find_package(image_transport REQUIRED)
-
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  set(ament_cmake_copyright_FOUND TRUE)
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
-
 add_executable(${exec_name} ${srcs})
 
 # Link against OpenCV and other libraries
@@ -52,8 +32,3 @@ target_link_libraries(${exec_name}
   ${OpenCV_LIBS}
   ${CUDA_LIBRARIES}
 )
-
-ament_target_dependencies(${exec_name} rclcpp std_msgs sensor_msgs cv_bridge image_transport)
-
-install(TARGETS ${exec_name} DESTINATION lib/${PROJECT_NAME})
-ament_package()
