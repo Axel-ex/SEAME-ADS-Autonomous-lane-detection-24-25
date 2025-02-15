@@ -36,6 +36,7 @@ find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(image_transport REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -52,7 +53,7 @@ target_link_libraries(${exec_name}
   ${CUDA_LIBRARIES}
 )
 
-ament_target_dependencies(${exec_name} rclcpp std_msgs sensor_msgs cv_bridge)
+ament_target_dependencies(${exec_name} rclcpp std_msgs sensor_msgs cv_bridge image_transport)
 
 install(TARGETS ${exec_name} DESTINATION lib/${PROJECT_NAME})
 ament_package()

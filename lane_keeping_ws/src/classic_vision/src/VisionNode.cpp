@@ -24,17 +24,26 @@ VisionNode::VisionNode() : Node("vision_node")
     // parameter
     this->declare_parameter("max_line_length", 100);
     this->declare_parameter("max_line_gap", 20);
-    this->declare_parameter("max_detected_lines", 1000);
+    this->declare_parameter("max_detected_lines", 200);
+    this->declare_parameter("low_canny_treshold", 20);
+    this->declare_parameter("high_canny_treshold", 80);
 
     RCLCPP_INFO(this->get_logger(), "%s initialized", this->get_name());
+}
+
+void VisionNode::initPublisher()
+{
+
+    auto it = image_transport::ImageTransport(shared_from_this());
+    processed_img_pub_ = it.advertise("processed_img", 1);
 }
 
 void VisionNode::processImage(sensor_msgs::msg::Image::SharedPtr img)
 {
     try
     {
-        RCLCPP_INFO(this->get_logger(), "Received image: %s",
-                    img->encoding.c_str());
+        RCLCPP_DEBUG(this->get_logger(), "Received image: %s",
+                     img->encoding.c_str());
 
         auto converted = cv_bridge::toCvShare(img, img->encoding);
         if (converted->image.empty())
@@ -43,8 +52,9 @@ void VisionNode::processImage(sensor_msgs::msg::Image::SharedPtr img)
             return;
         }
 
-        RCLCPP_INFO(this->get_logger(), "Input image size: %dx%d",
-                    converted->image.cols, converted->image.rows);
+        RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(),
+                              DEBUG_LOG_FREQ, "Input image size: %dx%d",
+                              converted->image.cols, converted->image.rows);
 
         // Upload the image to GPU
         cuda::GpuMat gpu_img;
@@ -64,26 +74,27 @@ void VisionNode::preProcessImage(cuda::GpuMat& gpu_img)
 {
 
     // Convert to grayscale
-    cuda::GpuMat gpu_gray;
-    cuda::cvtColor(gpu_img, gpu_gray, COLOR_BGR2GRAY);
+    cuda::cvtColor(gpu_img, gpu_img, COLOR_BGR2GRAY);
 
     // Apply Gaussian blur
-    cuda::GpuMat gpu_blurred;
     Ptr<cuda::Filter> gaussian_filter =
         cuda::createGaussianFilter(CV_8UC1, CV_8UC1, Size(3, 3), 1.0);
-    gaussian_filter->apply(gpu_gray, gpu_blurred);
+    gaussian_filter->apply(gpu_img, gpu_img);
 
     // Apply Canny edge detection
-    Ptr<cuda::CannyEdgeDetector> canny = cuda::createCannyEdgeDetector(30, 90);
-    canny->detect(gpu_blurred, gpu_img);
+    auto lower_canny_treshold =
+        this->get_parameter("low_canny_treshold").as_int();
+    auto upper_canny_treshold =
+        this->get_parameter("high_canny_treshold").as_int();
+
+    Ptr<cuda::CannyEdgeDetector> canny = cuda::createCannyEdgeDetector(
+        lower_canny_treshold, upper_canny_treshold);
+    canny->detect(gpu_img, gpu_img);
 
     // Save edge detection result
     Mat cpu_edges;
     gpu_img.download(cpu_edges);
     imwrite("processed/edges.jpg", cpu_edges);
-    RCLCPP_INFO(this->get_logger(),
-                "Edge image size: %dx%d, Non-zero pixels: %d", cpu_edges.cols,
-                cpu_edges.rows, countNonZero(cpu_edges));
 }
 
 void VisionNode::detectLines(cuda::GpuMat& gpu_img,
@@ -128,20 +139,12 @@ void VisionNode::detectLines(cuda::GpuMat& gpu_img,
             int x2 = data[i * 4 + 2];
             int y2 = data[i * 4 + 3];
 
-            // Print first few lines for debugging
-            if (i < 5)
-            {
-                RCLCPP_INFO(this->get_logger(), "Line %d: (%d, %d) -> (%d, %d)",
-                            i, x1, y1, x2, y2);
-            }
-
-            // Only add valid lines
             if (x1 >= 0 && x1 < converted->image.cols && y1 >= 0 &&
                 y1 < converted->image.rows && x2 >= 0 &&
                 x2 < converted->image.cols && y2 >= 0 &&
                 y2 < converted->image.rows)
             {
-                lines.push_back(Vec4i(x1, y1, x2, y2)); // No conversion needed
+                lines.push_back(Vec4i(x1, y1, x2, y2));
             }
         }
     }
@@ -156,6 +159,12 @@ void VisionNode::detectLines(cuda::GpuMat& gpu_img,
 
     // Save and display results
     imwrite("processed/result.jpg", result);
-
-    RCLCPP_INFO(this->get_logger(), "Detected %zu valid lines", lines.size());
+    // std_msgs::msg::Header hdr;
+    // sensor_msgs::msg::Image::SharedPtr msg;
+    // msg = cv_bridge::CvImage(hdr, "bgr8", result).toImageMsg();
+    // processed_img_pub_.publish(msg);
+    //
+    RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(),
+                          DEBUG_LOG_FREQ, "Detected %zu valid lines",
+                          lines.size());
 }

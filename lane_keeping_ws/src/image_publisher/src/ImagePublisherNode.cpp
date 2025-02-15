@@ -13,17 +13,23 @@ ImagePublisherNode::ImagePublisherNode() : Node("image_publisher_node")
         this->create_publisher<sensor_msgs::msg::Image>("image_raw", 10);
     timer_ = this->create_wall_timer(std::chrono::seconds(10),
                                      [this]() { publishImage(); });
+    this->declare_parameter("image_name", "road_perso.jpg");
     RCLCPP_INFO(this->get_logger(), "%s initialized", this->get_name());
 }
 
 void ImagePublisherNode::publishImage()
 {
-    auto file_name = "/home/jetpack/SEAME-ADS-Autonomous-lane-detection-24-25/"
-                     "assets/road2.jpg";
-    auto img = cv::imread(file_name, IMREAD_COLOR);
+    auto assets_path =
+        "/home/jetpack/SEAME-ADS-Autonomous-lane-detection-24-25/"
+        "assets/";
+    auto file = this->get_parameter("image_name").as_string();
+    auto full_name = assets_path + file;
+
+    auto img = cv::imread(full_name, IMREAD_COLOR);
     if (img.empty())
     {
-        RCLCPP_ERROR(this->get_logger(), "Couldnt open the image");
+        RCLCPP_ERROR(this->get_logger(), "Couldnt open the image: %s",
+                     full_name.c_str());
         return;
     }
 
