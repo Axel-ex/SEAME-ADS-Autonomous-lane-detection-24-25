@@ -19,7 +19,7 @@ ImagePublisherNode::ImagePublisherNode() : Node("image_publisher_node")
 void ImagePublisherNode::publishImage()
 {
     auto file_name = "/home/jetpack/SEAME-ADS-Autonomous-lane-detection-24-25/"
-                     "assets/road.jpg";
+                     "assets/road2.jpg";
     auto img = cv::imread(file_name, IMREAD_COLOR);
     if (img.empty())
     {

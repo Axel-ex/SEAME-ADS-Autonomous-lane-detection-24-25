@@ -15,10 +15,10 @@ def generate_launch_description():
             node_name='image_publisher',
             arguments=['--ros-args', '--log-level', 'debug'],
         ),
-        Node (
-            package='camera',
-            node_executable='camera_node',
-            node_name='camera_node',
-            arguments=['--ros-args', '--log-level', 'debug'],
-        )
+        # Node (
+        #     package='camera',
+        #     node_executable='camera_node',
+        #     node_name='camera_node',
+        #     arguments=['--ros-args', '--log-level', 'debug'],
+        # )
     ])
