@@ -16,17 +16,11 @@ class VisionNode : public rclcpp::Node
         VisionNode();
         ~VisionNode() = default;
 
-        // process:
-        // Grayscale
-        // blur
-        // edges
-        // ----> produces edges
-
     private:
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_img_sub_;
         void processImage(sensor_msgs::msg::Image::SharedPtr img);
 
-        void preProcessImage(cv::cuda::GpuMat);
-        void detectLines(cv::cuda::GpuMat gpu_img,
-                         cv_bridge::CvImageConstPtr original_img);
+        void preProcessImage(cv::cuda::GpuMat& gpu_img);
+        void detectLines(cv::cuda::GpuMat& gpu_img,
+                         cv_bridge::CvImageConstPtr& original_img);
 };
