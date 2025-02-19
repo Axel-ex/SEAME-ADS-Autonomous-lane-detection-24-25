@@ -1,8 +1,14 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
+from launch.actions import DeclareLaunchArgument
 
 def generate_launch_description():
     return LaunchDescription([
+            DeclareLaunchArgument(
+            "log_level",
+            default_value=["debug"],
+            description="Logging level",
+      ),
         Node (
             package='classic_vision',
             node_executable='classic_vision_node',

@@ -6,7 +6,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 
-constexpr int DEBUG_LOG_FREQ = 5;
+constexpr int DEBUG_LOG_FREQ_MS = 5000;
 
 /**
  * @class VisionNode
@@ -24,9 +24,11 @@ class VisionNode : public rclcpp::Node
     private:
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_img_sub_;
         image_transport::Publisher processed_img_pub_;
-        void processImage(sensor_msgs::msg::Image::SharedPtr img);
+        image_transport::Publisher edge_img_pub_;
+        void processImage(sensor_msgs::msg::Image::SharedPtr img_msg);
 
+        void applyTreshold(cv::cuda::GpuMat& gpu_img);
         void preProcessImage(cv::cuda::GpuMat& gpu_img);
-        void detectLines(cv::cuda::GpuMat& gpu_img,
-                         cv_bridge::CvImageConstPtr& original_img);
+        std::vector<cv::Vec4i> getLines(cv::cuda::GpuMat& gpu_img);
+        void drawLines(cv::Mat& original_img, std::vector<cv::Vec4i>& lines);
 };
