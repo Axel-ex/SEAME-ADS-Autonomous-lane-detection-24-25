@@ -31,4 +31,5 @@ class VisionNode : public rclcpp::Node
         void preProcessImage(cv::cuda::GpuMat& gpu_img);
         std::vector<cv::Vec4i> getLines(cv::cuda::GpuMat& gpu_img);
         void drawLines(cv::Mat& original_img, std::vector<cv::Vec4i>& lines);
+        void publishLines(std::vector<cv::Vec4i>& lines);
 };

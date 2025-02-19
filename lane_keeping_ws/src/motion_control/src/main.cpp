@@ -5,8 +5,8 @@ int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
 
-    auto vision_node = std::make_shared<MotionControlNode>();
-    rclcpp::spin(vision_node);
+    auto node = std::make_shared<MotionControlNode>();
+    rclcpp::spin(node);
 
     rclcpp::shutdown();
     return EXIT_SUCCESS;

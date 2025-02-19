@@ -2,7 +2,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-class MotionControlNode : rclcpp::Node
+class MotionControlNode : public rclcpp::Node
 {
     public:
         MotionControlNode();
