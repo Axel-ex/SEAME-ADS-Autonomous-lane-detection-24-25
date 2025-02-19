@@ -1,5 +1,6 @@
 #include "VisionNode.hpp"
 #include "cv_bridge/cv_bridge.h"
+#include <lane_msgs/msg/lane_positions.hpp>
 #include <opencv2/cudaarithm.hpp>
 #include <opencv2/cudafilters.hpp>
 #include <opencv2/cudaimgproc.hpp>
@@ -20,6 +21,8 @@ VisionNode::VisionNode() : Node("vision_node")
         "image_raw", qos,
         [this](sensor_msgs::msg::Image::SharedPtr img)
         { VisionNode::processImage(img); });
+    lane_pos_pub_ = this->create_publisher<lane_msgs::msg::LanePositions>(
+        "lane_position", 10);
 
     this->declare_parameter("min_line_length", 100);
     this->declare_parameter("max_line_gap", 20);
@@ -63,6 +66,7 @@ void VisionNode::processImage(sensor_msgs::msg::Image::SharedPtr img_msg)
 
         preProcessImage(gpu_img);
         auto lines = getLines(gpu_img);
+        publishLines(lines);
         Mat original_img = converted->image.clone();
         drawLines(original_img, lines);
     }
@@ -170,17 +174,33 @@ void VisionNode::drawLines(Mat& original_img, std::vector<Vec4i>& lines)
 {
 
     // Draw lines
-    Mat result = original_img.clone();
     for (const auto& line : lines)
     {
-        cv::line(result, Point(line[0], line[1]), Point(line[2], line[3]),
+        cv::line(original_img, Point(line[0], line[1]), Point(line[2], line[3]),
                  Scalar(0, 255, 255), 2);
     }
 
     // Save and display results
-    // imwrite("processed/result.jpg", result);
     std_msgs::msg::Header hdr;
     sensor_msgs::msg::Image::SharedPtr msg;
-    msg = cv_bridge::CvImage(hdr, "bgr8", result).toImageMsg();
+    msg = cv_bridge::CvImage(hdr, "bgr8", original_img).toImageMsg();
     processed_img_pub_.publish(msg);
+}
+
+void VisionNode::publishLines(std::vector<cv::Vec4i>& lines)
+{
+    lane_msgs::msg::LanePositions msg;
+
+    msg.header.stamp = this->now();
+    for (const auto& line : lines)
+    {
+        geometry_msgs::msg::Point32 p1, p2;
+        p1.x = line[0];
+        p1.y = line[1];
+        p2.x = line[2];
+        p2.y = line[3];
+        msg.points.push_back(p1);
+        msg.points.push_back(p2);
+    }
+    lane_pos_pub_->publish(msg);
 }
