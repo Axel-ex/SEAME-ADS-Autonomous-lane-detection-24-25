@@ -4,7 +4,10 @@ class PIDController
 {
     public:
         PIDController(float kp, float ki, float kd);
+        PIDController();
         ~PIDController();
+
+        void initializePID(float kp, float ki, float kd);
 
     private:
         float kp_;

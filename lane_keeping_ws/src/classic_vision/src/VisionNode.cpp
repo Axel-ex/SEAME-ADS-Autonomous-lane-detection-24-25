@@ -12,11 +12,11 @@ using namespace cv;
 VisionNode::VisionNode() : Node("vision_node")
 {
     auto qos = rclcpp::QoS(60); // TODO: is QOS adapted?
-    auto ret = rcutils_logging_set_logger_level(get_logger().get_name(),
-                                                RCUTILS_LOG_SEVERITY_DEBUG);
-    if (ret != RCUTILS_RET_OK)
-        RCLCPP_ERROR(get_logger(), "Failed to set logging level to DEBUG");
-
+    // auto ret = rcutils_logging_set_logger_level(get_logger().get_name(),
+    //                                             RCUTILS_LOG_SEVERITY_INFO);
+    // if (ret != RCUTILS_RET_OK)
+    //     RCLCPP_ERROR(get_logger(), "Failed to set logging level to DEBUG");
+    //
     raw_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
         "image_raw", qos,
         [this](sensor_msgs::msg::Image::SharedPtr img)
@@ -172,12 +172,14 @@ std::vector<Vec4i> VisionNode::getLines(cuda::GpuMat& gpu_img)
 
 void VisionNode::drawLines(Mat& original_img, std::vector<Vec4i>& lines)
 {
-
-    // Draw lines
     for (const auto& line : lines)
     {
+        auto slope =
+            (line[3] - line[1]) / (line[2] - line[0]); //(y2 -y1) / (x2 - x1)
+        auto color = slope < 0 ? Scalar(0, 255, 255) : Scalar(255, 255, 0);
+
         cv::line(original_img, Point(line[0], line[1]), Point(line[2], line[3]),
-                 Scalar(0, 255, 255), 2);
+                 color, 2);
     }
 
     // Save and display results
@@ -199,8 +201,12 @@ void VisionNode::publishLines(std::vector<cv::Vec4i>& lines)
         p1.y = line[1];
         p2.x = line[2];
         p2.y = line[3];
-        msg.points.push_back(p1);
-        msg.points.push_back(p2);
+
+        float slope = (p2.y - p1.y) / (p2.x - p1.x);
+        auto& lane = slope < 0 ? msg.left_lane : msg.right_lane;
+
+        lane.push_back(p1);
+        lane.push_back(p2);
     }
     lane_pos_pub_->publish(msg);
 }
