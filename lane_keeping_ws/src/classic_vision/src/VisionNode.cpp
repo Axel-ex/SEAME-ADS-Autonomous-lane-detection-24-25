@@ -24,7 +24,7 @@ VisionNode::VisionNode() : Node("vision_node")
     lane_pos_pub_ = this->create_publisher<lane_msgs::msg::LanePositions>(
         "lane_position", 10);
 
-    this->declare_parameter("min_line_length", 100);
+    this->declare_parameter("min_line_length", 50);
     this->declare_parameter("max_line_gap", 20);
     this->declare_parameter("max_detected_lines", 200);
     this->declare_parameter("low_canny_treshold", 20);
@@ -208,5 +208,6 @@ void VisionNode::publishLines(std::vector<cv::Vec4i>& lines)
         lane.push_back(p1);
         lane.push_back(p2);
     }
+
     lane_pos_pub_->publish(msg);
 }

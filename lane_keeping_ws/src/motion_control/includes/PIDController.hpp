@@ -5,7 +5,7 @@ class PIDController
     public:
         PIDController(float kp, float ki, float kd);
         PIDController();
-        ~PIDController();
+        ~PIDController() = default;
 
         void initializePID(float kp, float ki, float kd);
 

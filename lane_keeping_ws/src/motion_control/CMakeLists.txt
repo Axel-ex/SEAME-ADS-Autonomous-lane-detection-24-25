@@ -14,8 +14,10 @@ endif()
 set(exec_name ${PROJECT_NAME}_node)
 set(src_dir src/)
 set(srcs
-        ${src_dir}main.cpp
-		${src_dir}MotionControlNode.cpp)
+    ${src_dir}main.cpp
+	${src_dir}MotionControlNode.cpp
+	${src_dir}PIDController.cpp
+	)
 
 
 # Include directories
