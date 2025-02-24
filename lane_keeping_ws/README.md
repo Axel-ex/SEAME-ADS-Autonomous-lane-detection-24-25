@@ -74,4 +74,3 @@ Each package follows the ROS2 standard with `CMakeLists.txt`, `package.xml`, sou
   - `lookahead_index`: distance (in buckets) to the reference point
   - `kp`, `ki`, `kd`: proportional, integral and derivative gain.
 ---
-```
