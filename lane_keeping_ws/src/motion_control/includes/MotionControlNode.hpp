@@ -10,6 +10,11 @@
 
 using Point32 = geometry_msgs::msg::Point32;
 
+/**
+ * @class MotionControlNode
+ * @brief Recieves lane positions and update direction accordingly.
+ *
+ */
 class MotionControlNode : public rclcpp::Node
 {
     public:
