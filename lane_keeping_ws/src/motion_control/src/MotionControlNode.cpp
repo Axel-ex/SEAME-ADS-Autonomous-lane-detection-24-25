@@ -2,6 +2,7 @@
 #include "eigen3/Eigen/Dense"
 
 using namespace rclcpp;
+using Point32 = geometry_msgs::msg::Point32;
 
 MotionControlNode::MotionControlNode() : Node("motion_control_node")
 {
@@ -28,44 +29,45 @@ MotionControlNode::MotionControlNode() : Node("motion_control_node")
 void MotionControlNode::processLanePosition(
     lane_msgs::msg::LanePositions::SharedPtr lane_msg)
 {
+    auto left_buckets = extractBuckets(lane_msg->left_lane);
+    auto right_buckets = extractBuckets(lane_msg->right_lane);
 
-    auto left_lane_points = filterLanePositions(lane_msg->left_lane);
-    auto right_lane_points = filterLanePositions(lane_msg->right_lane);
-
-    // TODO: Take action if no line is detected
-    if (left_lane_points.empty() || right_lane_points.empty())
+    if (left_buckets.empty() || right_buckets.empty())
     {
         stopVehicle();
         return;
     }
-
-    auto left_buckets = extractBuckets(left_lane_points);
-    auto right_buckets = extractBuckets(right_lane_points);
+    RCLCPP_INFO(get_logger(), "Found %d left buckets, %d right buckets",
+                left_buckets.size(), right_buckets.size());
 
     // TODO:
-    // Filter out points
     // Estimate position and steering action
     // Integrate the error.
 }
 
-std::vector<geometry_msgs::msg::Point32> MotionControlNode::filterLanePositions(
-    std::vector<geometry_msgs::msg::Point32>& points)
+std::vector<Point32>
+MotionControlNode::filterLanePositions(std::vector<Point32>& points)
 {
+    return points;
 }
 
-std::vector<std::vector<geometry_msgs::msg::Point32>>
-MotionControlNode::extractBuckets(
-    std::vector<geometry_msgs::msg::Point32>& points)
+/**
+ * @brief Groups points into bucket based on the vertical spacing.
+ *
+ * @param points
+ * @return
+ */
+std::vector<std::vector<Point32>>
+MotionControlNode::extractBuckets(std::vector<Point32>& points)
 {
     int bucket_size = get_parameter("bucket_size").as_int();
-    std::vector<std::vector<geometry_msgs::msg::Point32>> result;
+    std::vector<std::vector<Point32>> result;
 
-    if (points.empty())
-        return result;
+    std::sort(points.begin(), points.end(),
+              [](const Point32& a, const Point32& b) { return a.y < b.y; });
 
-    std::vector<geometry_msgs::msg::Point32> bucket;
+    std::vector<Point32> bucket;
     int upper_limit = points.front().y + bucket_size;
-
     for (const auto& point : points)
     {
         if (point.y > upper_limit)
