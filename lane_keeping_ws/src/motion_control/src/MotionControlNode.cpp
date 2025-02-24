@@ -9,8 +9,6 @@ MotionControlNode::MotionControlNode() : Node("motion_control_node")
         [this](lane_msgs::msg::LanePositions::SharedPtr lane_msg)
         { MotionControlNode::processLanePosition(lane_msg); });
     velocity_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
-    status_pub_ =
-        create_publisher<std_msgs::msg::String>("motion_control_status", 10);
 
     declare_parameter("kp", 0.5);
     declare_parameter("ki", 0.1);
@@ -42,12 +40,19 @@ void MotionControlNode::processLanePosition(
 
     // TODO:
     // Estimate position and steering action: could get an average of x position
-    // for a bucket. then we could choose a bucket to look ahead to (target)
-    // assess the distance from the center and steer accordingly
-    // Integrate the error: The PID cotroller should be reducing the error at
-    // each iteration.
+    // for a bucket. then we could choose a bucket to look ahead to (using
+    // lookahead_index),  assess the distance from the reference point and steer
+    // accordingly.
+    // Integrate the error: The PID cotroller should be reducing the
+    // error at each iteration.
 }
 
+/**
+ * @brief Calculate average point for each buckets.
+ *
+ * @param buckets
+ * @return std::vector of average points.
+ */
 std::vector<Point32>
 MotionControlNode::getBucketsAverage(std::vector<std::vector<Point32>>& buckets)
 {
@@ -87,9 +92,11 @@ MotionControlNode::extractBuckets(std::vector<Point32>& points)
     int bucket_size = get_parameter("bucket_size").as_int();
     std::vector<std::vector<Point32>> result;
 
+    // Sort points by ascending y coordinate
     std::sort(points.begin(), points.end(),
               [](const Point32& a, const Point32& b) { return a.y < b.y; });
 
+    // for each bucket, group them by group of size bucket_size
     std::vector<Point32> bucket;
     int upper_limit = points.front().y + bucket_size;
     for (const auto& point : points)

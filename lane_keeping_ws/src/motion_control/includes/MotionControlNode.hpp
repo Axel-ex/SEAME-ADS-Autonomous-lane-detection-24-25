@@ -25,7 +25,6 @@ class MotionControlNode : public rclcpp::Node
         rclcpp::Subscription<lane_msgs::msg::LanePositions>::SharedPtr
             lane_pos_sub_;
         rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr velocity_pub_;
-        rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
         PIDController pid_controller_;
 
         void
