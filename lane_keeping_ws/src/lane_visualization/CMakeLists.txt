@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(motion_control)
+project(lane_visualization)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -15,12 +15,11 @@ set(exec_name ${PROJECT_NAME}_node)
 set(src_dir src/)
 set(srcs
     ${src_dir}main.cpp
-	${src_dir}MotionControlNode.cpp
-	${src_dir}PIDController.cpp
+	${src_dir}LaneVisualizationNode.cpp
 )
 
 # Include directories
-include_directories(${OpenCV_INCLUDE_DIRS} includes)
+include_directories(includes)
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)

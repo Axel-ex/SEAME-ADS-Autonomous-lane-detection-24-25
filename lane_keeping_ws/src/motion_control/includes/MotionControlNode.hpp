@@ -5,7 +5,10 @@
 #include <geometry_msgs/msg/twist.hpp>
 #include <lane_msgs/msg/lane_positions.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/point_cloud.hpp>
 #include <std_msgs/msg/string.hpp>
+
+using Point32 = geometry_msgs::msg::Point32;
 
 class MotionControlNode : public rclcpp::Node
 {
@@ -23,10 +26,10 @@ class MotionControlNode : public rclcpp::Node
         void
         processLanePosition(lane_msgs::msg::LanePositions::SharedPtr lane_msg);
 
-        std::vector<geometry_msgs::msg::Point32>
-        filterLanePositions(std::vector<geometry_msgs::msg::Point32>& points);
-        std::vector<std::vector<geometry_msgs::msg::Point32>>
-        extractBuckets(std::vector<geometry_msgs::msg::Point32>& points);
-
+        std::vector<Point32> filterLanePositions(std::vector<Point32>& points);
+        std::vector<std::vector<Point32>>
+        extractBuckets(std::vector<Point32>& points);
+        std::vector<Point32>
+        getBucketsAverage(std::vector<std::vector<Point32>>& buckets);
         void stopVehicle();
 };

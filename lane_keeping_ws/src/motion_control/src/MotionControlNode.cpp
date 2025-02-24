@@ -1,8 +1,6 @@
 #include "MotionControlNode.hpp"
-#include "eigen3/Eigen/Dense"
 
 using namespace rclcpp;
-using Point32 = geometry_msgs::msg::Point32;
 
 MotionControlNode::MotionControlNode() : Node("motion_control_node")
 {
@@ -10,8 +8,7 @@ MotionControlNode::MotionControlNode() : Node("motion_control_node")
         "lane_position", 10,
         [this](lane_msgs::msg::LanePositions::SharedPtr lane_msg)
         { MotionControlNode::processLanePosition(lane_msg); });
-    velocity_pub_ =
-        this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+    velocity_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
     status_pub_ =
         create_publisher<std_msgs::msg::String>("motion_control_status", 10);
 
@@ -40,9 +37,36 @@ void MotionControlNode::processLanePosition(
     RCLCPP_INFO(get_logger(), "Found %d left buckets, %d right buckets",
                 left_buckets.size(), right_buckets.size());
 
+    auto left_lane_center = getBucketsAverage(left_buckets);
+    auto right_lane_center = getBucketsAverage(right_buckets);
+
     // TODO:
-    // Estimate position and steering action
-    // Integrate the error.
+    // Estimate position and steering action: could get an average of x position
+    // for a bucket. then we could choose a bucket to look ahead to (target)
+    // assess the distance from the center and steer accordingly
+    // Integrate the error: The PID cotroller should be reducing the error at
+    // each iteration.
+}
+
+std::vector<Point32>
+MotionControlNode::getBucketsAverage(std::vector<std::vector<Point32>>& buckets)
+{
+    std::vector<Point32> result;
+
+    for (auto& bucket : buckets)
+    {
+        Point32 point_avg;
+        for (auto& point : bucket)
+        {
+            point_avg.x += point.x;
+            point_avg.y += point.y;
+        }
+        point_avg.x /= bucket.size();
+        point_avg.y /= bucket.size();
+        result.push_back(point_avg);
+    }
+
+    return result;
 }
 
 std::vector<Point32>
@@ -78,7 +102,6 @@ MotionControlNode::extractBuckets(std::vector<Point32>& points)
         }
         bucket.push_back(point);
     }
-    // Last bucket
     if (!bucket.empty())
         result.push_back(std::move(bucket));
 
