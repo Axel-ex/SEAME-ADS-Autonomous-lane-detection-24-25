@@ -19,5 +19,11 @@ class LaneVisualizationNode : public rclcpp::Node
     private:
         rclcpp::Subscription<lane_msgs::msg::LanePositions>::SharedPtr
             lane_pos_sub_;
+        rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
+            marker_pub_;
+
+        void
+        processLanePosition(const lane_msgs::msg::LanePositions::SharedPtr msg);
+
         // TODO: subscription for lane_centers
 };
