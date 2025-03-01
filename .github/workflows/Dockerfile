@@ -47,11 +47,11 @@ ENV LD_LIBRARY_PATH ${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
 # Source ROS 2 setup.bash
 RUN echo "source /opt/ros/eloquent/setup.bash" >> ~/.bashrc
 
-# Install run-clang-tidy
-RUN git clone https://github.com/lmapii/run-clang-tidy.git && \
-    cd run-clang-tidy && \
-    cargo build --release --target-dir /tmp/target && \
-    mv /tmp/target/release/run-clang-tidy /usr/local/bin/run-clang-tidy-rust
+# # Install run-clang-tidy
+# RUN git clone https://github.com/lmapii/run-clang-tidy.git && \
+#     cd run-clang-tidy && \
+#     cargo build --release --target-dir /tmp/target && \
+#     mv /tmp/target/release/run-clang-tidy /usr/local/bin/run-clang-tidy-rust
 
 # Set up workspace
 WORKDIR /workspace
