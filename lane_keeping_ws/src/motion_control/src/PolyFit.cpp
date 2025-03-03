@@ -1,4 +1,4 @@
-#include "PolyFit.hpp"
+#include "../includes/PolyFit.hpp"
 
 /*
  * zlib License
@@ -387,7 +387,7 @@ void DisplayCoefs(const size_t k, const double* coefbeta)
     }
 }
 
-double  *calculate(double *x, double *y, size_t degree, size_t n)
+std::vector<double> calculate(double *x, double *y, size_t degree, size_t n)
 {
     bool fixedinter = false;                         // Fixed the intercept (coefficient A0)
     int wtype = 0;                                   // Weight: 0 = none (default), 1 = sigma, 2 = 1/sigma^2
@@ -448,13 +448,14 @@ double  *calculate(double *x, double *y, size_t degree, size_t n)
 
     Free2DArray(XTWXInv, degree + 1);
     Free2DArray(Weights, n);
-
-    return coefbeta;
+    std::vector<double> vec_coef(coefbeta, coefbeta + degree);
+    delete[] coefbeta;
+    return vec_coef;
 }
 
 // The main program
 // **************************************************************
-/*int main()
+int main()
 {
     size_t k = 4;  // Polynomial order
     
@@ -504,6 +505,9 @@ double  *calculate(double *x, double *y, size_t degree, size_t n)
         52700.00,
         100700.00,
     };
-    double *coef = calculate(x,y, k, sizeof(x) / sizeof(double));
-    delete[] coef;
-}*/
+    std::vector<double> vec= calculate(x,y, k, sizeof(x) / sizeof(double));
+    for (double num : vec)
+        std::cout << num << " ";
+    std::cout << std::endl;
+    return 0;
+}

@@ -35,8 +35,6 @@ class MotionControlNode : public rclcpp::Node
         std::vector<Point32> filterLanePositions(std::vector<Point32>& points);
         std::vector<std::vector<Point32>>
         extractBuckets(std::vector<Point32>& points);
-        std::vector<Point32>
-        getBucketsAverage(std::vector<std::vector<Point32>>& buckets);
         void stopVehicle();
 
 };

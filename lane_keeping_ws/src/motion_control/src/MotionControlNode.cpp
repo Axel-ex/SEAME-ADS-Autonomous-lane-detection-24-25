@@ -1,4 +1,4 @@
-#include "MotionControlNode.hpp"
+#include "../includes/MotionControlNode.hpp"
 
 using namespace rclcpp;
 
@@ -24,54 +24,40 @@ MotionControlNode::MotionControlNode() : Node("motion_control_node")
 void MotionControlNode::processLanePosition(
     lane_msgs::msg::LanePositions::SharedPtr lane_msg)
 {
-    auto left_buckets = extractBuckets(lane_msg->left_lane);
-    auto right_buckets = extractBuckets(lane_msg->right_lane);
+    std::vector<double> left_x;
+    std::vector<double> left_y;
+    std::vector<double> right_x;
+    std::vector<double> right_y;
 
-    if (left_buckets.empty() || right_buckets.empty())
-    {
-        stopVehicle();
-        return;
-    }
+    separateCoordinates(lane_msg->left_lane, left_x, left_y);
+    separateCoordinates(lane_msg->right_lane, right_x, right_y);
+
+    //if its a straight line, the degree of poly is 1
+    //but usually it will be 2
+    //we can check variability of x to know
+    size_t degree = 2;
+    std::vector<double> left_coef = calculate(left_x.data(), left_y.data(),
+                                              degree, left_x.size());
+    std::vector<double> right_coef = calculate(right_x.data(), right_y.data(),
+                                               degree, right_x.size());
+
+
     RCLCPP_INFO(get_logger(), "Found %d left buckets, %d right buckets",
                 left_buckets.size(), right_buckets.size());
 
-    auto left_lane_center = getBucketsAverage(left_buckets);
-    auto right_lane_center = getBucketsAverage(right_buckets);
 
-    // TODO:
-    // Estimate position and steering action: could get an average of x position
-    // for a bucket. then we could choose a bucket to look ahead to (using
-    // lookahead_index),  assess the distance from the reference point and steer
-    // accordingly.
-    // Integrate the error: The PID cotroller should be reducing the
-    // error at each iteration.
 }
 
-/**
- * @brief Calculate average point for each buckets.
- *
- * @param buckets
- * @return std::vector of average points.
- */
-std::vector<Point32>
-MotionControlNode::getBucketsAverage(std::vector<std::vector<Point32>>& buckets)
+void separateCoordinates(const std::vector<Point32>& points, std::vector<double>& x, std::vector<double>& y)
 {
-    std::vector<Point32> result;
-
-    for (auto& bucket : buckets)
+    x.clear();
+    y.clear();
+    
+    for (const auto& point : points)
     {
-        Point32 point_avg;
-        for (auto& point : bucket)
-        {
-            point_avg.x += point.x;
-            point_avg.y += point.y;
-        }
-        point_avg.x /= bucket.size();
-        point_avg.y /= bucket.size();
-        result.push_back(point_avg);
+        x.push_back(point.x);
+        y.push_back(point.y);
     }
-
-    return result;
 }
 
 std::vector<Point32>
@@ -93,8 +79,7 @@ MotionControlNode::extractBuckets(std::vector<Point32>& points)
     std::vector<std::vector<Point32>> result;
 
     // Sort points by ascending y coordinate
-    std::sort(points.begin(), points.end(),
-              [](const Point32& a, const Point32& b) { return a.y < b.y; });
+    std::sort(points.begin(), points.end(),[](const Point32& a, const Point32& b) { return a.y < b.y; });
 
     // for each bucket, group them by group of size bucket_size
     std::vector<Point32> bucket;

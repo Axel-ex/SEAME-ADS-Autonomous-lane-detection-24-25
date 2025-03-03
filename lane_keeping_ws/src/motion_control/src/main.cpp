@@ -1,4 +1,4 @@
-#include "MotionControlNode.hpp"
+#include "../includes/MotionControlNode.hpp"
 #include <rclcpp/rclcpp.hpp>
 
 int main(int argc, char** argv)

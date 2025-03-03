@@ -17,6 +17,6 @@ using namespace std;
 #define TINY 1.0e-30
 
 double  calculatePoly(const double x, const double* a, const size_t n);
-double  *calculate(double *x, double *y, size_t degree, size_t n);
+std::vector<double> calculate(double *x, double *y, size_t degree, size_t n);
 
 #endif
