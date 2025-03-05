@@ -40,12 +40,27 @@ void MotionControlNode::processLanePosition(
                                               degree, left_x.size());
     std::vector<double> right_coef = calculate(right_x.data(), right_y.data(),
                                                degree, right_x.size());
+    //assuming car always goes in straight line: y = mx + b
+    //intersection occurs on ax**2 + cx + d = mx + b
+    //therefor ax**2 + (c - m)x + d - b = 0
+    double m = 1; //?
+    double b = 1; //?
+    double left_col = quadraticFormula(left_coef[2], left_coef[1] - m,
+                                       left_coef[1] - b);
+    double right_col = quadraticFormula(right_coef[2], right_coef[1] - m,
+                                        right_coef[1] - b);
+}
 
-
-    RCLCPP_INFO(get_logger(), "Found %d left buckets, %d right buckets",
-                left_buckets.size(), right_buckets.size());
-
-
+double quadraticFormula(double a, double b, double c)
+{
+    double	t_plus = (-1 * b + sqrt(b * b - 4 * a * c)) / (2 * a);
+	double	t_minu = (-1 * b - sqrt(b * b - 4 * a * c)) / (2 * a);
+	if (t_plus >= 0 && (t_minu <= 0 || t_plus <= t_minu))
+		return (t_plus);
+	else if (t_minu >= 0)
+		return (t_minu);
+	else
+		return (-1);
 }
 
 void separateCoordinates(const std::vector<Point32>& points, std::vector<double>& x, std::vector<double>& y)
