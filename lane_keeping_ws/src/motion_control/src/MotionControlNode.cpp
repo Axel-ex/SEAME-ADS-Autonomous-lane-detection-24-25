@@ -40,15 +40,18 @@ void MotionControlNode::processLanePosition(
                                               degree, left_x.size());
     std::vector<double> right_coef = calculate(right_x.data(), right_y.data(),
                                                degree, right_x.size());
-    //assuming car always goes in straight line: y = mx + b
-    //intersection occurs on ax**2 + cx + d = mx + b
-    //therefor ax**2 + (c - m)x + d - b = 0
-    double m = 1; //?
-    double b = 1; //?
-    double left_col = quadraticFormula(left_coef[2], left_coef[1] - m,
-                                       left_coef[1] - b);
-    double right_col = quadraticFormula(right_coef[2], right_coef[1] - m,
-                                        right_coef[1] - b);
+                                               
+    //assuming car always goes in straight line: dx**2 + ex + f = y, where d = 0
+    //intersection occurs on ax**2 + bx + c = dx**2 + ex + f
+    //therefor (a - d)x**2 + (b - e)x + (c - f) = 0
+
+    double d = 0; //?
+    double e = 1; //?
+    double f = 1; //?
+    double left_col = quadraticFormula(left_coef[2], left_coef[1] - e,
+                                       left_coef[1] - f);
+    double right_col = quadraticFormula(right_coef[2], right_coef[1] - e,
+                                        right_coef[1] - f);
 }
 
 double quadraticFormula(double a, double b, double c)

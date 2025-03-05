@@ -8,6 +8,7 @@
 #include <sensor_msgs/msg/point_cloud.hpp>
 #include <std_msgs/msg/string.hpp>
 
+#include <cmath>
 #include "PolyFit.hpp"
 
 using Point32 = geometry_msgs::msg::Point32;
