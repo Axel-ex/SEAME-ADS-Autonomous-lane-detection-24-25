@@ -1,4 +1,5 @@
 #include "MotionControlNode.hpp"
+#include "PolyFit.hpp"
 
 using namespace rclcpp;
 
@@ -54,7 +55,7 @@ void MotionControlNode::processLanePosition(
         quadraticFormula(right_coef[2], right_coef[1] - e, right_coef[1] - f);
 }
 
-double quadraticFormula(double a, double b, double c)
+double MotionControlNode::quadraticFormula(double a, double b, double c)
 {
     double t_plus = (-1 * b + sqrt(b * b - 4 * a * c)) / (2 * a);
     double t_minu = (-1 * b - sqrt(b * b - 4 * a * c)) / (2 * a);
@@ -66,8 +67,9 @@ double quadraticFormula(double a, double b, double c)
         return (-1);
 }
 
-void separateCoordinates(const std::vector<Point32>& points,
-                         std::vector<double>& x, std::vector<double>& y)
+void MotionControlNode::separateCoordinates(const std::vector<Point32>& points,
+                                            std::vector<double>& x,
+                                            std::vector<double>& y)
 {
     x.clear();
     y.clear();
@@ -77,12 +79,6 @@ void separateCoordinates(const std::vector<Point32>& points,
         x.push_back(point.x);
         y.push_back(point.y);
     }
-}
-
-std::vector<Point32>
-MotionControlNode::filterLanePositions(std::vector<Point32>& points)
-{
-    return points;
 }
 
 void MotionControlNode::stopVehicle()

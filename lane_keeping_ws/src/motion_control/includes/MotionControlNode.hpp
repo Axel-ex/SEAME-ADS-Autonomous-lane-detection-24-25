@@ -8,9 +8,6 @@
 #include <sensor_msgs/msg/point_cloud.hpp>
 #include <std_msgs/msg/string.hpp>
 
-#include <cmath>
-#include "PolyFit.hpp"
-
 using Point32 = geometry_msgs::msg::Point32;
 
 /**
@@ -33,9 +30,9 @@ class MotionControlNode : public rclcpp::Node
         void
         processLanePosition(lane_msgs::msg::LanePositions::SharedPtr lane_msg);
 
-        std::vector<Point32> filterLanePositions(std::vector<Point32>& points);
-        std::vector<std::vector<Point32>>
-        extractBuckets(std::vector<Point32>& points);
         void stopVehicle();
-
+        double quadraticFormula(double a, double b, double c);
+        void separateCoordinates(const std::vector<Point32>& points,
+                                 std::vector<double>& x,
+                                 std::vector<double>& y);
 };
