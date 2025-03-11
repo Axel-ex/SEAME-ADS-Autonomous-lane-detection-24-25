@@ -8,6 +8,9 @@
 #include <sensor_msgs/msg/point_cloud.hpp>
 #include <std_msgs/msg/string.hpp>
 
+#include <cmath>
+#include "PolyFit.hpp"
+
 using Point32 = geometry_msgs::msg::Point32;
 
 /**
@@ -33,7 +36,6 @@ class MotionControlNode : public rclcpp::Node
         std::vector<Point32> filterLanePositions(std::vector<Point32>& points);
         std::vector<std::vector<Point32>>
         extractBuckets(std::vector<Point32>& points);
-        std::vector<Point32>
-        getBucketsAverage(std::vector<std::vector<Point32>>& buckets);
         void stopVehicle();
+
 };
