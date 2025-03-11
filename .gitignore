@@ -4,3 +4,4 @@ log/
 .cache/
 bags/
 .vscode
+*.avi
