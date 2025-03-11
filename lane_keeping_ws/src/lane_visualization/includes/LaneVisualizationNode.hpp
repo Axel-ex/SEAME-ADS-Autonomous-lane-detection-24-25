@@ -9,6 +9,7 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 
 using Point32 = geometry_msgs::msg::Point32;
+using ColorRGBA = std_msgs::msg::ColorRGBA;
 
 class LaneVisualizationNode : public rclcpp::Node
 {
@@ -24,6 +25,6 @@ class LaneVisualizationNode : public rclcpp::Node
 
         void
         processLanePosition(const lane_msgs::msg::LanePositions::SharedPtr msg);
-
-        // TODO: subscription for lane_centers
+        void publishLaneMarks(const std::vector<Point32>& points,
+                              ColorRGBA& color);
 };
