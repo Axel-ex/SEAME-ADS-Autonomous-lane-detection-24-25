@@ -42,17 +42,39 @@ void MotionControlNode::processLanePosition(
     std::vector<double> right_coef =
         calculate(right_x.data(), right_y.data(), degree, right_x.size());
 
-    // assuming car always goes in straight line: dx**2 + ex + f = y, where d =
-    // 0 intersection occurs on ax**2 + bx + c = dx**2 + ex + f therefor (a -
-    // d)x**2 + (b - e)x + (c - f) = 0
+    // TODO: find center point ()
+    //
+    //  assuming car always goes in straight line: dx**2 + ex + f = y, where d =
+    //  0 intersection occurs on ax**2 + bx + c = dx**2 + ex + f therefor (a -
+    //  d)x**2 + (b - e)x + (c - f) = 0
 
-    double d = 0; //?
-    double e = 1; //?
-    double f = 1; //?
-    double left_col =
-        quadraticFormula(left_coef[2], left_coef[1] - e, left_coef[1] - f);
-    double right_col =
-        quadraticFormula(right_coef[2], right_coef[1] - e, right_coef[1] - f);
+    // double d = 0; //?
+    // double e = 1; //?
+    // double f = 1; //?
+    // double left_col =
+    //     quadraticFormula(left_coef[2], left_coef[1] - e, left_coef[1] - f);
+    // double right_col =
+    //     quadraticFormula(right_coef[2], right_coef[1] - e, right_coef[1] -
+    //     f);
+}
+
+/**
+ * @brief Find lane center at fix distance "lookahead_index"
+ *
+ * @param left_coef
+ * @param right_coef
+ * @return y position of the lane center at index "lookahead"
+ */
+double MotionControlNode::findLaneCenter(const std::vector<double>& left_coef,
+                                         const std::vector<double>& right_coef)
+{
+    auto lookahead = get_parameter("lookahead_index").as_int();
+    auto y_left = (left_coef[2] * std::pow(lookahead, 2)) +
+                  (left_coef[1] * lookahead) + left_coef[0];
+    auto y_right = (right_coef[2] * std::pow(lookahead, 2)) +
+                   (right_coef[1] * lookahead) + right_coef[0];
+
+    return ((y_left - y_right) / 2);
 }
 
 double MotionControlNode::quadraticFormula(double a, double b, double c)
