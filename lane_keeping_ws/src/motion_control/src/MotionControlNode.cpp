@@ -24,22 +24,8 @@ MotionControlNode::MotionControlNode() : Node("motion_control_node")
 void MotionControlNode::processLanePosition(
     lane_msgs::msg::LanePositions::SharedPtr lane_msg)
 {
-    std::vector<double> left_x;
-    std::vector<double> left_y;
-    std::vector<double> right_x;
-    std::vector<double> right_y;
-
-    separateCoordinates(lane_msg->left_lane, left_x, left_y);
-    separateCoordinates(lane_msg->right_lane, right_x, right_y);
-
-    //if its a straight line, the degree of poly is 1
-    //but usually it will be 2
-    //we can check variability of x to know
-    size_t degree = 2;
-    std::vector<double> left_coef = calculate(left_x.data(), left_y.data(),
-                                              degree, left_x.size());
-    std::vector<double> right_coef = calculate(right_x.data(), right_y.data(),
-                                               degree, right_x.size());
+    std::vector<double> left_coef = polyfit(lane_msg->left_lane);
+    std::vector<double> right_coef = polyfit(lane_msg->right_lane);
                                                
     //assuming car always goes in straight line: dx**2 + ex + f = y, where d = 0
     //intersection occurs on ax**2 + bx + c = dx**2 + ex + f
@@ -48,10 +34,27 @@ void MotionControlNode::processLanePosition(
     double d = 0; //?
     double e = 1; //?
     double f = 1; //?
-    double left_col = quadraticFormula(left_coef[2], left_coef[1] - e,
+    double left_col = quadraticFormula(left_coef[2] - d, left_coef[1] - e,
                                        left_coef[1] - f);
-    double right_col = quadraticFormula(right_coef[2], right_coef[1] - e,
+    double right_col = quadraticFormula(right_coef[2] - d, right_coef[1] - e,
                                         right_coef[1] - f);
+
+    double left_y = left_coef[2] * std::pow(left_col, 2) + left_coef[1] * left_col + left_coef[2];
+    double right_y = right_coef[2] * std::pow(right_col, 2) + right_coef[1] * right_col + right_coef[2];
+}
+
+std::vector<double>    polyfit(const std::vector<Point32>& point)
+{
+    std::vector<double> x;
+    std::vector<double> y;
+
+    separateCoordinates(point, x, y);
+
+    //if its a straight line, the degree of poly is 1
+    //but usually it will be 2
+    //we can check variability of x to know
+    size_t degree = 2;
+    return calculate(x.data(), y.data(), degree, x.size());
 }
 
 double quadraticFormula(double a, double b, double c)
