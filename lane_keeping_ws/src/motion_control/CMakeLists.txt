@@ -17,6 +17,7 @@ set(srcs
     ${src_dir}main.cpp
 	${src_dir}MotionControlNode.cpp
 	${src_dir}PIDController.cpp
+	${src_dir}PolyFit.cpp
 )
 
 # Include directories
