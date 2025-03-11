@@ -8,6 +8,7 @@ class PIDController
         ~PIDController() = default;
 
         void initializePID(float kp, float ki, float kd);
+        void calculateSteering();
 
     private:
         float kp_;

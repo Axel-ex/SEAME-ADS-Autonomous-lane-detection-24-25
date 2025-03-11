@@ -39,10 +39,7 @@ void LaneVisualizationNode::publishLaneMarks(const std::vector<Point32>& points,
     center_mark.scale.x = 0.1; // Sphere size
     center_mark.scale.y = 0.1;
     center_mark.scale.z = 0.1;
-    center_mark.color.a = 1.0; // transparency
-    center_mark.color.r = 0.0;
-    center_mark.color.g = 0.1;
-    center_mark.color.b = 0.0;
+    center_mark.color = color;
 
     for (const auto& point : points)
     {
