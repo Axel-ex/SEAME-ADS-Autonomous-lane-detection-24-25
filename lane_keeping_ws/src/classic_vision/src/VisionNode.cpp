@@ -12,11 +12,6 @@ using namespace cv;
 VisionNode::VisionNode() : Node("vision_node")
 {
     auto qos = rclcpp::QoS(60); // TODO: is QOS adapted?
-    // auto ret = rcutils_logging_set_logger_level(get_logger().get_name(),
-    //                                             RCUTILS_LOG_SEVERITY_INFO);
-    // if (ret != RCUTILS_RET_OK)
-    //     RCLCPP_ERROR(get_logger(), "Failed to set logging level to DEBUG");
-    //
     raw_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
         "image_raw", qos,
         [this](sensor_msgs::msg::Image::SharedPtr img)
@@ -85,8 +80,8 @@ void VisionNode::applyTreshold(cuda::GpuMat& gpu_img)
     // V: value, 0-255 how brght
 
     // define the HSV range
-    Scalar lower_orange(10, 100, 100);
-    Scalar upper_orange(25, 255, 255);
+    Scalar lower_orange(0, 100, 100);
+    Scalar upper_orange(15, 255, 255);
 
     // Apply mask. instead of creating a mask and masking the original img, we
     // use the mask as the picture for further processing

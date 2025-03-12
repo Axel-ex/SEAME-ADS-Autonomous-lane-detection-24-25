@@ -7,25 +7,33 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             "log_level",
-            default_value="DEBUG",  # Should be a string, not a list
+            default_value="DEBUG",
             description="Logging level",
         ),
         Node(
             package='classic_vision',
-            node_executable='classic_vision_node',  # Changed from node_executable to executable
-            node_name='classic_vision',  # Changed from node_name to name
-            arguments=['--ros-args', '--log-level', logger],
+            node_executable='classic_vision_node',
+            node_name='classic_vision',
         ),
         Node(
             package='image_publisher',
-            node_executable='image_publisher_node',  # Changed from node_executable to executable
-            node_name='image_publisher',  # Changed from node_name to name
-            arguments=['--ros-args', '--log-level', logger],
+            node_executable='image_publisher_node',  
+            node_name='image_publisher',  
+        ),
+        Node(
+            package='motion_control',
+            node_executable='motion_control_node',  
+            node_name='motion_control',  
+        ),
+        Node(
+            package='lane_visualization',
+            node_executable='lane_visualization_node',  
+            node_name='lane_visualization',  
         ),
         # Node(
         #     package='camera',
-        #     executable='camera_node',  # Changed from node_executable to executable
-        #     name='camera_node',  # Changed from node_name to name
+        #     executable='camera_node',  
+        #     name='camera_node',  
         #     arguments=['--ros-args', '--log-level', 'debug'],
         # )
     ])

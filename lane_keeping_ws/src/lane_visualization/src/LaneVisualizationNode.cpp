@@ -3,23 +3,28 @@
 #include <opencv2/opencv.hpp>
 
 LaneVisualizationNode::LaneVisualizationNode()
-    : rclcpp::Node("lane visualization node")
+    : rclcpp::Node("lane_visualization_node")
 {
     raw_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-        "raw_img", 10,
+        "image_raw", 10,
         [this](const sensor_msgs::msg::Image::SharedPtr msg)
         { this->processImage(msg); });
-    lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
-        "lane_positions", 10,
-        [this](const lane_msgs::msg::LanePositions::SharedPtr msg)
-        { this->processLanePosition(msg); });
+
+    // lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
+    //     "lane_positions", 10,
+    //     [this](const lane_msgs::msg::LanePositions::SharedPtr msg)
+    //     { this->processLanePosition(msg); });
+    //
     polyfit_coefs_sub_ =
         this->create_subscription<lane_msgs::msg::PolyfitCoefs>(
             "polyfit_coefs", 10,
             [this](const lane_msgs::msg::PolyfitCoefs::SharedPtr msg)
             { this->storeCoefs(msg); });
-    marker_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(
-        "lane_marks", 10);
+
+    RCLCPP_INFO(this->get_logger(), "starting LaneVisualisationNode");
+    // marker_pub_ =
+    // this->create_publisher<visualization_msgs::msg::MarkerArray>(
+    //     "lane_marks", 10);
 }
 
 void LaneVisualizationNode::initPublishers()
@@ -55,31 +60,36 @@ void LaneVisualizationNode::processImage(
     const sensor_msgs::msg::Image::SharedPtr msg)
 {
     if (left_coefs.empty() || right_coefs.empty())
+    {
+        RCLCPP_INFO(this->get_logger(), "empty polyfit coefs");
         return;
+    }
 
+    RCLCPP_INFO(this->get_logger(), "starting analysis");
     auto converted = cv_bridge::toCvShare(msg, msg->encoding);
     cv::Mat img = converted->image;
 
     // Generate points from equations
     std::vector<cv::Point> left_poly, right_poly;
-    for (int x = 0; x < 300; x++)
+    for (int x = 0; x < 640; x++)
     {
-        int y_left = img.rows - ((left_coefs[2] * std::pow(x, 2)) +
-                                 (left_coefs[1] * x) + left_coefs[0]);
-        int y_right = img.rows - ((right_coefs[2] * std::pow(x, 2)) +
-                                  (right_coefs[1] * x) + right_coefs[0]);
+        int y_left = ((left_coefs[2] * std::pow(x, 2)) + (left_coefs[1] * x) +
+                      left_coefs[0]);
+        int y_right = ((right_coefs[2] * std::pow(x, 2)) +
+                       (right_coefs[1] * x) + right_coefs[0]);
 
         left_poly.emplace_back(x, y_left);
         right_poly.emplace_back(x, y_right);
     }
 
-    cv::polylines(img, left_poly, false, cv::Scalar(0, 255, 255));
-    cv::polylines(img, right_poly, false, cv::Scalar(0, 255, 255));
+    cv::polylines(img, left_poly, false, cv::Scalar(0, 0, 255), 2);
+    cv::polylines(img, right_poly, false, cv::Scalar(0, 255, 0), 2);
 
     cv_bridge::CvImage out_msg;
     out_msg.header = msg->header;
     out_msg.encoding = msg->encoding;
     out_msg.image = img;
+    RCLCPP_INFO(this->get_logger(), "publishing analysis");
     img_pub_.publish(out_msg.toImageMsg());
 }
 

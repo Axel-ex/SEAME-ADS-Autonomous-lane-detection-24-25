@@ -456,7 +456,7 @@ std::vector<double> calculate(double* x, double* y, size_t degree, size_t n)
 
     Free2DArray(XTWXInv, degree + 1);
     Free2DArray(Weights, n);
-    std::vector<double> vec_coef(coefbeta, coefbeta + degree);
+    std::vector<double> vec_coef(coefbeta, coefbeta + degree + 1);
     delete[] coefbeta;
     return vec_coef;
 }

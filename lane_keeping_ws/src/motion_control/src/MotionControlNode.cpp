@@ -39,12 +39,12 @@ void MotionControlNode::processLanePosition(
     // but usually it will be 2
     // we can check variability of x to know
     size_t degree = 2;
-    std::vector<double> left_coef =
+    std::vector<double> left_coefs =
         calculate(left_x.data(), left_y.data(), degree, left_x.size());
-    std::vector<double> right_coef =
+    std::vector<double> right_coefs =
         calculate(right_x.data(), right_y.data(), degree, right_x.size());
 
-    publishPolyfitCoefficients(left_coef, right_coef);
+    publishPolyfitCoefficients(left_coefs, right_coefs);
     // TODO: find center point ()
     //
     //  assuming car always goes in straight line: dx**2 + ex + f = y, where d =
@@ -71,7 +71,7 @@ void MotionControlNode::publishPolyfitCoefficients(
     for (const auto& coef : left_coefs)
         msg.left_coefs.push_back(static_cast<float>(coef));
     for (const auto& coef : right_coefs)
-        msg.left_coefs.push_back(static_cast<float>(coef));
+        msg.right_coefs.push_back(static_cast<float>(coef));
 
     polyfit_coefs_pub_->publish(msg);
 }
