@@ -67,8 +67,8 @@ void VisionNode::processImage(sensor_msgs::msg::Image::SharedPtr img_msg)
         preProcessImage(gpu_img);
         auto lines = getLines(gpu_img);
         publishLines(lines);
-        Mat original_img = converted->image.clone();
-        drawLines(original_img, lines);
+        // Mat original_img = converted->image.clone();
+        // drawLines(original_img, lines);
     }
     catch (const cv::Exception& e)
     {

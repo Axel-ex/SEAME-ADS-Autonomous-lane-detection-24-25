@@ -4,7 +4,7 @@
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <lane_msgs/msg/lane_positions.hpp>
-// #include <lane_msgs/msg/polyfit_coefs.hpp>
+#include <lane_msgs/msg/polyfit_coefs.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud.hpp>
 #include <std_msgs/msg/string.hpp>
@@ -25,6 +25,9 @@ class MotionControlNode : public rclcpp::Node
     private:
         rclcpp::Subscription<lane_msgs::msg::LanePositions>::SharedPtr
             lane_pos_sub_;
+        rclcpp::Publisher<lane_msgs::msg::PolyfitCoefs>::SharedPtr
+            polyfit_coefs_pub_;
+
         rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr velocity_pub_;
         PIDController pid_controller_;
 
@@ -32,6 +35,8 @@ class MotionControlNode : public rclcpp::Node
         processLanePosition(lane_msgs::msg::LanePositions::SharedPtr lane_msg);
 
         void stopVehicle();
+        void publishPolyfitCoefficients(const std::vector<double>& left_coefs,
+                                        const std::vector<double>& right_coefs);
         double findLaneCenter(const std::vector<double>& left_coef,
                               const std::vector<double>& right_coef);
         double quadraticFormula(double a, double b, double c);

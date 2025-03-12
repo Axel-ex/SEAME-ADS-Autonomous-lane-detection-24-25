@@ -3,6 +3,15 @@ project(lane_visualization)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# CUDA support
+set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda-10.2")
+set(CMAKE_CUDA_COMPILER "${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc")
+set(CMAKE_CUDA_ARCHITECTURES 53)  # Jetson Nano uses sm_53
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-O3)
+find_package(CUDA REQUIRED)
+enable_language(CUDA)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui cudaimgproc cudawarping cudafilters)
+
 # Enable C++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -28,6 +37,8 @@ find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(lane_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(image_transport REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -38,7 +49,12 @@ endif()
 
 add_executable(${exec_name} ${srcs})
 
-ament_target_dependencies(${exec_name} rclcpp std_msgs sensor_msgs lane_msgs visualization_msgs)
+target_link_libraries(${exec_name}
+  ${OpenCV_LIBS}
+  ${CUDA_LIBRARIES}
+)
+
+ament_target_dependencies(${exec_name} rclcpp std_msgs sensor_msgs lane_msgs visualization_msgs image_transport cv_bridge)
 
 install(TARGETS ${exec_name} DESTINATION lib/${PROJECT_NAME})
 ament_package()

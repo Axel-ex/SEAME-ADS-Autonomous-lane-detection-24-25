@@ -9,6 +9,8 @@ MotionControlNode::MotionControlNode() : Node("motion_control_node")
         "lane_position", 10,
         [this](lane_msgs::msg::LanePositions::SharedPtr lane_msg)
         { MotionControlNode::processLanePosition(lane_msg); });
+    polyfit_coefs_pub_ =
+        create_publisher<lane_msgs::msg::PolyfitCoefs>("polyfit_coefs", 10);
     velocity_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
 
     declare_parameter("kp", 0.5);
@@ -42,6 +44,7 @@ void MotionControlNode::processLanePosition(
     std::vector<double> right_coef =
         calculate(right_x.data(), right_y.data(), degree, right_x.size());
 
+    publishPolyfitCoefficients(left_coef, right_coef);
     // TODO: find center point ()
     //
     //  assuming car always goes in straight line: dx**2 + ex + f = y, where d =
@@ -56,6 +59,21 @@ void MotionControlNode::processLanePosition(
     // double right_col =
     //     quadraticFormula(right_coef[2], right_coef[1] - e, right_coef[1] -
     //     f);
+}
+
+void MotionControlNode::publishPolyfitCoefficients(
+    const std::vector<double>& left_coefs,
+    const std::vector<double>& right_coefs)
+{
+    lane_msgs::msg::PolyfitCoefs msg;
+
+    msg.header.stamp = now();
+    for (const auto& coef : left_coefs)
+        msg.left_coefs.push_back(static_cast<float>(coef));
+    for (const auto& coef : right_coefs)
+        msg.left_coefs.push_back(static_cast<float>(coef));
+
+    polyfit_coefs_pub_->publish(msg);
 }
 
 /**
