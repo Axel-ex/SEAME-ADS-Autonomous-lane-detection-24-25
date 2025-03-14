@@ -8,6 +8,8 @@
 #include <sensor_msgs/msg/image.hpp>
 
 constexpr int DEBUG_LOG_FREQ_MS = 5000;
+constexpr float IMG_WIDTH = 640;
+constexpr float IMG_HEIGHT = 480;
 
 /**
  * @class VisionNode
@@ -28,10 +30,12 @@ class VisionNode : public rclcpp::Node
             lane_pos_pub_;
         image_transport::Publisher processed_img_pub_;
         image_transport::Publisher edge_img_pub_;
+        image_transport::Publisher orange_mask_pub_;
 
         void processImage(sensor_msgs::msg::Image::SharedPtr img_msg);
         void applyTreshold(cv::cuda::GpuMat& gpu_img);
         void preProcessImage(cv::cuda::GpuMat& gpu_img);
+        void cropToROI(cv::cuda::GpuMat& gpu_img);
 
         std::vector<cv::Vec4i> getLines(cv::cuda::GpuMat& gpu_img);
         void drawLines(cv::Mat& original_img, std::vector<cv::Vec4i>& lines);

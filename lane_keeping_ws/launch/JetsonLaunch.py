@@ -25,11 +25,11 @@ def generate_launch_description():
             node_executable='motion_control_node',  
             node_name='motion_control',  
         ),
-        Node(
-            package='lane_visualization',
-            node_executable='lane_visualization_node',  
-            node_name='lane_visualization',  
-        ),
+        # Node(
+        #     package='lane_visualization',
+        #     node_executable='lane_visualization_node',  
+        #     node_name='lane_visualization',  
+        # ),
         # Node(
         #     package='camera',
         #     executable='camera_node',  
