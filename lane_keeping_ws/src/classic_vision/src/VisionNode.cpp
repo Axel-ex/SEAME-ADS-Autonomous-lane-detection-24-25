@@ -24,15 +24,12 @@ VisionNode::VisionNode() : Node("vision_node")
     this->declare_parameter("max_detected_lines", 200);
     this->declare_parameter("low_canny_treshold", 20);
     this->declare_parameter("high_canny_treshold", 80);
-    this->declare_parameter("rho", 1.0);
     RCLCPP_INFO(this->get_logger(), "%s initialized", this->get_name());
 }
 
 void VisionNode::initPublisher()
 {
-
     auto it = image_transport::ImageTransport(shared_from_this());
-    processed_img_pub_ = it.advertise("processed_img", 1);
     edge_img_pub_ = it.advertise("edges_img", 1);
     orange_mask_pub_ = it.advertise("mask_img", 1);
 }
@@ -61,10 +58,8 @@ void VisionNode::processImage(sensor_msgs::msg::Image::SharedPtr img_msg)
         gpu_img.upload(converted->image);
 
         preProcessImage(gpu_img);
-        auto lines = getLines(gpu_img);
-        publishLines(lines);
-        Mat original_img = converted->image.clone();
-        drawLines(original_img, lines);
+        auto lines = extractLines(gpu_img);
+        publishLanePositions(lines);
     }
     catch (const cv::Exception& e)
     {
@@ -81,12 +76,12 @@ void VisionNode::applyTreshold(cuda::GpuMat& gpu_img)
     // V: value, 0-255 how brght
 
     // define the HSV range
-    Scalar lower_orange(0, 80, 80);
+    Scalar lower_orange(0, 100, 100);
     Scalar upper_orange(15, 255, 255);
 
-    // Apply mask. instead of creating a mask and masking the original img, we
-    // use the mask as the picture for further processing
+    // Apply mask and crop
     cuda::inRange(gpu_img, lower_orange, upper_orange, gpu_img);
+    cropToROI(gpu_img);
 
     // Morphological transformation
     auto morpho_size = 3;
@@ -109,7 +104,6 @@ void VisionNode::applyTreshold(cuda::GpuMat& gpu_img)
     dilate_filter->apply(gpu_img, gpu_img);
     erode_filter->apply(gpu_img, gpu_img);
 
-    cropToROI(gpu_img);
     // Publish result
     std_msgs::msg::Header hdr;
     sensor_msgs::msg::Image::SharedPtr msg;
@@ -121,9 +115,7 @@ void VisionNode::applyTreshold(cuda::GpuMat& gpu_img)
 
 void VisionNode::preProcessImage(cuda::GpuMat& gpu_img)
 {
-
-    // Convert to grayscale
-    // cuda::cvtColor(gpu_img, gpu_img, COLOR_BGR2GRAY);
+    // Apply orange mask and crop the picture
     applyTreshold(gpu_img);
 
     // Apply Gaussian blur
@@ -164,6 +156,7 @@ void VisionNode::cropToROI(cuda::GpuMat& gpu_img)
         cv::Point(width, height / 5), // Top-right
         cv::Point(0, height / 5)      // Top-left
     };
+
     // Fill the ROI mask with white inside the polygon
     cv::fillPoly(roi_mask, std::vector<std::vector<cv::Point>>{roi_points},
                  cv::Scalar(255));
@@ -176,17 +169,16 @@ void VisionNode::cropToROI(cuda::GpuMat& gpu_img)
     cuda::bitwise_and(gpu_img, gpu_roi_mask, gpu_img);
 }
 
-std::vector<Vec4i> VisionNode::getLines(cuda::GpuMat& gpu_img)
+std::vector<Vec4i> VisionNode::extractLines(cuda::GpuMat& gpu_img)
 {
     auto min_line_length = this->get_parameter("min_line_length").as_int();
     auto max_detected_lines =
         this->get_parameter("max_detected_lines").as_int();
     auto max_line_gap = this->get_parameter("max_line_gap").as_int();
-    auto rho = this->get_parameter("rho").as_double();
 
     cuda::GpuMat gpu_lines;
     auto line_detector = cuda::createHoughSegmentDetector(
-        rho, CV_PI / 180.0f, min_line_length, max_line_gap, max_detected_lines);
+        1.0, CV_PI / 180.0f, min_line_length, max_line_gap, max_detected_lines);
 
     line_detector->detect(gpu_img, gpu_lines);
 
@@ -222,66 +214,19 @@ std::vector<Vec4i> VisionNode::getLines(cuda::GpuMat& gpu_img)
     return lines;
 }
 
-void VisionNode::drawLines(Mat& original_img, std::vector<Vec4i>& lines)
-{
-    for (const auto& line : lines)
-    {
-        auto slope =
-            (line[3] - line[1]) / (line[2] - line[0]); //(y2 -y1) / (x2 - x1)
-        auto color = slope < 0 ? Scalar(0, 255, 255) : Scalar(255, 255, 0);
-
-        cv::line(original_img, Point(line[0], line[1]), Point(line[2], line[3]),
-                 color, 2);
-    }
-
-    // Save and display results
-    std_msgs::msg::Header hdr;
-    sensor_msgs::msg::Image::SharedPtr msg;
-    msg = cv_bridge::CvImage(hdr, "bgr8", original_img).toImageMsg();
-    processed_img_pub_.publish(msg);
-}
-
-void VisionNode::publishLines(std::vector<cv::Vec4i>& lines)
+void VisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines)
 {
     lane_msgs::msg::LanePositions msg;
     msg.header.stamp = this->now();
 
-    std::vector<cv::Vec4i> left_lines, right_lines;
-    for (const auto& line : lines)
-    {
-        float dx = line[2] - line[0];
-        float dy = line[3] - line[1];
-
-        if (std::abs(dx) < 1e-3)
-            continue;
-
-        float slope = dy / dx;
-        float x_mid = (line[0] + line[2]) / 2.0f;
-
-        if (slope < -0.1 && x_mid < (IMG_WIDTH / 2))
-            left_lines.push_back(line);
-        else if (slope > 0.1 && x_mid > (IMG_WIDTH / 2))
-            right_lines.push_back(line);
-    }
-
-    for (auto& line : left_lines)
+    for (auto& line : lines)
     {
         geometry_msgs::msg::Point32 p1, p2;
         p1.x = line[0];
         p1.y = line[1];
         p2.x = line[2];
-        p2.x = line[3];
-        msg.left_lane.insert(msg.left_lane.end(), {p1, p2});
+        p2.y = line[3];
+        msg.lane_points.insert(msg.lane_points.end(), {p1, p2});
     }
-    for (auto& line : right_lines)
-    {
-        geometry_msgs::msg::Point32 p1, p2;
-        p1.x = line[0];
-        p1.y = line[1];
-        p2.x = line[2];
-        p2.x = line[3];
-        msg.left_lane.insert(msg.left_lane.end(), {p1, p2});
-    }
-
     lane_pos_pub_->publish(msg);
 }

@@ -10,11 +10,6 @@ LaneVisualizationNode::LaneVisualizationNode()
         [this](const sensor_msgs::msg::Image::SharedPtr msg)
         { this->processImage(msg); });
 
-    // lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
-    //     "lane_positions", 10,
-    //     [this](const lane_msgs::msg::LanePositions::SharedPtr msg)
-    //     { this->processLanePosition(msg); });
-    //
     polyfit_coefs_sub_ =
         this->create_subscription<lane_msgs::msg::PolyfitCoefs>(
             "polyfit_coefs", 10,
@@ -22,29 +17,12 @@ LaneVisualizationNode::LaneVisualizationNode()
             { this->storeCoefs(msg); });
 
     RCLCPP_INFO(this->get_logger(), "starting LaneVisualisationNode");
-    // marker_pub_ =
-    // this->create_publisher<visualization_msgs::msg::MarkerArray>(
-    //     "lane_marks", 10);
 }
 
 void LaneVisualizationNode::initPublishers()
 {
     auto it = image_transport::ImageTransport(shared_from_this());
     img_pub_ = it.advertise("processed_img", 1);
-}
-
-void LaneVisualizationNode::processLanePosition(
-    const lane_msgs::msg::LanePositions::SharedPtr msg)
-{
-    ColorRGBA lane_color;
-    lane_color.a = 1.0;
-    lane_color.g = 0.1;
-    lane_color.b = 0.0;
-    lane_color.r = 0.0;
-
-    publishLaneMarks(msg->right_lane, lane_color);
-    lane_color.b = 0.1;
-    publishLaneMarks(msg->left_lane, lane_color);
 }
 
 /**
@@ -59,9 +37,9 @@ void LaneVisualizationNode::processLanePosition(
 void LaneVisualizationNode::processImage(
     const sensor_msgs::msg::Image::SharedPtr msg)
 {
-    if (left_coefs.empty() || right_coefs.empty())
+    if (polyfit_coefs.empty())
     {
-        RCLCPP_INFO(this->get_logger(), "empty polyfit coefs");
+        RCLCPP_WARN(this->get_logger(), "empty polyfit coefs");
         return;
     }
 
@@ -70,66 +48,29 @@ void LaneVisualizationNode::processImage(
     cv::Mat img = converted->image;
 
     // Generate points from equations
-    std::vector<cv::Point> left_poly, right_poly;
-    for (int x = 0; x < 640; x++)
+    std::vector<cv::Point> polyfit_points;
+    for (unsigned int x = 0; x < msg->height; x++)
     {
-        int y_left = ((left_coefs[2] * std::pow(x, 2)) + (left_coefs[1] * x) +
-                      left_coefs[0]);
-        int y_right = ((right_coefs[2] * std::pow(x, 2)) +
-                       (right_coefs[1] * x) + right_coefs[0]);
+        int y = ((polyfit_coefs[2] * std::pow(x, 2)) + (polyfit_coefs[1] * x) +
+                 polyfit_coefs[0]);
 
-        left_poly.emplace_back(x, y_left);
-        right_poly.emplace_back(x, y_right);
+        polyfit_points.emplace_back(x, y);
     }
 
-    cv::polylines(img, left_poly, false, cv::Scalar(0, 0, 255), 2);
-    cv::polylines(img, right_poly, false, cv::Scalar(0, 255, 0), 2);
+    cv::polylines(img, polyfit_points, false, cv::Scalar(0, 255, 0), 2);
 
     cv_bridge::CvImage out_msg;
     out_msg.header = msg->header;
     out_msg.encoding = msg->encoding;
     out_msg.image = img;
-    RCLCPP_INFO(this->get_logger(), "publishing analysis");
     img_pub_.publish(out_msg.toImageMsg());
 }
 
 void LaneVisualizationNode::storeCoefs(
     const lane_msgs::msg::PolyfitCoefs::SharedPtr msg)
 {
-    left_coefs.clear();
-    right_coefs.clear();
+    polyfit_coefs.clear();
 
-    for (auto coef : msg->left_coefs)
-        left_coefs.push_back(coef);
-    for (auto coef : msg->right_coefs)
-        right_coefs.push_back(coef);
-}
-
-void LaneVisualizationNode::publishLaneMarks(const std::vector<Point32>& points,
-                                             ColorRGBA& color)
-{
-    visualization_msgs::msg::MarkerArray marker_array;
-
-    visualization_msgs::msg::Marker center_mark;
-    center_mark.header.frame_id = "map";
-    center_mark.header.stamp = this->now();
-    center_mark.id = 1;
-    center_mark.type = visualization_msgs::msg::Marker::POINTS;
-    center_mark.action = visualization_msgs::msg::Marker::ADD;
-    center_mark.scale.x = 0.1; // Sphere size
-    center_mark.scale.y = 0.1;
-    center_mark.scale.z = 0.1;
-    center_mark.color = color;
-
-    for (const auto& point : points)
-    {
-        geometry_msgs::msg::Point p;
-        p.x = point.x;
-        p.y = point.y;
-        p.z = 0.0;
-
-        center_mark.points.push_back(p);
-    }
-    marker_array.markers.push_back(center_mark);
-    marker_pub_->publish(marker_array);
+    for (auto coef : msg->coefs)
+        polyfit_coefs.push_back(coef);
 }
