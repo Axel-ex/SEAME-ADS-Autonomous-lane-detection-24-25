@@ -8,8 +8,6 @@
 #include <sensor_msgs/msg/image.hpp>
 
 constexpr int DEBUG_LOG_FREQ_MS = 5000;
-constexpr float IMG_WIDTH = 640;
-constexpr float IMG_HEIGHT = 480;
 
 /**
  * @class VisionNode
@@ -37,5 +35,5 @@ class VisionNode : public rclcpp::Node
         void cropToROI(cv::cuda::GpuMat& gpu_img);
 
         std::vector<cv::Vec4i> getLines(cv::cuda::GpuMat& gpu_img);
-        void publishLines(std::vector<cv::Vec4i>& lines);
+        void publishLines(std::vector<cv::Vec4i>& lines, int img_width);
 };

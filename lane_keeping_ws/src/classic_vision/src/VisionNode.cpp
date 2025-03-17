@@ -19,7 +19,7 @@ VisionNode::VisionNode() : Node("vision_node")
     lane_pos_pub_ = this->create_publisher<lane_msgs::msg::LanePositions>(
         "lane_position", 10);
 
-    this->declare_parameter("min_line_length", 50);
+    this->declare_parameter("min_line_length", 20);
     this->declare_parameter("max_line_gap", 20);
     this->declare_parameter("max_detected_lines", 200);
     this->declare_parameter("low_canny_treshold", 20);
@@ -61,7 +61,7 @@ void VisionNode::processImage(sensor_msgs::msg::Image::SharedPtr img_msg)
 
         preProcessImage(gpu_img);
         auto lines = getLines(gpu_img);
-        publishLines(lines);
+        publishLines(lines, gpu_img.rows);
     }
     catch (const cv::Exception& e)
     {
@@ -96,7 +96,7 @@ void VisionNode::applyTreshold(cuda::GpuMat& gpu_img)
 
     cuda::GpuMat gpu_elem(elem);
 
-    // Create the cuda filters
+    // Create the filter to erode / dilate for better results
     auto dilate_filter =
         cuda::createMorphologyFilter(cv::MORPH_DILATE, gpu_img.type(), elem);
     auto erode_filter =
@@ -219,7 +219,7 @@ std::vector<Vec4i> VisionNode::getLines(cuda::GpuMat& gpu_img)
     return lines;
 }
 
-void VisionNode::publishLines(std::vector<cv::Vec4i>& lines)
+void VisionNode::publishLines(std::vector<cv::Vec4i>& lines, int img_width)
 {
     lane_msgs::msg::LanePositions msg;
     msg.header.stamp = this->now();
@@ -237,9 +237,9 @@ void VisionNode::publishLines(std::vector<cv::Vec4i>& lines)
         // float slope = dy / dx;
         float x_mid = (line[0] + line[2]) / 2.0f;
 
-        if (x_mid < (IMG_WIDTH / 2))
+        if (x_mid < (static_cast<double>(img_width) / 2))
             left_lines.push_back(line);
-        else if (x_mid > (IMG_WIDTH / 2))
+        else if (x_mid > (static_cast<double>(img_width) / 2))
             right_lines.push_back(line);
     }
 
@@ -259,8 +259,10 @@ void VisionNode::publishLines(std::vector<cv::Vec4i>& lines)
         p1.y = line[1];
         p2.x = line[2];
         p2.y = line[3];
-        msg.right_lane.insert(msg.left_lane.end(), {p1, p2});
+        msg.right_lane.insert(msg.right_lane.end(), {p1, p2});
     }
+    RCLCPP_INFO(this->get_logger(), "right_lanes size: %d\nleft_lane size: %d",
+                right_lines.size(), left_lines.size());
 
     lane_pos_pub_->publish(msg);
 }

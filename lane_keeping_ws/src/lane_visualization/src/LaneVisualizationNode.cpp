@@ -85,15 +85,21 @@ void LaneVisualizationNode::processImage(
         right_poly.emplace_back(x, y_right);
     }
 
-    cv::polylines(img, left_poly, false, cv::Scalar(0, 0, 255), 2);
-    cv::polylines(img, right_poly, false, cv::Scalar(0, 255, 0), 2);
+    cv::polylines(img, left_poly, false, cv::Scalar(0, 0, 255), 1);
+    cv::polylines(img, right_poly, false, cv::Scalar(0, 255, 0), 1);
 
     for (auto& point : left_lane_pos_)
-        cv::circle(img, cv::Point(point.x, point.y), 2, cv::Scalar(0, 255, 255),
-                   2);
+        cv::circle(img, cv::Point(point.x, point.y), 1, cv::Scalar(0, 255, 255),
+                   1);
     for (auto& point : right_lane_pos_)
-        cv::circle(img, cv::Point(point.x, point.y), 2, cv::Scalar(0, 0, 255),
-                   2);
+        cv::circle(img, cv::Point(point.x, point.y), 1, cv::Scalar(0, 0, 255),
+                   1);
+
+    cv::circle(img, cv::Point(0, 0), 2, cv::Scalar(0, 0, 255), 2);
+    cv::circle(img, cv::Point(img.cols, 0), 2, cv::Scalar(0, 255, 0), 2);
+    cv::circle(img, cv::Point(0, img.rows), 2, cv::Scalar(255, 0, 0), 2);
+    cv::circle(img, cv::Point(img.cols, img.rows), 2, cv::Scalar(255, 255, 255),
+               2);
 
     cv_bridge::CvImage out_msg;
     out_msg.header = msg->header;
