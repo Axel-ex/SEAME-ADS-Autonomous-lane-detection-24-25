@@ -21,6 +21,11 @@ LaneVisualizationNode::LaneVisualizationNode()
             [this](const lane_msgs::msg::PolyfitCoefs::SharedPtr msg)
             { this->storeCoefs(msg); });
 
+    lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
+        "lane_position", 10,
+        [this](const lane_msgs::msg::LanePositions::SharedPtr msg)
+        { this->storeLanePosition(msg); });
+
     RCLCPP_INFO(this->get_logger(), "starting LaneVisualisationNode");
     // marker_pub_ =
     // this->create_publisher<visualization_msgs::msg::MarkerArray>(
@@ -33,18 +38,16 @@ void LaneVisualizationNode::initPublishers()
     img_pub_ = it.advertise("processed_img", 1);
 }
 
-void LaneVisualizationNode::processLanePosition(
+void LaneVisualizationNode::storeLanePosition(
     const lane_msgs::msg::LanePositions::SharedPtr msg)
 {
-    ColorRGBA lane_color;
-    lane_color.a = 1.0;
-    lane_color.g = 0.1;
-    lane_color.b = 0.0;
-    lane_color.r = 0.0;
+    left_lane_pos_.clear();
+    right_lane_pos_.clear();
 
-    publishLaneMarks(msg->right_lane, lane_color);
-    lane_color.b = 0.1;
-    publishLaneMarks(msg->left_lane, lane_color);
+    for (auto& point : msg->left_lane)
+        left_lane_pos_.push_back(point);
+    for (auto& point : msg->right_lane)
+        right_lane_pos_.push_back(point);
 }
 
 /**
@@ -85,6 +88,13 @@ void LaneVisualizationNode::processImage(
     cv::polylines(img, left_poly, false, cv::Scalar(0, 0, 255), 2);
     cv::polylines(img, right_poly, false, cv::Scalar(0, 255, 0), 2);
 
+    for (auto& point : left_lane_pos_)
+        cv::circle(img, cv::Point(point.x, point.y), 2, cv::Scalar(0, 255, 255),
+                   2);
+    for (auto& point : right_lane_pos_)
+        cv::circle(img, cv::Point(point.x, point.y), 2, cv::Scalar(0, 0, 255),
+                   2);
+
     cv_bridge::CvImage out_msg;
     out_msg.header = msg->header;
     out_msg.encoding = msg->encoding;
@@ -99,9 +109,9 @@ void LaneVisualizationNode::storeCoefs(
     left_coefs.clear();
     right_coefs.clear();
 
-    for (auto coef : msg->left_coefs)
+    for (auto& coef : msg->left_coefs)
         left_coefs.push_back(coef);
-    for (auto coef : msg->right_coefs)
+    for (auto& coef : msg->right_coefs)
         right_coefs.push_back(coef);
 }
 

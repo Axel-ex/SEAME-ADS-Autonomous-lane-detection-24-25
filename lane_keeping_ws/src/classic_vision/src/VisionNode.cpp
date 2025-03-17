@@ -32,9 +32,8 @@ void VisionNode::initPublisher()
 {
 
     auto it = image_transport::ImageTransport(shared_from_this());
-    processed_img_pub_ = it.advertise("processed_img", 1);
     edge_img_pub_ = it.advertise("edges_img", 1);
-    orange_mask_pub_ = it.advertise("mask_img", 1);
+    mask_pub_ = it.advertise("mask_img", 1);
 }
 
 void VisionNode::processImage(sensor_msgs::msg::Image::SharedPtr img_msg)
@@ -63,8 +62,6 @@ void VisionNode::processImage(sensor_msgs::msg::Image::SharedPtr img_msg)
         preProcessImage(gpu_img);
         auto lines = getLines(gpu_img);
         publishLines(lines);
-        Mat original_img = converted->image.clone();
-        drawLines(original_img, lines);
     }
     catch (const cv::Exception& e)
     {
@@ -116,7 +113,7 @@ void VisionNode::applyTreshold(cuda::GpuMat& gpu_img)
     Mat mask;
     gpu_img.download(mask);
     msg = cv_bridge::CvImage(hdr, "mono8", mask).toImageMsg();
-    orange_mask_pub_.publish(msg);
+    mask_pub_.publish(msg);
 }
 
 void VisionNode::preProcessImage(cuda::GpuMat& gpu_img)
@@ -222,45 +219,27 @@ std::vector<Vec4i> VisionNode::getLines(cuda::GpuMat& gpu_img)
     return lines;
 }
 
-void VisionNode::drawLines(Mat& original_img, std::vector<Vec4i>& lines)
-{
-    for (const auto& line : lines)
-    {
-        auto slope =
-            (line[3] - line[1]) / (line[2] - line[0]); //(y2 -y1) / (x2 - x1)
-        auto color = slope < 0 ? Scalar(0, 255, 255) : Scalar(255, 255, 0);
-
-        cv::line(original_img, Point(line[0], line[1]), Point(line[2], line[3]),
-                 color, 2);
-    }
-
-    // Save and display results
-    std_msgs::msg::Header hdr;
-    sensor_msgs::msg::Image::SharedPtr msg;
-    msg = cv_bridge::CvImage(hdr, "bgr8", original_img).toImageMsg();
-    processed_img_pub_.publish(msg);
-}
-
 void VisionNode::publishLines(std::vector<cv::Vec4i>& lines)
 {
     lane_msgs::msg::LanePositions msg;
     msg.header.stamp = this->now();
 
     std::vector<cv::Vec4i> left_lines, right_lines;
+    RCLCPP_INFO(this->get_logger(), "Lines detected: %d", lines.size());
     for (const auto& line : lines)
     {
-        float dx = line[2] - line[0];
-        float dy = line[3] - line[1];
+        // float dx = line[2] - line[0];
+        // float dy = line[3] - line[1];
+        //
+        // if (std::abs(dx) < 1e-3)
+        //     continue;
 
-        if (std::abs(dx) < 1e-3)
-            continue;
-
-        float slope = dy / dx;
+        // float slope = dy / dx;
         float x_mid = (line[0] + line[2]) / 2.0f;
 
-        if (slope < -0.1 && x_mid < (IMG_WIDTH / 2))
+        if (x_mid < (IMG_WIDTH / 2))
             left_lines.push_back(line);
-        else if (slope > 0.1 && x_mid > (IMG_WIDTH / 2))
+        else if (x_mid > (IMG_WIDTH / 2))
             right_lines.push_back(line);
     }
 
@@ -270,7 +249,7 @@ void VisionNode::publishLines(std::vector<cv::Vec4i>& lines)
         p1.x = line[0];
         p1.y = line[1];
         p2.x = line[2];
-        p2.x = line[3];
+        p2.y = line[3];
         msg.left_lane.insert(msg.left_lane.end(), {p1, p2});
     }
     for (auto& line : right_lines)
@@ -279,8 +258,8 @@ void VisionNode::publishLines(std::vector<cv::Vec4i>& lines)
         p1.x = line[0];
         p1.y = line[1];
         p2.x = line[2];
-        p2.x = line[3];
-        msg.left_lane.insert(msg.left_lane.end(), {p1, p2});
+        p2.y = line[3];
+        msg.right_lane.insert(msg.left_lane.end(), {p1, p2});
     }
 
     lane_pos_pub_->publish(msg);

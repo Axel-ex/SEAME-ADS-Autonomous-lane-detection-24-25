@@ -25,6 +25,8 @@ class LaneVisualizationNode : public rclcpp::Node
     private:
         std::vector<double> left_coefs;
         std::vector<double> right_coefs;
+        std::vector<Point32> left_lane_pos_;
+        std::vector<Point32> right_lane_pos_;
 
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_img_sub_;
         rclcpp::Subscription<lane_msgs::msg::LanePositions>::SharedPtr
@@ -37,7 +39,7 @@ class LaneVisualizationNode : public rclcpp::Node
 
         void processImage(const sensor_msgs::msg::Image::SharedPtr msg);
         void
-        processLanePosition(const lane_msgs::msg::LanePositions::SharedPtr msg);
+        storeLanePosition(const lane_msgs::msg::LanePositions::SharedPtr msg);
         void storeCoefs(const lane_msgs::msg::PolyfitCoefs::SharedPtr msg);
         void publishLaneMarks(const std::vector<Point32>& points,
                               ColorRGBA& color);
