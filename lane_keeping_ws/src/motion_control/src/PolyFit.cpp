@@ -276,6 +276,94 @@ void cofactor(double** num, double** inverse, const size_t f)
     Free2DArray(fac,f);
 }
 
+
+// Calculate the residual sum of squares (RSS)
+// **************************************************************
+double CalculateRSS(const double* x, const double* y, const double* a, double** Weights,
+                    const size_t N, const size_t n) {
+
+    double r2 = 0.;
+    double ri = 0.;
+    for (size_t i = 0; i < N; i++) {
+        ri = y[i];
+        for (size_t j = 0; j < n; j++) {
+            ri -= a[j] * pow(x[i], j);
+        }
+        r2 += ri * ri * Weights[i][i];
+    }
+
+    return r2;
+
+}
+
+// Calculate the total sum of squares (TSS) 
+// **************************************************************
+double CalculateTSS(const double* y, double** Weights,
+    const bool fixed, const size_t N) {
+
+    double r2 = 0.;
+    double ri = 0.;
+    double sumwy = 0.;
+    double sumweights = 0.;
+    size_t begin = 0;
+    if (fixed) {
+        for (size_t i = begin; i < N; i++) {
+            r2 += y[i] * y[i] * Weights[i][i];
+        }
+    }
+    else {
+
+
+        for (size_t i = begin; i < N; i++) {
+            sumwy += y[i] * Weights[i][i];
+            sumweights += Weights[i][i];
+        }
+
+        for (size_t i = begin; i < N; i++) {
+            ri = y[i] - sumwy / sumweights;
+            r2 += ri * ri * Weights[i][i];
+        }
+    }
+
+    return r2;
+
+}
+
+// Calculate coefficient R2 - COD
+// **************************************************************
+double CalculateR2COD(const double* x, const double* y, const double* a, double** Weights,
+    const bool fixed, const size_t N, const size_t n) {
+
+    double RSS = CalculateRSS(x, y, a, Weights, N, n);
+    double TSS = CalculateTSS(y, Weights, fixed, N);
+    double R2 = 1. - RSS / TSS;
+
+    return R2;
+
+}
+
+// Calculate the coefficient R2 - adjusted
+// **************************************************************
+double CalculateR2Adj(const double* x, const double* y, const double* a, double** Weights,
+    const bool fixed, const size_t N, const size_t n) {
+
+    double RSS = CalculateRSS(x, y, a, Weights, N, n);
+    double TSS = CalculateTSS(y, Weights, fixed, N);
+
+    double dferr = N - n;
+    double dftot = N - 1;
+
+    if (fixed) {
+        dferr += 1.;
+        dftot += 1.;
+    }
+
+    double R2Adj = 1. - (dftot) / (dferr)*RSS / TSS;
+
+    return R2Adj;
+
+}
+
 // Perform the fit of data n data points (x,y) with a polynomial of order k
 // **************************************************************
 void PolyFit(const double* x, double* y, const size_t n, const size_t k, const bool fixedinter,
@@ -445,6 +533,12 @@ std::vector<double> calculate(double *x, double *y, size_t degree, size_t n)
     // **************************************************************
     PolyFit(x, y, n, degree, fixedinter, fixedinterval, coefbeta, Weights, XTWXInv);
     DisplayCoefs(degree, coefbeta);
+    double r2 = CalculateR2COD(x, y, coefbeta, Weights, fixedinter, n, degree + 1);
+    while (r2 < 0.95)
+    {
+        std::cout << "Cod " << r2  << " degree = " << degree << "\n";
+        r2 = CalculateR2COD(x, y, coefbeta, Weights, fixedinter, n, degree++ + 1);
+    }
 
     Free2DArray(XTWXInv, degree + 1);
     Free2DArray(Weights, n);
@@ -453,11 +547,80 @@ std::vector<double> calculate(double *x, double *y, size_t degree, size_t n)
     return vec_coef;
 }
 
+double calculate2(double *x, double *y, size_t degree, size_t n)
+{
+    bool fixedinter = false;                         // Fixed the intercept (coefficient A0)
+    int wtype = 0;                                   // Weight: 0 = none (default), 1 = sigma, 2 = 1/sigma^2
+    double fixedinterval = 0.;                       // The fixed intercept value (if applicable)
+    double erry[] = {};       // Data points (err on y) (if applicable)
+
+    // Definition of other variables
+    // **************************************************************
+    size_t nstar = 0;                                // equal to n (fixed intercept) or (n-1) not fixed
+    double *coefbeta = new double[degree + 1];                            // Coefficients of the polynomial
+
+    double** XTWXInv;                                // Matrix XTWX Inverse [degree+1,degree+1]
+    double** Weights;                                // Matrix Weights [n,n]
+
+
+    // Initialize values
+    // **************************************************************
+    cout << x << endl;
+    nstar = n - 1;
+    if (fixedinter)
+        nstar = n;
+
+    if (fixedinter)
+        cout << "A0 is fixed!" << endl;
+
+    if (degree > nstar)
+    {
+        cout << "The polynomial order is too high. Max should be " << n << " for adjustable A0 ";
+        cout << "and " << n - 1 << " for fixed A0. ";
+        cout << "Program stopped" << endl;
+        exit(1);
+    }
+
+    if (degree == nstar)
+    {
+        cout << "The degree of freedom is equal to the number of points. ";
+        cout << "The fit will be exact." << endl;
+    }
+
+    XTWXInv = Make2DArray(degree + 1, degree + 1);
+    Weights = Make2DArray(n, n);
+
+    // Build the weight matrix
+    // **************************************************************
+    CalculateWeights(erry, Weights, n, wtype);
+
+    if (determinant(Weights, n) == 0.)
+    {
+        cout << "One or more points have 0 error. Review the errors on points or use no weighting. ";
+        cout << "Program stopped" << endl;
+        exit(1);
+    }
+
+    // Calculate the coefficients of the fit
+    // **************************************************************
+    PolyFit(x, y, n, degree, fixedinter, fixedinterval, coefbeta, Weights, XTWXInv);
+    DisplayCoefs(degree, coefbeta);
+    double r2 = CalculateR2COD(x, y, coefbeta, Weights, fixedinter, n, degree + 1);
+    
+
+    Free2DArray(XTWXInv, degree + 1);
+    Free2DArray(Weights, n);
+    //std::vector<double> vec_coef(coefbeta, coefbeta + degree);
+    delete[] coefbeta;
+    return r2;
+}
+
+
 // The main program
 // **************************************************************
 int main()
 {
-    size_t k = 4;  // Polynomial order
+    size_t k = 1;  // Polynomial order
     
     double y[] = { 372.5895394992980000,
         362.6829307301930000,
@@ -505,9 +668,13 @@ int main()
         52700.00,
         100700.00,
     };
-    std::vector<double> vec= calculate(x,y, k, sizeof(x) / sizeof(double));
-    for (double num : vec)
-        std::cout << num << " ";
-    std::cout << std::endl;
+    double r2 = calculate2(x,y, k, sizeof(x) / sizeof(double));
+    while (r2 < 0.93 && r2 > 0)
+    {
+        std::cout << "\t\t\tCod " << r2  << " degree = " << k << "\n";
+        r2 = calculate2(x,y, ++k, sizeof(x) / sizeof(double));
+    }
+    std::cout << "\t\t\tCod " << r2  << " degree = " << k << "\n";
+
     return 0;
 }
