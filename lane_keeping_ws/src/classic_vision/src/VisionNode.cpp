@@ -22,10 +22,11 @@ VisionNode::VisionNode() : Node("vision_node")
     this->declare_parameter("min_line_length", 20);
     this->declare_parameter("max_line_gap", 20);
     this->declare_parameter("max_detected_lines", 200);
-    this->declare_parameter("low_canny_treshold", 20);
+    this->declare_parameter("low_canny_treshold", 50);
     this->declare_parameter("high_canny_treshold", 80);
     this->declare_parameter("rho", 1.0);
     this->declare_parameter("is_white_lane", true);
+    this->declare_parameter("treshold_sensitivity", 80);
     RCLCPP_INFO(this->get_logger(), "%s initialized", this->get_name());
 }
 
@@ -67,61 +68,16 @@ void VisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
     }
 }
 
-void VisionNode::applyTreshold(cuda::GpuMat& gpu_img)
-{
-    cuda::cvtColor(gpu_img, gpu_img, COLOR_BGR2HSV);
-    // H: hue, 0-179 color type
-    // S: Saturation, 0-255 how vivid/pure
-    // V: value, 0-255 how brght
-
-    // define the HSV range
-    Scalar lower_orange(0, 80, 80);
-    Scalar upper_orange(15, 255, 255);
-
-    // Apply mask. instead of creating a mask and masking the original img, we
-    // use the mask as the picture for further processing
-    cuda::inRange(gpu_img, lower_orange, upper_orange, gpu_img);
-}
-
-void VisionNode::applyMorphoTransfo(cuda::GpuMat& gpu_img)
-{
-    // Morphological transformation
-    auto morpho_size = 3;
-    auto morph_element = cv::MORPH_ELLIPSE;
-
-    // create the structuring element (kernel)
-    Mat elem = getStructuringElement(
-        morph_element, Size(2 * morpho_size + 1, 2 * morpho_size + 1),
-        Point(morpho_size, morpho_size));
-    cuda::GpuMat gpu_elem(elem);
-
-    // Create the filter to erode / dilate for better results
-    auto dilate_filter =
-        cuda::createMorphologyFilter(cv::MORPH_DILATE, gpu_img.type(), elem);
-    auto erode_filter =
-        cuda::createMorphologyFilter(cv::MORPH_ERODE, gpu_img.type(), elem);
-
-    // Apply dilation followed by erosion (closing)
-    dilate_filter->apply(gpu_img, gpu_img);
-    erode_filter->apply(gpu_img, gpu_img);
-
-    std_msgs::msg::Header hdr;
-    sensor_msgs::msg::Image::SharedPtr msg;
-    Mat mask;
-    gpu_img.download(mask);
-    msg = cv_bridge::CvImage(hdr, "mono8", mask).toImageMsg();
-    mask_pub_.publish(msg);
-}
 void VisionNode::preProcessImage(cuda::GpuMat& gpu_img)
 {
     auto is_white_lane = get_parameter("is_white_lane").as_bool();
-    if (is_white_lane)
-        cuda::cvtColor(gpu_img, gpu_img, COLOR_BGR2GRAY);
-    else
-        applyTreshold(gpu_img);
+
+    applyTreshold(gpu_img, is_white_lane);
+    applyMorphoTransfo(gpu_img);
+    cropToROI(gpu_img);
+    publishMaskImg(gpu_img);
 
     // Apply Gaussian blur
-    cropToROI(gpu_img);
     Ptr<cuda::Filter> gaussian_filter =
         cuda::createGaussianFilter(CV_8UC1, CV_8UC1, Size(3, 3), 1.0);
     gaussian_filter->apply(gpu_img, gpu_img);
@@ -145,6 +101,61 @@ void VisionNode::preProcessImage(cuda::GpuMat& gpu_img)
     edge_img_pub_.publish(msg);
 }
 
+void VisionNode::applyTreshold(cuda::GpuMat& gpu_img, bool is_white_lane)
+{
+    // H: hue, 0-179 color type
+    // S: Saturation, 0-255 how vivid/pure
+    // V: value, 0-255 how brght
+
+    auto sensitivity = get_parameter("treshold_sensitivity").as_int();
+
+    if (is_white_lane)
+    {
+        cuda::cvtColor(gpu_img, gpu_img, COLOR_BGR2GRAY);
+        int threshold_value = 255 - sensitivity;
+        cv::cuda::compare(gpu_img, threshold_value, gpu_img, cv::CMP_GT);
+    }
+    else
+    {
+        cuda::cvtColor(gpu_img, gpu_img, COLOR_BGR2HSV);
+        Scalar lower_bound(10, 100, 100);
+        Scalar upper_bound(30, 255, 255);
+        cuda::inRange(gpu_img, lower_bound, upper_bound, gpu_img);
+    }
+}
+
+void VisionNode::applyMorphoTransfo(cuda::GpuMat& gpu_img)
+{
+    // Morphological transformation
+    auto morpho_size = 3;
+    auto morph_element = cv::MORPH_ELLIPSE;
+
+    // create the structuring element (kernel)
+    Mat elem = getStructuringElement(
+        morph_element, Size(2 * morpho_size + 1, 2 * morpho_size + 1),
+        Point(morpho_size, morpho_size));
+    cuda::GpuMat gpu_elem(elem);
+
+    // Create the filter to erode / dilate for better results
+    auto dilate_filter =
+        cuda::createMorphologyFilter(cv::MORPH_DILATE, gpu_img.type(), elem);
+    auto erode_filter =
+        cuda::createMorphologyFilter(cv::MORPH_ERODE, gpu_img.type(), elem);
+
+    // Apply dilation followed by erosion (closing)
+    dilate_filter->apply(gpu_img, gpu_img);
+    erode_filter->apply(gpu_img, gpu_img);
+}
+
+void VisionNode::publishMaskImg(cuda::GpuMat& gpu_img)
+{
+    std_msgs::msg::Header hdr;
+    sensor_msgs::msg::Image::SharedPtr msg;
+    Mat mask;
+    gpu_img.download(mask);
+    msg = cv_bridge::CvImage(hdr, "mono8", mask).toImageMsg();
+    mask_pub_.publish(msg);
+}
 void VisionNode::cropToROI(cuda::GpuMat& gpu_img)
 {
     int width = gpu_img.cols;

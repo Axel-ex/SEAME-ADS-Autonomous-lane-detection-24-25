@@ -13,7 +13,7 @@ ImagePublisherNode::ImagePublisherNode() : Node("image_publisher_node")
         this->create_publisher<sensor_msgs::msg::Image>("image_raw", 10);
     timer_ = this->create_wall_timer(std::chrono::milliseconds(5000),
                                      [this]() { publishImage(); });
-    this->declare_parameter("image_name", "road_curve_piracer.jpg");
+    this->declare_parameter("image_name", "road_black_white.png");
     RCLCPP_INFO(this->get_logger(), "%s initialized", this->get_name());
 }
 
