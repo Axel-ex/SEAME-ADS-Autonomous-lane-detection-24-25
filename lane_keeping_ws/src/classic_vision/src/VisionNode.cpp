@@ -19,8 +19,6 @@ VisionNode::VisionNode() : Node("vision_node")
     lane_pos_pub_ = this->create_publisher<lane_msgs::msg::LanePositions>(
         "lane_position", 10);
 
-    this->declare_parameter("min_line_length", 20);
-    this->declare_parameter("max_line_gap", 20);
     this->declare_parameter("max_detected_lines", 200);
     this->declare_parameter("low_canny_treshold", 50);
     this->declare_parameter("high_canny_treshold", 80);
@@ -103,10 +101,6 @@ void VisionNode::preProcessImage(cuda::GpuMat& gpu_img)
 
 void VisionNode::applyTreshold(cuda::GpuMat& gpu_img, bool is_white_lane)
 {
-    // H: hue, 0-179 color type
-    // S: Saturation, 0-255 how vivid/pure
-    // V: value, 0-255 how brght
-
     auto sensitivity = get_parameter("treshold_sensitivity").as_int();
 
     if (is_white_lane)
@@ -184,15 +178,13 @@ void VisionNode::cropToROI(cuda::GpuMat& gpu_img)
 
 std::vector<Vec4i> VisionNode::getLines(cuda::GpuMat& gpu_img)
 {
-    auto min_line_length = this->get_parameter("min_line_length").as_int();
     auto max_detected_lines =
         this->get_parameter("max_detected_lines").as_int();
-    auto max_line_gap = this->get_parameter("max_line_gap").as_int();
     auto rho = this->get_parameter("rho").as_double();
 
     cuda::GpuMat gpu_lines;
     auto line_detector = cuda::createHoughSegmentDetector(
-        rho, CV_PI / 180.0f, min_line_length, max_line_gap, max_detected_lines);
+        rho, CV_PI / 180.0f, 20, 20, max_detected_lines);
 
     line_detector->detect(gpu_img, gpu_lines);
 

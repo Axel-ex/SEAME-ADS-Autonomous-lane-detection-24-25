@@ -33,14 +33,10 @@ class LaneVisualizationNode : public rclcpp::Node
             lane_pos_sub_;
         rclcpp::Subscription<lane_msgs::msg::PolyfitCoefs>::SharedPtr
             polyfit_coefs_sub_;
-        rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr
-            marker_pub_;
         image_transport::Publisher img_pub_;
 
-        void processImage(const sensor_msgs::msg::Image::SharedPtr msg);
+        void rawImageCallback(const sensor_msgs::msg::Image::SharedPtr msg);
         void
         storeLanePosition(const lane_msgs::msg::LanePositions::SharedPtr msg);
         void storeCoefs(const lane_msgs::msg::PolyfitCoefs::SharedPtr msg);
-        void publishLaneMarks(const std::vector<Point32>& points,
-                              ColorRGBA& color);
 };
