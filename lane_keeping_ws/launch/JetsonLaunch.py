@@ -15,11 +15,11 @@ def generate_launch_description():
             node_executable='classic_vision_node',
             node_name='classic_vision',
         ),
-        Node(
-            package='image_publisher',
-            node_executable='image_publisher_node',  
-            node_name='image_publisher',  
-        ),
+        # Node(
+        #     package='image_publisher',
+        #     node_executable='image_publisher_node',  
+        #     node_name='image_publisher',  
+        # ),
         Node(
             package='motion_control',
             node_executable='motion_control_node',  
@@ -30,10 +30,10 @@ def generate_launch_description():
             node_executable='lane_visualization_node',  
             node_name='lane_visualization',  
         ),
-        # Node(
-        #     package='camera',
-        #     executable='camera_node',  
-        #     name='camera_node',  
-        #     arguments=['--ros-args', '--log-level', 'debug'],
-        # )
+        Node(
+            package='camera',
+            node_executable='camera_node',  
+            node_name='camera_node',  
+            arguments=['--ros-args', '--log-level', 'debug'],
+        )
     ])
