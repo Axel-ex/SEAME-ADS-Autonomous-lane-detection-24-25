@@ -29,9 +29,11 @@ class VisionNode : public rclcpp::Node
         image_transport::Publisher edge_img_pub_;
         image_transport::Publisher mask_pub_;
 
-        void processImage(sensor_msgs::msg::Image::SharedPtr img_msg);
-        void applyTreshold(cv::cuda::GpuMat& gpu_img);
+        void rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg);
+
         void preProcessImage(cv::cuda::GpuMat& gpu_img);
+        void applyTreshold(cv::cuda::GpuMat& gpu_img);
+        void applyMorphoTransfo(cv::cuda::GpuMat& gpu_img);
         void cropToROI(cv::cuda::GpuMat& gpu_img);
 
         std::vector<cv::Vec4i> getLines(cv::cuda::GpuMat& gpu_img);

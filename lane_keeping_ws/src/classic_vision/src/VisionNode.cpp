@@ -15,7 +15,7 @@ VisionNode::VisionNode() : Node("vision_node")
     raw_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
         "image_raw", qos,
         [this](sensor_msgs::msg::Image::SharedPtr img)
-        { VisionNode::processImage(img); });
+        { VisionNode::rawImageCallback(img); });
     lane_pos_pub_ = this->create_publisher<lane_msgs::msg::LanePositions>(
         "lane_position", 10);
 
@@ -25,6 +25,7 @@ VisionNode::VisionNode() : Node("vision_node")
     this->declare_parameter("low_canny_treshold", 20);
     this->declare_parameter("high_canny_treshold", 80);
     this->declare_parameter("rho", 1.0);
+    this->declare_parameter("is_white_lane", true);
     RCLCPP_INFO(this->get_logger(), "%s initialized", this->get_name());
 }
 
@@ -36,14 +37,10 @@ void VisionNode::initPublisher()
     mask_pub_ = it.advertise("mask_img", 1);
 }
 
-void VisionNode::processImage(sensor_msgs::msg::Image::SharedPtr img_msg)
+void VisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
 {
     try
     {
-        RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(),
-                              DEBUG_LOG_FREQ_MS, "Received image: %s",
-                              img_msg->encoding.c_str());
-
         auto converted = cv_bridge::toCvShare(img_msg, img_msg->encoding);
         if (converted->image.empty())
         {
@@ -84,7 +81,10 @@ void VisionNode::applyTreshold(cuda::GpuMat& gpu_img)
     // Apply mask. instead of creating a mask and masking the original img, we
     // use the mask as the picture for further processing
     cuda::inRange(gpu_img, lower_orange, upper_orange, gpu_img);
+}
 
+void VisionNode::applyMorphoTransfo(cuda::GpuMat& gpu_img)
+{
     // Morphological transformation
     auto morpho_size = 3;
     auto morph_element = cv::MORPH_ELLIPSE;
@@ -93,7 +93,6 @@ void VisionNode::applyTreshold(cuda::GpuMat& gpu_img)
     Mat elem = getStructuringElement(
         morph_element, Size(2 * morpho_size + 1, 2 * morpho_size + 1),
         Point(morpho_size, morpho_size));
-
     cuda::GpuMat gpu_elem(elem);
 
     // Create the filter to erode / dilate for better results
@@ -106,8 +105,6 @@ void VisionNode::applyTreshold(cuda::GpuMat& gpu_img)
     dilate_filter->apply(gpu_img, gpu_img);
     erode_filter->apply(gpu_img, gpu_img);
 
-    cropToROI(gpu_img);
-    // Publish result
     std_msgs::msg::Header hdr;
     sensor_msgs::msg::Image::SharedPtr msg;
     Mat mask;
@@ -115,15 +112,16 @@ void VisionNode::applyTreshold(cuda::GpuMat& gpu_img)
     msg = cv_bridge::CvImage(hdr, "mono8", mask).toImageMsg();
     mask_pub_.publish(msg);
 }
-
 void VisionNode::preProcessImage(cuda::GpuMat& gpu_img)
 {
-
-    // Convert to grayscale
-    // cuda::cvtColor(gpu_img, gpu_img, COLOR_BGR2GRAY);
-    applyTreshold(gpu_img);
+    auto is_white_lane = get_parameter("is_white_lane").as_bool();
+    if (is_white_lane)
+        cuda::cvtColor(gpu_img, gpu_img, COLOR_BGR2GRAY);
+    else
+        applyTreshold(gpu_img);
 
     // Apply Gaussian blur
+    cropToROI(gpu_img);
     Ptr<cuda::Filter> gaussian_filter =
         cuda::createGaussianFilter(CV_8UC1, CV_8UC1, Size(3, 3), 1.0);
     gaussian_filter->apply(gpu_img, gpu_img);
@@ -158,8 +156,8 @@ void VisionNode::cropToROI(cuda::GpuMat& gpu_img)
     std::vector<cv::Point> roi_points = {
         cv::Point(0, height),         // Bottom-left
         cv::Point(width, height),     // Bottom-right
-        cv::Point(width, height / 5), // Top-right
-        cv::Point(0, height / 5)      // Top-left
+        cv::Point(width, height / 3), // Top-right
+        cv::Point(0, height / 3)      // Top-left
     };
     // Fill the ROI mask with white inside the polygon
     cv::fillPoly(roi_mask, std::vector<std::vector<cv::Point>>{roi_points},
@@ -225,7 +223,6 @@ void VisionNode::publishLines(std::vector<cv::Vec4i>& lines, int img_width)
     msg.header.stamp = this->now();
 
     std::vector<cv::Vec4i> left_lines, right_lines;
-    RCLCPP_INFO(this->get_logger(), "Lines detected: %d", lines.size());
     for (const auto& line : lines)
     {
         // float dx = line[2] - line[0];
