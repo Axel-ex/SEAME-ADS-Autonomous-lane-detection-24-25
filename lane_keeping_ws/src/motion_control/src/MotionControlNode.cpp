@@ -35,6 +35,13 @@ void MotionControlNode::processLanePosition(
     separateCoordinates(lane_msg->left_lane, left_x, left_y);
     separateCoordinates(lane_msg->right_lane, right_x, right_y);
 
+    if (left_x.size() < 3 || right_x.size() < 3)
+    {
+        RCLCPP_WARN(this->get_logger(),
+                    "No lane points detected. Skipping polyfit.");
+        return;
+    }
+
     size_t degree = 2;
     std::vector<double> left_coefs =
         calculate(left_x.data(), left_y.data(), degree, left_x.size());
@@ -72,6 +79,14 @@ Point32 MotionControlNode::findLaneCenter(const std::vector<double>& left_coef,
                                           const std::vector<double>& right_coef,
                                           int img_height)
 {
+    if (left_coef.size() < 3 || right_coef.size() < 3)
+    {
+        RCLCPP_ERROR(
+            this->get_logger(),
+            "Invalid polynomial coefficients. Expected 3 coefficients.");
+        return Point32();
+    }
+
     int lookahead_index = get_parameter("lookahead_index").as_int();
     int lookahead = img_height - lookahead_index;
 
@@ -105,8 +120,12 @@ Point32 MotionControlNode::findLaneCenter(const std::vector<double>& left_coef,
 double MotionControlNode::quadraticFormula(double a, double b, double c)
 {
     double discriminant = b * b - 4 * a * c;
-    if (discriminant < 0)
+    if (std::abs(a) < 1e-6)
+    {
+        RCLCPP_WARN(this->get_logger(),
+                    "Invalid quadratic coefficient (a is zero).");
         return -1;
+    }
 
     double sqrt_discriminant = sqrt(discriminant);
     double t_plus = (-b + sqrt_discriminant) / (2 * a);
