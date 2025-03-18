@@ -11,17 +11,16 @@ ImagePublisherNode::ImagePublisherNode() : Node("image_publisher_node")
 {
     image_pub_ =
         this->create_publisher<sensor_msgs::msg::Image>("image_raw", 10);
-    timer_ = this->create_wall_timer(std::chrono::milliseconds(50),
+    timer_ = this->create_wall_timer(std::chrono::milliseconds(5000),
                                      [this]() { publishImage(); });
-    this->declare_parameter("image_name", "road_perso.jpg");
+    this->declare_parameter("image_name", "road_black_white3.png");
     RCLCPP_INFO(this->get_logger(), "%s initialized", this->get_name());
 }
 
 void ImagePublisherNode::publishImage()
 {
     auto assets_path =
-        "/home/jetpack/SEAME-ADS-Autonomous-lane-detection-24-25/"
-        "assets/";
+        "/home/axel/SEAME-ADS-Autonomous-lane-detection-24-25/assets/";
     auto file = this->get_parameter("image_name").as_string();
     auto full_name = assets_path + file;
 

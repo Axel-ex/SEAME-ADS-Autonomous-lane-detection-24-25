@@ -25,10 +25,4 @@ def generate_launch_description():
             node_executable='lane_visualization_node',  
             node_name='lane_visualization',  
         ),
-        Node(
-            package='camera',
-            node_executable='camera_node',  
-            node_name='camera_node',  
-            arguments=['--ros-args', '--log-level', 'debug'],
-        )
     ])
