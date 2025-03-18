@@ -27,7 +27,7 @@ LaneVisualizationNode::LaneVisualizationNode()
 void LaneVisualizationNode::initPublishers()
 {
     auto it = image_transport::ImageTransport(shared_from_this());
-    img_pub_ = it.advertise("processed_img", 1);
+    processed_img_pub_ = it.advertise("processed_img", 1);
 }
 
 void LaneVisualizationNode::storeLanePosition(
@@ -42,19 +42,33 @@ void LaneVisualizationNode::storeLanePosition(
         right_lane_pos_.push_back(point);
 }
 
+void LaneVisualizationNode::storeCoefs(
+    const lane_msgs::msg::PolyfitCoefs::SharedPtr msg)
+{
+    left_coefs_.clear();
+    right_coefs_.clear();
+
+    for (auto& coef : msg->left_coefs)
+        left_coefs_.push_back(coef);
+    for (auto& coef : msg->right_coefs)
+        right_coefs_.push_back(coef);
+    lane_center_.x = msg->lane_center.x;
+    lane_center_.y = msg->lane_center.y;
+}
+
 /**
  * @brief callback for raw image subscriber.
  *
  * Called upon receiving a new image. responsible for drawing all the features
  * extracted by our algorithms (lane points, polylines...) onto the original
- * image.
+ * image. publishes the result processed_img.
  *
  * @param msg
  */
 void LaneVisualizationNode::rawImageCallback(
     const sensor_msgs::msg::Image::SharedPtr msg)
 {
-    if (left_coefs.empty() || right_coefs.empty())
+    if (left_coefs_.empty() || right_coefs_.empty())
     {
         RCLCPP_INFO(this->get_logger(), "empty polyfit coefs");
         return;
@@ -68,10 +82,10 @@ void LaneVisualizationNode::rawImageCallback(
     std::vector<cv::Point> left_poly, right_poly;
     for (int x = 0; x < img.cols; x++)
     {
-        int y_left = ((left_coefs[2] * std::pow(x, 2)) + (left_coefs[1] * x) +
-                      left_coefs[0]);
-        int y_right = ((right_coefs[2] * std::pow(x, 2)) +
-                       (right_coefs[1] * x) + right_coefs[0]);
+        int y_left = ((left_coefs_[2] * std::pow(x, 2)) + (left_coefs_[1] * x) +
+                      left_coefs_[0]);
+        int y_right = ((right_coefs_[2] * std::pow(x, 2)) +
+                       (right_coefs_[1] * x) + right_coefs_[0]);
 
         left_poly.emplace_back(x, y_left);
         right_poly.emplace_back(x, y_right);
@@ -80,7 +94,7 @@ void LaneVisualizationNode::rawImageCallback(
     auto filterCondition = [img](const cv::Point& p)
     { return p.y < (img.rows * (1.0 / 3.0)); };
 
-    // filter for point < 1/3 of the screen (clean representation)
+    // filter for point < 1/3 of the screen (cleaner representation)
     left_poly.erase(
         std::remove_if(left_poly.begin(), left_poly.end(), filterCondition),
         left_poly.end());
@@ -108,23 +122,10 @@ void LaneVisualizationNode::rawImageCallback(
     cv::circle(img, cv::Point(img.cols / 2, img.rows - 80), 1,
                cv::Scalar(255, 0, 0), 2);
 
+    // publish the result
     cv_bridge::CvImage out_msg;
     out_msg.header = msg->header;
     out_msg.encoding = msg->encoding;
     out_msg.image = img;
-    img_pub_.publish(out_msg.toImageMsg());
-}
-
-void LaneVisualizationNode::storeCoefs(
-    const lane_msgs::msg::PolyfitCoefs::SharedPtr msg)
-{
-    left_coefs.clear();
-    right_coefs.clear();
-
-    for (auto& coef : msg->left_coefs)
-        left_coefs.push_back(coef);
-    for (auto& coef : msg->right_coefs)
-        right_coefs.push_back(coef);
-    lane_center_.x = msg->lane_center.x;
-    lane_center_.y = msg->lane_center.y;
+    processed_img_pub_.publish(out_msg.toImageMsg());
 }

@@ -11,7 +11,11 @@ constexpr int DEBUG_LOG_FREQ_MS = 5000;
 
 /**
  * @class VisionNode
- * @brief Processes the image and estimate distance from the center of the lane
+ * @brief Processes the image and extract lane positions
+ *
+ * Apply treshold, gaussian blur, and canny edge to obtain only edges. Using a
+ * Hough transform, the lines following the edges are extracted and publish in a
+ * custom msg (LanePositions)
  *
  */
 class VisionNode : public rclcpp::Node
@@ -35,8 +39,9 @@ class VisionNode : public rclcpp::Node
         void applyTreshold(cv::cuda::GpuMat& gpu_img, bool is_white_lane);
         void applyMorphoTransfo(cv::cuda::GpuMat& gpu_img);
         void cropToROI(cv::cuda::GpuMat& gpu_img);
-
+        void applyCannyEdge(cv::cuda::GpuMat& gpu_img);
         std::vector<cv::Vec4i> getLines(cv::cuda::GpuMat& gpu_img);
+
         void publishLanePositions(std::vector<cv::Vec4i>& lines, int img_width,
                                   int img_height);
         void publishMaskImg(cv::cuda::GpuMat& gpu_img);

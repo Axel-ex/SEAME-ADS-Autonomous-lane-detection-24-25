@@ -8,7 +8,7 @@ MotionControlNode::MotionControlNode() : Node("motion_control_node")
     lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
         "lane_position", 10,
         [this](lane_msgs::msg::LanePositions::SharedPtr lane_msg)
-        { MotionControlNode::processLanePosition(lane_msg); });
+        { MotionControlNode::lanePositionCallback(lane_msg); });
     polyfit_coefs_pub_ =
         create_publisher<lane_msgs::msg::PolyfitCoefs>("polyfit_coefs", 10);
     velocity_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
@@ -24,7 +24,7 @@ MotionControlNode::MotionControlNode() : Node("motion_control_node")
                                   get_parameter("kd").as_double());
 }
 
-void MotionControlNode::processLanePosition(
+void MotionControlNode::lanePositionCallback(
     lane_msgs::msg::LanePositions::SharedPtr lane_msg)
 {
     std::vector<double> left_x;
@@ -98,12 +98,12 @@ Point32 MotionControlNode::findLaneCenter(const std::vector<double>& left_coef,
     double a_left = left_coef[2];
     double b_left = left_coef[1];
     double c_left = left_coef[0] - y;
-    double x_left = quadraticFormula(a_left, b_left, c_left);
+    double x_left = solveQuadratic(a_left, b_left, c_left);
 
     double a_right = right_coef[2];
     double b_right = right_coef[1];
     double c_right = right_coef[0] - y;
-    double x_right = quadraticFormula(a_right, b_right, c_right);
+    double x_right = solveQuadratic(a_right, b_right, c_right);
 
     // Ensure x_left and x_right are valid (within image bounds)
     x_left = std::max(0.0, std::min(x_left, static_cast<double>(img_height)));
@@ -114,29 +114,6 @@ Point32 MotionControlNode::findLaneCenter(const std::vector<double>& left_coef,
     lane_center.y = lookahead;
 
     return lane_center;
-}
-
-// y = ax^2 + bx + c => ax^2 + bx + (c - y) = 0
-double MotionControlNode::quadraticFormula(double a, double b, double c)
-{
-    double discriminant = b * b - 4 * a * c;
-    if (std::abs(a) < 1e-6)
-    {
-        RCLCPP_WARN(this->get_logger(),
-                    "Invalid quadratic coefficient (a is zero).");
-        return -1;
-    }
-
-    double sqrt_discriminant = sqrt(discriminant);
-    double t_plus = (-b + sqrt_discriminant) / (2 * a);
-    double t_minu = (-b - sqrt_discriminant) / (2 * a);
-
-    if (t_plus >= 0 && (t_minu <= 0 || t_plus <= t_minu))
-        return t_plus;
-    else if (t_minu >= 0)
-        return t_minu;
-    else
-        return -1;
 }
 
 void MotionControlNode::separateCoordinates(const std::vector<Point32>& points,

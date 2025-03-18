@@ -74,21 +74,7 @@ void VisionNode::preProcessImage(cuda::GpuMat& gpu_img)
     applyMorphoTransfo(gpu_img);
     cropToROI(gpu_img);
     publishMaskImg(gpu_img);
-
-    // Apply Gaussian blur
-    Ptr<cuda::Filter> gaussian_filter =
-        cuda::createGaussianFilter(CV_8UC1, CV_8UC1, Size(3, 3), 1.0);
-    gaussian_filter->apply(gpu_img, gpu_img);
-
-    // Apply Canny edge detection
-    auto lower_canny_treshold =
-        this->get_parameter("low_canny_treshold").as_int();
-    auto upper_canny_treshold =
-        this->get_parameter("high_canny_treshold").as_int();
-
-    Ptr<cuda::CannyEdgeDetector> canny = cuda::createCannyEdgeDetector(
-        lower_canny_treshold, upper_canny_treshold);
-    canny->detect(gpu_img, gpu_img);
+    applyCannyEdge(gpu_img);
 
     // Save edge detection result
     Mat cpu_edges;
@@ -97,84 +83,6 @@ void VisionNode::preProcessImage(cuda::GpuMat& gpu_img)
     sensor_msgs::msg::Image::SharedPtr msg;
     msg = cv_bridge::CvImage(hdr, "mono8", cpu_edges).toImageMsg();
     edge_img_pub_.publish(msg);
-}
-
-void VisionNode::applyTreshold(cuda::GpuMat& gpu_img, bool is_white_lane)
-{
-    auto sensitivity = get_parameter("treshold_sensitivity").as_int();
-
-    if (is_white_lane)
-    {
-        cuda::cvtColor(gpu_img, gpu_img, COLOR_BGR2GRAY);
-        int threshold_value = 255 - sensitivity;
-        cv::cuda::compare(gpu_img, threshold_value, gpu_img, cv::CMP_GT);
-    }
-    else
-    {
-        cuda::cvtColor(gpu_img, gpu_img, COLOR_BGR2HSV);
-        Scalar lower_bound(10, 100, 100);
-        Scalar upper_bound(30, 255, 255);
-        cuda::inRange(gpu_img, lower_bound, upper_bound, gpu_img);
-    }
-}
-
-void VisionNode::applyMorphoTransfo(cuda::GpuMat& gpu_img)
-{
-    // Morphological transformation
-    auto morpho_size = 3;
-    auto morph_element = cv::MORPH_ELLIPSE;
-
-    // create the structuring element (kernel)
-    Mat elem = getStructuringElement(
-        morph_element, Size(2 * morpho_size + 1, 2 * morpho_size + 1),
-        Point(morpho_size, morpho_size));
-    cuda::GpuMat gpu_elem(elem);
-
-    // Create the filter to erode / dilate for better results
-    auto dilate_filter =
-        cuda::createMorphologyFilter(cv::MORPH_DILATE, gpu_img.type(), elem);
-    auto erode_filter =
-        cuda::createMorphologyFilter(cv::MORPH_ERODE, gpu_img.type(), elem);
-
-    // Apply dilation followed by erosion (closing)
-    dilate_filter->apply(gpu_img, gpu_img);
-    erode_filter->apply(gpu_img, gpu_img);
-}
-
-void VisionNode::publishMaskImg(cuda::GpuMat& gpu_img)
-{
-    std_msgs::msg::Header hdr;
-    sensor_msgs::msg::Image::SharedPtr msg;
-    Mat mask;
-    gpu_img.download(mask);
-    msg = cv_bridge::CvImage(hdr, "mono8", mask).toImageMsg();
-    mask_pub_.publish(msg);
-}
-
-void VisionNode::cropToROI(cuda::GpuMat& gpu_img)
-{
-    int width = gpu_img.cols;
-    int height = gpu_img.rows;
-
-    Mat roi_mask = Mat::zeros(height, width, CV_8UC1);
-
-    // Define the region of interest as a polygon (example: trapezoid shape)
-    std::vector<cv::Point> roi_points = {
-        cv::Point(0, height),         // Bottom-left
-        cv::Point(width, height),     // Bottom-right
-        cv::Point(width, height / 3), // Top-right
-        cv::Point(0, height / 3)      // Top-left
-    };
-    // Fill the ROI mask with white inside the polygon
-    cv::fillPoly(roi_mask, std::vector<std::vector<cv::Point>>{roi_points},
-                 cv::Scalar(255));
-
-    // Upload ROI mask to GPU
-    cuda::GpuMat gpu_roi_mask;
-    gpu_roi_mask.upload(roi_mask);
-
-    // Apply ROI mask using bitwise_and
-    cuda::bitwise_and(gpu_img, gpu_roi_mask, gpu_img);
 }
 
 std::vector<Vec4i> VisionNode::getLines(cuda::GpuMat& gpu_img)
@@ -271,4 +179,100 @@ void VisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines,
     msg.image_height.data = img_height;
 
     lane_pos_pub_->publish(msg);
+}
+
+void VisionNode::applyTreshold(cuda::GpuMat& gpu_img, bool is_white_lane)
+{
+    auto sensitivity = get_parameter("treshold_sensitivity").as_int();
+
+    if (is_white_lane)
+    {
+        cuda::cvtColor(gpu_img, gpu_img, COLOR_BGR2GRAY);
+        int threshold_value = 255 - sensitivity;
+        cv::cuda::compare(gpu_img, threshold_value, gpu_img, cv::CMP_GT);
+    }
+    else
+    {
+        cuda::cvtColor(gpu_img, gpu_img, COLOR_BGR2HSV);
+        Scalar lower_bound(10, 100, 100);
+        Scalar upper_bound(30, 255, 255);
+        cuda::inRange(gpu_img, lower_bound, upper_bound, gpu_img);
+    }
+}
+
+void VisionNode::applyMorphoTransfo(cuda::GpuMat& gpu_img)
+{
+    // Morphological transformation
+    auto morpho_size = 3;
+    auto morph_element = cv::MORPH_ELLIPSE;
+
+    // create the structuring element (kernel)
+    Mat elem = getStructuringElement(
+        morph_element, Size(2 * morpho_size + 1, 2 * morpho_size + 1),
+        Point(morpho_size, morpho_size));
+    cuda::GpuMat gpu_elem(elem);
+
+    // Create the filter to erode / dilate for better results
+    auto dilate_filter =
+        cuda::createMorphologyFilter(cv::MORPH_DILATE, gpu_img.type(), elem);
+    auto erode_filter =
+        cuda::createMorphologyFilter(cv::MORPH_ERODE, gpu_img.type(), elem);
+
+    // Apply dilation followed by erosion (closing)
+    dilate_filter->apply(gpu_img, gpu_img);
+    erode_filter->apply(gpu_img, gpu_img);
+}
+
+void VisionNode::cropToROI(cuda::GpuMat& gpu_img)
+{
+    int width = gpu_img.cols;
+    int height = gpu_img.rows;
+
+    Mat roi_mask = Mat::zeros(height, width, CV_8UC1);
+
+    // Define the region of interest as a polygon (example: trapezoid shape)
+    std::vector<cv::Point> roi_points = {
+        cv::Point(0, height),         // Bottom-left
+        cv::Point(width, height),     // Bottom-right
+        cv::Point(width, height / 3), // Top-right
+        cv::Point(0, height / 3)      // Top-left
+    };
+    // Fill the ROI mask with white inside the polygon
+    cv::fillPoly(roi_mask, std::vector<std::vector<cv::Point>>{roi_points},
+                 cv::Scalar(255));
+
+    // Upload ROI mask to GPU
+    cuda::GpuMat gpu_roi_mask;
+    gpu_roi_mask.upload(roi_mask);
+
+    // Apply ROI mask using bitwise_and
+    cuda::bitwise_and(gpu_img, gpu_roi_mask, gpu_img);
+}
+
+void VisionNode::publishMaskImg(cuda::GpuMat& gpu_img)
+{
+    std_msgs::msg::Header hdr;
+    sensor_msgs::msg::Image::SharedPtr msg;
+    Mat mask;
+    gpu_img.download(mask);
+    msg = cv_bridge::CvImage(hdr, "mono8", mask).toImageMsg();
+    mask_pub_.publish(msg);
+}
+
+void VisionNode::applyCannyEdge(cuda::GpuMat& gpu_img)
+{
+    // Apply Gaussian blur
+    Ptr<cuda::Filter> gaussian_filter =
+        cuda::createGaussianFilter(CV_8UC1, CV_8UC1, Size(3, 3), 1.0);
+    gaussian_filter->apply(gpu_img, gpu_img);
+
+    // Apply Canny edge detection
+    auto lower_canny_treshold =
+        this->get_parameter("low_canny_treshold").as_int();
+    auto upper_canny_treshold =
+        this->get_parameter("high_canny_treshold").as_int();
+
+    Ptr<cuda::CannyEdgeDetector> canny = cuda::createCannyEdgeDetector(
+        lower_canny_treshold, upper_canny_treshold);
+    canny->detect(gpu_img, gpu_img);
 }
