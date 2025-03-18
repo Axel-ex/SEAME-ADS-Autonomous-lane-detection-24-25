@@ -77,6 +77,17 @@ void LaneVisualizationNode::rawImageCallback(
         right_poly.emplace_back(x, y_right);
     }
 
+    auto filterCondition = [img](const cv::Point& p)
+    { return p.y < (img.rows * (1.0 / 3.0)); };
+
+    // filter for point < 1/3 of the screen (clean representation)
+    left_poly.erase(
+        std::remove_if(left_poly.begin(), left_poly.end(), filterCondition),
+        left_poly.end());
+    right_poly.erase(
+        std::remove_if(right_poly.begin(), right_poly.end(), filterCondition),
+        right_poly.end());
+
     // Draw the polyfits
     cv::polylines(img, left_poly, false, cv::Scalar(0, 255, 255), 1);
     cv::polylines(img, right_poly, false, cv::Scalar(0, 0, 255), 1);
@@ -90,11 +101,11 @@ void LaneVisualizationNode::rawImageCallback(
                    1);
 
     // Draw lane_center
-    cv::circle(img, cv::Point(lane_center_.x, lane_center_.y), 2,
-               cv::Scalar(0, 0, 255), 2);
+    cv::circle(img, cv::Point(lane_center_.x, lane_center_.y), 1,
+               cv::Scalar(0, 255, 0), 2);
 
     // Draw target point
-    cv::circle(img, cv::Point(img.cols / 2, img.rows - 80), 2,
+    cv::circle(img, cv::Point(img.cols / 2, img.rows - 80), 1,
                cv::Scalar(255, 0, 0), 2);
 
     cv_bridge::CvImage out_msg;

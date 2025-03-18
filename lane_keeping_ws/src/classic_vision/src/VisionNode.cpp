@@ -232,27 +232,17 @@ void VisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines,
     for (const auto& line : lines)
     {
         int x1 = line[0], y1 = line[1], x2 = line[2], y2 = line[3];
-
-        // Calculate the slope of the line
         double slope = static_cast<double>(y2 - y1) / (x2 - x1);
 
-        // Filter out horizontal lines (slope close to 0)
-        if (std::abs(slope) < 0.3) // Adjust threshold as needed
+        // remove horizontal lines
+        if (std::abs(slope) < 0.3)
             continue;
 
         // Classify lines based on slope and position
         if (slope < 0 && x1 < img_width / 2 && x2 < img_width / 2)
-        {
-            // Left lane lines have negative slope and are on the left side of
-            // the image
             left_lines.push_back(line);
-        }
         else if (slope > 0 && x1 > img_width / 2 && x2 > img_width / 2)
-        {
-            // Right lane lines have positive slope and are on the right side of
-            // the image
             right_lines.push_back(line);
-        }
     }
 
     // Add left lane lines to the message
