@@ -66,7 +66,7 @@ void LaneVisualizationNode::rawImageCallback(
 
     // Generate points from equations
     std::vector<cv::Point> left_poly, right_poly;
-    for (int x = 0; x < 640; x++)
+    for (int x = 0; x < img.cols; x++)
     {
         int y_left = ((left_coefs[2] * std::pow(x, 2)) + (left_coefs[1] * x) +
                       left_coefs[0]);
@@ -89,6 +89,10 @@ void LaneVisualizationNode::rawImageCallback(
         cv::circle(img, cv::Point(point.x, point.y), 1, cv::Scalar(0, 0, 255),
                    1);
 
+    // Draw lane_center
+    cv::circle(img, cv::Point(lane_center_.x, lane_center_.y), 2,
+               cv::Scalar(0, 0, 255), 2);
+
     // Draw target point
     cv::circle(img, cv::Point(img.cols / 2, img.rows - 80), 2,
                cv::Scalar(255, 0, 0), 2);
@@ -110,4 +114,6 @@ void LaneVisualizationNode::storeCoefs(
         left_coefs.push_back(coef);
     for (auto& coef : msg->right_coefs)
         right_coefs.push_back(coef);
+    lane_center_.x = msg->lane_center.x;
+    lane_center_.y = msg->lane_center.y;
 }

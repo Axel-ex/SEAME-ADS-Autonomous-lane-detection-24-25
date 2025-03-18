@@ -57,7 +57,7 @@ void VisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
 
         preProcessImage(gpu_img);
         auto lines = getLines(gpu_img);
-        publishLines(lines, gpu_img.rows);
+        publishLanePositions(lines, gpu_img.cols, gpu_img.rows);
     }
     catch (const cv::Exception& e)
     {
@@ -150,6 +150,7 @@ void VisionNode::publishMaskImg(cuda::GpuMat& gpu_img)
     msg = cv_bridge::CvImage(hdr, "mono8", mask).toImageMsg();
     mask_pub_.publish(msg);
 }
+
 void VisionNode::cropToROI(cuda::GpuMat& gpu_img)
 {
     int width = gpu_img.cols;
@@ -220,29 +221,41 @@ std::vector<Vec4i> VisionNode::getLines(cuda::GpuMat& gpu_img)
     return lines;
 }
 
-void VisionNode::publishLines(std::vector<cv::Vec4i>& lines, int img_width)
+void VisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines,
+                                      int img_width, int img_height)
 {
     lane_msgs::msg::LanePositions msg;
     msg.header.stamp = this->now();
 
     std::vector<cv::Vec4i> left_lines, right_lines;
+
     for (const auto& line : lines)
     {
-        // float dx = line[2] - line[0];
-        // float dy = line[3] - line[1];
-        //
-        // if (std::abs(dx) < 1e-3)
-        //     continue;
+        int x1 = line[0], y1 = line[1], x2 = line[2], y2 = line[3];
 
-        // float slope = dy / dx;
-        float x_mid = (line[0] + line[2]) / 2.0f;
+        // Calculate the slope of the line
+        double slope = static_cast<double>(y2 - y1) / (x2 - x1);
 
-        if (x_mid < (static_cast<double>(img_width) / 2))
+        // Filter out horizontal lines (slope close to 0)
+        if (std::abs(slope) < 0.3) // Adjust threshold as needed
+            continue;
+
+        // Classify lines based on slope and position
+        if (slope < 0 && x1 < img_width / 2 && x2 < img_width / 2)
+        {
+            // Left lane lines have negative slope and are on the left side of
+            // the image
             left_lines.push_back(line);
-        else if (x_mid > (static_cast<double>(img_width) / 2))
+        }
+        else if (slope > 0 && x1 > img_width / 2 && x2 > img_width / 2)
+        {
+            // Right lane lines have positive slope and are on the right side of
+            // the image
             right_lines.push_back(line);
+        }
     }
 
+    // Add left lane lines to the message
     for (auto& line : left_lines)
     {
         geometry_msgs::msg::Point32 p1, p2;
@@ -252,6 +265,8 @@ void VisionNode::publishLines(std::vector<cv::Vec4i>& lines, int img_width)
         p2.y = line[3];
         msg.left_lane.insert(msg.left_lane.end(), {p1, p2});
     }
+
+    // Add right lane lines to the message
     for (auto& line : right_lines)
     {
         geometry_msgs::msg::Point32 p1, p2;
@@ -261,8 +276,9 @@ void VisionNode::publishLines(std::vector<cv::Vec4i>& lines, int img_width)
         p2.y = line[3];
         msg.right_lane.insert(msg.right_lane.end(), {p1, p2});
     }
-    RCLCPP_INFO(this->get_logger(), "right_lanes size: %d\nleft_lane size: %d",
-                right_lines.size(), left_lines.size());
+
+    msg.image_width.data = img_width;
+    msg.image_height.data = img_height;
 
     lane_pos_pub_->publish(msg);
 }

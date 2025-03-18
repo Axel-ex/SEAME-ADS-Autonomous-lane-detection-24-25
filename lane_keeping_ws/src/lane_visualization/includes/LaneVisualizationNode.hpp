@@ -27,6 +27,7 @@ class LaneVisualizationNode : public rclcpp::Node
         std::vector<double> right_coefs;
         std::vector<Point32> left_lane_pos_;
         std::vector<Point32> right_lane_pos_;
+        Point32 lane_center_;
 
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_img_sub_;
         rclcpp::Subscription<lane_msgs::msg::LanePositions>::SharedPtr

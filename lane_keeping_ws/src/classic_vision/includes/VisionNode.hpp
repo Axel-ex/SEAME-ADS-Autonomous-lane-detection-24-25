@@ -37,6 +37,7 @@ class VisionNode : public rclcpp::Node
         void cropToROI(cv::cuda::GpuMat& gpu_img);
 
         std::vector<cv::Vec4i> getLines(cv::cuda::GpuMat& gpu_img);
-        void publishLines(std::vector<cv::Vec4i>& lines, int img_width);
+        void publishLanePositions(std::vector<cv::Vec4i>& lines, int img_width,
+                                  int img_height);
         void publishMaskImg(cv::cuda::GpuMat& gpu_img);
 };
