@@ -1,17 +1,23 @@
 #pragma once
 
+#include <chrono>
+
 class PIDController
 {
     public:
-        PIDController(float kp, float ki, float kd);
+        PIDController(double kp, double ki, double kd);
         PIDController();
         ~PIDController() = default;
 
-        void initializePID(float kp, float ki, float kd);
+        void initializePID(double kp, double ki, double kd);
         double calculate(int error);
 
     private:
-        float kp_;
-        float ki_;
-        float kd_;
+        double kp_;
+        double ki_;
+        double kd_;
+
+        double prev_err_;
+        double integral_err_;
+        std::chrono::steady_clock::time_point last_time_;
 };
