@@ -460,3 +460,15 @@ std::vector<double> calculate(double* x, double* y, size_t degree, size_t n)
     delete[] coefbeta;
     return vec_coef;
 }
+
+double solveQuadratic(double a, double b, double c)
+{
+    double t_plus = (-1 * b + sqrt(b * b - 4 * a * c)) / (2 * a);
+    double t_minu = (-1 * b - sqrt(b * b - 4 * a * c)) / (2 * a);
+    if (t_plus >= 0 && (t_minu <= 0 || t_plus <= t_minu))
+        return (t_plus);
+    else if (t_minu >= 0)
+        return (t_minu);
+    else
+        return (-1);
+}

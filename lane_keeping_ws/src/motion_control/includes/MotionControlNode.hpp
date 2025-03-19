@@ -39,11 +39,16 @@ class MotionControlNode : public rclcpp::Node
         void separateCoordinates(const std::vector<Point32>& points,
                                  std::vector<double>& x,
                                  std::vector<double>& y);
+        void calculatePolyfitCoefs(
+            std::vector<double>& left_coefs, std::vector<double>& right_coefs,
+            lane_msgs::msg::LanePositions::SharedPtr lane_msg);
         Point32 findLaneCenter(const std::vector<double>& left_coef,
                                const std::vector<double>& right_coef,
                                int img_height);
+        void estimateMissingLane(std::vector<double>& left_coefs,
+                                 std::vector<double>& right_coefs);
         void publishPolyfitCoefficients(const std::vector<double>& left_coefs,
                                         const std::vector<double>& right_coefs,
-                                        int img_height);
+                                        Point32& lane_center);
         void stopVehicle();
 };

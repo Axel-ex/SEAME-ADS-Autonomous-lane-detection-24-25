@@ -18,7 +18,6 @@ MotionControlNode::MotionControlNode() : Node("motion_control_node")
     declare_parameter("kd", 0.2);
     declare_parameter("base_speed", 0.2);
     declare_parameter("lookahead_index", 80);
-    declare_parameter("bucket_size", 10);
     pid_controller_.initializePID(get_parameter("kp").as_double(),
                                   get_parameter("ki").as_double(),
                                   get_parameter("kd").as_double());
@@ -27,59 +26,99 @@ MotionControlNode::MotionControlNode() : Node("motion_control_node")
 void MotionControlNode::lanePositionCallback(
     lane_msgs::msg::LanePositions::SharedPtr lane_msg)
 {
-    std::vector<double> left_x;
-    std::vector<double> left_y;
-    std::vector<double> right_x;
-    std::vector<double> right_y;
+    std::vector<double> left_coefs, right_coefs;
+
+    calculatePolyfitCoefs(left_coefs, right_coefs, lane_msg);
+    Point32 lane_center =
+        findLaneCenter(left_coefs, right_coefs, lane_msg->image_height.data);
+
+    publishPolyfitCoefficients(left_coefs, right_coefs, lane_center);
+}
+
+void MotionControlNode::calculatePolyfitCoefs(
+    std::vector<double>& left_coefs, std::vector<double>& right_coefs,
+    lane_msgs::msg::LanePositions::SharedPtr lane_msg)
+{
+    std::vector<double> left_x, left_y, right_x, right_y;
+    size_t degree = 2;
 
     separateCoordinates(lane_msg->left_lane, left_x, left_y);
     separateCoordinates(lane_msg->right_lane, right_x, right_y);
 
-    if (left_x.size() < 3 || right_x.size() < 3)
+    if (left_x.size() < 3 && right_x.size() < 3)
     {
         RCLCPP_WARN(this->get_logger(),
-                    "No lane points detected. Skipping polyfit.");
+                    "No lane points detected. Stoping the vehicle");
+        stopVehicle();
         return;
     }
-
-    size_t degree = 2;
-    std::vector<double> left_coefs =
-        calculate(left_x.data(), left_y.data(), degree, left_x.size());
-    std::vector<double> right_coefs =
-        calculate(right_x.data(), right_y.data(), degree, right_x.size());
-
-    publishPolyfitCoefficients(left_coefs, right_coefs,
-                               lane_msg->image_height.data);
-}
-
-void MotionControlNode::publishPolyfitCoefficients(
-    const std::vector<double>& left_coefs,
-    const std::vector<double>& right_coefs, int img_height)
-{
-    lane_msgs::msg::PolyfitCoefs msg;
-
-    msg.header.stamp = now();
-    for (const auto& coef : left_coefs)
-        msg.left_coefs.push_back(static_cast<float>(coef));
-    for (const auto& coef : right_coefs)
-        msg.right_coefs.push_back(static_cast<float>(coef));
-    msg.lane_center = findLaneCenter(left_coefs, right_coefs, img_height);
-
-    polyfit_coefs_pub_->publish(msg);
+    else if (left_x.size() < 3)
+    {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
+                             "Lost left lane");
+        right_coefs =
+            calculate(right_x.data(), right_y.data(), degree, right_x.size());
+        estimateMissingLane(left_coefs, right_coefs);
+    }
+    else if (right_x.size() < 3)
+    {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
+                             "Lost right lane");
+        left_coefs =
+            calculate(left_x.data(), left_y.data(), degree, left_x.size());
+        estimateMissingLane(left_coefs, right_coefs);
+    }
+    else
+    {
+        left_coefs =
+            calculate(left_x.data(), left_y.data(), degree, left_x.size());
+        right_coefs =
+            calculate(right_x.data(), right_y.data(), degree, right_x.size());
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
+                             "Estimated lane width: %d",
+                             right_coefs[0] - left_coefs[0]);
+    }
 }
 
 /**
- * @brief Find lane center at fix distance "lookahead_index"
+ * @brief estimate the missing coefs lane coefs.
  *
- * @param left_coef
+ * estimate the missing lane coef by shifting the intercept in the right
+ * direction depending on which lane is missing
+ *
+ * @param left_coefs
+ * @param right_coefs
+ */
+void MotionControlNode::estimateMissingLane(std::vector<double>& left_coefs,
+                                            std::vector<double>& right_coefs)
+{
+    int lane_width = 200;
+
+    if (left_coefs.empty())
+    {
+        left_coefs = right_coefs;
+        left_coefs[0] += lane_width;
+    }
+    else
+    {
+        right_coefs = left_coefs;
+        right_coefs[0] -= lane_width;
+    }
+}
+
+/**
+ * @brief Find lane center at fix distance  img_height - "lookahead_index"
+ *
+ * @param left_coefs
  * @param right_coef
  * @return y position of the lane center at index "lookahead"
  */
-Point32 MotionControlNode::findLaneCenter(const std::vector<double>& left_coef,
-                                          const std::vector<double>& right_coef,
-                                          int img_height)
+Point32
+MotionControlNode::findLaneCenter(const std::vector<double>& left_coefs,
+                                  const std::vector<double>& right_coefs,
+                                  int img_height)
 {
-    if (left_coef.size() < 3 || right_coef.size() < 3)
+    if (left_coefs.size() < 3 || right_coefs.size() < 3)
     {
         RCLCPP_ERROR(
             this->get_logger(),
@@ -87,23 +126,17 @@ Point32 MotionControlNode::findLaneCenter(const std::vector<double>& left_coef,
         return Point32();
     }
 
+    // choose a distance to look at
     int lookahead_index = get_parameter("lookahead_index").as_int();
     int lookahead = img_height - lookahead_index;
-
-    // Ensure lookahead is within bounds
     lookahead = std::max(0, std::min(lookahead, img_height));
 
+    // solve the quadtratic equations
     double y = static_cast<double>(lookahead);
-
-    double a_left = left_coef[2];
-    double b_left = left_coef[1];
-    double c_left = left_coef[0] - y;
-    double x_left = solveQuadratic(a_left, b_left, c_left);
-
-    double a_right = right_coef[2];
-    double b_right = right_coef[1];
-    double c_right = right_coef[0] - y;
-    double x_right = solveQuadratic(a_right, b_right, c_right);
+    double x_left =
+        solveQuadratic(left_coefs[2], left_coefs[1], left_coefs[0] - y);
+    double x_right =
+        solveQuadratic(right_coefs[2], right_coefs[1], right_coefs[0] - y);
 
     // Ensure x_left and x_right are valid (within image bounds)
     x_left = std::max(0.0, std::min(x_left, static_cast<double>(img_height)));
@@ -137,4 +170,19 @@ void MotionControlNode::stopVehicle()
     msg.linear.x = 0.0;
     msg.angular.z = 0.0;
     velocity_pub_->publish(msg);
+}
+
+void MotionControlNode::publishPolyfitCoefficients(
+    const std::vector<double>& left_coefs,
+    const std::vector<double>& right_coefs, Point32& lane_center)
+{
+    lane_msgs::msg::PolyfitCoefs msg;
+
+    msg.header.stamp = now();
+    for (const auto& coef : left_coefs)
+        msg.left_coefs.push_back(static_cast<float>(coef));
+    for (const auto& coef : right_coefs)
+        msg.right_coefs.push_back(static_cast<float>(coef));
+    msg.lane_center = lane_center;
+    polyfit_coefs_pub_->publish(msg);
 }
