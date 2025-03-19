@@ -3,7 +3,8 @@
 
 using namespace rclcpp;
 
-MotionControlNode::MotionControlNode() : Node("motion_control_node")
+MotionControlNode::MotionControlNode()
+    : Node("motion_control_node"), estimated_lane_width_(451)
 {
     lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
         "lane_position", 10,
@@ -31,6 +32,14 @@ void MotionControlNode::lanePositionCallback(
     calculatePolyfitCoefs(left_coefs, right_coefs, lane_msg);
     auto lane_center =
         findLaneCenter(left_coefs, right_coefs, lane_msg->image_height.data);
+    if (!lane_center.x && !lane_center.y)
+    {
+        RCLCPP_WARN(this->get_logger(),
+                    "No lane points detected. Stoping the vehicle");
+        stopVehicle();
+        return;
+    }
+
     auto heading_point = findHeadingPoint(lane_msg->image_width.data,
                                           lane_msg->image_height.data);
 
@@ -50,12 +59,7 @@ void MotionControlNode::calculatePolyfitCoefs(
     separateCoordinates(lane_msg->right_lane, right_x, right_y);
 
     if (left_x.size() < 3 && right_x.size() < 3)
-    {
-        RCLCPP_WARN(this->get_logger(),
-                    "No lane points detected. Stoping the vehicle");
-        stopVehicle();
         return;
-    }
     else if (left_x.size() < 3)
     {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
@@ -78,9 +82,6 @@ void MotionControlNode::calculatePolyfitCoefs(
             calculate(left_x.data(), left_y.data(), degree, left_x.size());
         right_coefs =
             calculate(right_x.data(), right_y.data(), degree, right_x.size());
-        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
-                             "Estimated lane width: %d",
-                             right_coefs[0] - left_coefs[0]);
     }
 }
 
@@ -96,13 +97,8 @@ MotionControlNode::findLaneCenter(const std::vector<double>& left_coefs,
                                   const std::vector<double>& right_coefs,
                                   int img_height)
 {
-    if (left_coefs.size() < 3 || right_coefs.size() < 3)
-    {
-        RCLCPP_ERROR(
-            this->get_logger(),
-            "Invalid polynomial coefficients. Expected 3 coefficients.");
+    if (left_coefs.size() < 3 && right_coefs.size() < 3)
         return Point32();
-    }
 
     // choose a distance to look at
     int lookahead_index = get_parameter("lookahead_index").as_int();
@@ -152,7 +148,7 @@ void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
     geometry_msgs::msg::Twist msg;
     msg.linear.x = get_parameter("base_speed").as_double();
     msg.angular.z = steering;
-	cmd_vel_pub_->publish(msg);
+    cmd_vel_pub_->publish(msg);
 }
 
 /**
@@ -167,17 +163,15 @@ void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
 void MotionControlNode::estimateMissingLane(std::vector<double>& left_coefs,
                                             std::vector<double>& right_coefs)
 {
-    int lane_width = 200;
-
     if (left_coefs.empty())
     {
         left_coefs = right_coefs;
-        left_coefs[0] += lane_width;
+        left_coefs[0] += estimated_lane_width_;
     }
     else
     {
         right_coefs = left_coefs;
-        right_coefs[0] -= lane_width;
+        right_coefs[0] -= estimated_lane_width_;
     }
 }
 

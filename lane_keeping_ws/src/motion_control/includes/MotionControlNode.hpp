@@ -26,6 +26,7 @@ class MotionControlNode : public rclcpp::Node
         ~MotionControlNode() = default;
 
     private:
+        int estimated_lane_width_;
         PIDController pid_controller_;
         rclcpp::Subscription<lane_msgs::msg::LanePositions>::SharedPtr
             lane_pos_sub_;
