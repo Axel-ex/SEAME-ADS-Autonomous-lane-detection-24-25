@@ -11,7 +11,7 @@ MotionControlNode::MotionControlNode() : Node("motion_control_node")
         { MotionControlNode::lanePositionCallback(lane_msg); });
     polyfit_coefs_pub_ =
         create_publisher<lane_msgs::msg::PolyfitCoefs>("polyfit_coefs", 10);
-    velocity_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+    cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
 
     declare_parameter("kp", 0.5);
     declare_parameter("ki", 0.1);
@@ -29,9 +29,13 @@ void MotionControlNode::lanePositionCallback(
     std::vector<double> left_coefs, right_coefs;
 
     calculatePolyfitCoefs(left_coefs, right_coefs, lane_msg);
-    Point32 lane_center =
+    auto lane_center =
         findLaneCenter(left_coefs, right_coefs, lane_msg->image_height.data);
+    auto heading_point = findHeadingPoint(lane_msg->image_width.data,
+                                          lane_msg->image_height.data);
 
+    calculateAndPublishControls(lane_center, heading_point,
+                                lane_msg->image_width.data);
     publishPolyfitCoefficients(left_coefs, right_coefs, lane_center);
 }
 
@@ -81,32 +85,6 @@ void MotionControlNode::calculatePolyfitCoefs(
 }
 
 /**
- * @brief estimate the missing coefs lane coefs.
- *
- * estimate the missing lane coef by shifting the intercept in the right
- * direction depending on which lane is missing
- *
- * @param left_coefs
- * @param right_coefs
- */
-void MotionControlNode::estimateMissingLane(std::vector<double>& left_coefs,
-                                            std::vector<double>& right_coefs)
-{
-    int lane_width = 200;
-
-    if (left_coefs.empty())
-    {
-        left_coefs = right_coefs;
-        left_coefs[0] += lane_width;
-    }
-    else
-    {
-        right_coefs = left_coefs;
-        right_coefs[0] -= lane_width;
-    }
-}
-
-/**
  * @brief Find lane center at fix distance  img_height - "lookahead_index"
  *
  * @param left_coefs
@@ -149,6 +127,60 @@ MotionControlNode::findLaneCenter(const std::vector<double>& left_coefs,
     return lane_center;
 }
 
+Point32 MotionControlNode::findHeadingPoint(int img_width, int img_height)
+{
+    Point32 result;
+
+    auto lookahead_index = get_parameter("lookahead_index").as_int();
+    int lookahead = img_height - lookahead_index;
+
+    result.x = static_cast<double>(img_width) / 2;
+    result.y = lookahead;
+    return result;
+}
+
+void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
+                                                    Point32& heading_point,
+                                                    int img_width)
+{
+    int error = heading_point.x - lane_center.x;
+    // Normalize the error
+    error = error / (img_width / 2.0);
+
+    double steering = pid_controller_.calculate(error);
+
+    geometry_msgs::msg::Twist msg;
+    msg.linear.x = get_parameter("base_speed").as_double();
+    msg.angular.z = steering;
+	cmd_vel_pub_->publish(msg);
+}
+
+/**
+ * @brief estimate the missing coefs lane coefs.
+ *
+ * estimate the missing lane coef by shifting the intercept in the right
+ * direction depending on which lane is missing
+ *
+ * @param left_coefs
+ * @param right_coefs
+ */
+void MotionControlNode::estimateMissingLane(std::vector<double>& left_coefs,
+                                            std::vector<double>& right_coefs)
+{
+    int lane_width = 200;
+
+    if (left_coefs.empty())
+    {
+        left_coefs = right_coefs;
+        left_coefs[0] += lane_width;
+    }
+    else
+    {
+        right_coefs = left_coefs;
+        right_coefs[0] -= lane_width;
+    }
+}
+
 void MotionControlNode::separateCoordinates(const std::vector<Point32>& points,
                                             std::vector<double>& x,
                                             std::vector<double>& y)
@@ -169,7 +201,7 @@ void MotionControlNode::stopVehicle()
 
     msg.linear.x = 0.0;
     msg.angular.z = 0.0;
-    velocity_pub_->publish(msg);
+    cmd_vel_pub_->publish(msg);
 }
 
 void MotionControlNode::publishPolyfitCoefficients(

@@ -14,7 +14,7 @@ void PIDController::initializePID(float kp, float ki, float kd)
     ki_ = ki;
 }
 
-void PIDController::calculateSteering()
+double PIDController::calculate(int error)
 {
     // TODO:
     // 1- calculate vehicle position and orientation

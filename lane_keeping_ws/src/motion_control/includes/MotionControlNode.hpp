@@ -31,7 +31,7 @@ class MotionControlNode : public rclcpp::Node
             lane_pos_sub_;
         rclcpp::Publisher<lane_msgs::msg::PolyfitCoefs>::SharedPtr
             polyfit_coefs_pub_;
-        rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr velocity_pub_;
+        rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
 
         void
         lanePositionCallback(lane_msgs::msg::LanePositions::SharedPtr lane_msg);
@@ -45,8 +45,11 @@ class MotionControlNode : public rclcpp::Node
         Point32 findLaneCenter(const std::vector<double>& left_coef,
                                const std::vector<double>& right_coef,
                                int img_height);
+        Point32 findHeadingPoint(int img_width, int img_height);
         void estimateMissingLane(std::vector<double>& left_coefs,
                                  std::vector<double>& right_coefs);
+        void calculateAndPublishControls(Point32& lane_center,
+                                         Point32& heading_point, int img_width);
         void publishPolyfitCoefficients(const std::vector<double>& left_coefs,
                                         const std::vector<double>& right_coefs,
                                         Point32& lane_center);
