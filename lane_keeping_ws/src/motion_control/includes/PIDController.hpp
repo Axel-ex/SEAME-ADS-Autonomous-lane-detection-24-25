@@ -1,23 +1,21 @@
 #pragma once
 
 #include <chrono>
+#include <rclcpp/rclcpp.hpp>
 
 class PIDController
 {
     public:
-        PIDController(double kp, double ki, double kd);
         PIDController();
         ~PIDController() = default;
 
-        void initializePID(double kp, double ki, double kd);
-        double calculate(int error);
+        void initializePID(std::shared_ptr<rclcpp::Node> node);
+        double calculate(double error);
 
     private:
-        double kp_;
-        double ki_;
-        double kd_;
-
+        // kp, ki, kd are parametrised
+        std::shared_ptr<rclcpp::Node> node_ptr_;
+        std::chrono::steady_clock::time_point last_time_;
         double prev_err_;
         double integral_err_;
-        std::chrono::steady_clock::time_point last_time_;
 };

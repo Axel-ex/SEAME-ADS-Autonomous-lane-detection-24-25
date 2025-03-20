@@ -24,6 +24,7 @@ class MotionControlNode : public rclcpp::Node
     public:
         MotionControlNode();
         ~MotionControlNode() = default;
+        void initPIDController();
 
     private:
         int estimated_lane_width_;

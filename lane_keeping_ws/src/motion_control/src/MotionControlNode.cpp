@@ -19,9 +19,11 @@ MotionControlNode::MotionControlNode()
     declare_parameter("kd", 0.2);
     declare_parameter("base_speed", 0.2);
     declare_parameter("lookahead_index", 80);
-    pid_controller_.initializePID(get_parameter("kp").as_double(),
-                                  get_parameter("ki").as_double(),
-                                  get_parameter("kd").as_double());
+}
+
+void MotionControlNode::initPIDController()
+{
+    pid_controller_.initializePID(shared_from_this());
 }
 
 void MotionControlNode::lanePositionCallback(
@@ -42,7 +44,9 @@ void MotionControlNode::lanePositionCallback(
 
     auto heading_point = findHeadingPoint(lane_msg->image_width.data,
                                           lane_msg->image_height.data);
-
+    RCLCPP_INFO(get_logger(),
+                "lane center: x: %.2f y: %.2f, heading point: x: %.2f y:%.2f",
+                lane_center.x, lane_center.y, heading_point.x, heading_point.y);
     calculateAndPublishControls(lane_center, heading_point,
                                 lane_msg->image_width.data);
     publishPolyfitCoefficients(left_coefs, right_coefs, lane_center);
@@ -139,11 +143,13 @@ void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
                                                     Point32& heading_point,
                                                     int img_width)
 {
-    int error = heading_point.x - lane_center.x;
-    // Normalize the error
+    double error = heading_point.x - lane_center.x;
     error = error / (img_width / 2.0);
 
     double steering = pid_controller_.calculate(error);
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                         "lane_center: %.2f, error: %.2f, steering %.2f",
+                         lane_center.x, error, steering);
 
     geometry_msgs::msg::Twist msg;
     msg.linear.x = get_parameter("base_speed").as_double();
