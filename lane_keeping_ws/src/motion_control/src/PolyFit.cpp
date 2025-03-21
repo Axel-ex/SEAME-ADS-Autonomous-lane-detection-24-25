@@ -452,7 +452,7 @@ std::vector<double> calculate(double* x, double* y, size_t degree, size_t n)
     // **************************************************************
     PolyFit(x, y, n, degree, fixedinter, fixedinterval, coefbeta, Weights,
             XTWXInv);
-    DisplayCoefs(degree, coefbeta);
+    // DisplayCoefs(degree, coefbeta);
 
     Free2DArray(XTWXInv, degree + 1);
     Free2DArray(Weights, n);

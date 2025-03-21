@@ -28,7 +28,7 @@ double PIDController::calculate(double error)
 
     // Calculate integral and derivative terms
     integral_err_ += error * dt_sec;
-    integral_err_ = std::clamp(integral_err_, -5.0, 5.0);
+    integral_err_ = std::clamp(integral_err_, -5.0, 5.0); // Avoid unwinding
     double derivative = (error - prev_err_) / dt_sec;
 
     // Calculate control signal

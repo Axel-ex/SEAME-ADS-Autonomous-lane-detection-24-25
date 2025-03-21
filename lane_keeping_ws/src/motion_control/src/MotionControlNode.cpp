@@ -4,7 +4,8 @@
 using namespace rclcpp;
 
 MotionControlNode::MotionControlNode()
-    : Node("motion_control_node"), estimated_lane_width_(451)
+    : kalmman_filter_(0.1, 0.5), Node("motion_control_node"),
+      estimated_lane_width_(225)
 {
     lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
         "lane_position", 10,
@@ -41,7 +42,8 @@ void MotionControlNode::lanePositionCallback(
         stopVehicle();
         return;
     }
-
+    // adjust measure value with the filter
+    lane_center.x = kalmman_filter_.update(lane_center.x);
     auto heading_point = findHeadingPoint(lane_msg->image_width.data,
                                           lane_msg->image_height.data);
     RCLCPP_INFO(get_logger(),

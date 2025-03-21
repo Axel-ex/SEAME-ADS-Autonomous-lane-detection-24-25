@@ -1,5 +1,6 @@
 #pragma once
 
+#include <KalmanFilter.hpp>
 #include <PIDController.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/twist.hpp>
@@ -29,6 +30,7 @@ class MotionControlNode : public rclcpp::Node
     private:
         int estimated_lane_width_;
         PIDController pid_controller_;
+        KalmanFilter kalmman_filter_;
         rclcpp::Subscription<lane_msgs::msg::LanePositions>::SharedPtr
             lane_pos_sub_;
         rclcpp::Publisher<lane_msgs::msg::PolyfitCoefs>::SharedPtr
