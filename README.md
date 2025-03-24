@@ -34,6 +34,16 @@ The system consists of multiple ROS 2 nodes handling different tasks:
 4. **Visualization Node**
    - Displays processed data and system state.
 
+```mermaid
+flowchart LR
+    cam[Camera Node] -->|sensor_msgs/Image| vision[Vision Processing Node]
+    vision -->|lane_msgs/LanePosition|  motion_control[Motion control]
+    
+    motion_control -->|geometry_msgs/Twist| servo[Servo Motor Node]
+    motion_control -->|geometry_msgs/Twist| dc[DC Motor Node]
+    
+```
+
 ## Hardware Setup
 - **Jetson Nano**: Runs the core AI model and ROS 2 nodes for lane detection and control.
 - **Raspberry Pi**: Handles additional processing and system integration.
@@ -44,7 +54,7 @@ The system consists of multiple ROS 2 nodes handling different tasks:
 - **Hybrid Lane Detection**: Combines traditional computer vision with ML-based approaches.
 - **Real-time Processing**: Optimized to run efficiently on Jetson Nano (CUDA acceleration).
 - **ROS 2 Integration**: Modular and scalable for future improvements.
-- **Simulation-to-Reality Transition**: Tested in both virtual (Carla) and real-world environments.
+- **Simulation / Reality testing**: Tested in both virtual (Carla) and real-world environments.
 
 ## Getting Started
 ### Prerequisites
@@ -67,15 +77,8 @@ Run the nodes:
 ros2 run launch launch/JetsonLaunch.py
 ```
 
-## Future Enhancements
-- **Sensor Fusion**: Integrating LiDAR and depth cameras for improved perception.
-- **Autonomous Navigation**: Expanding beyond lane-keeping to full navigation.
-- **Edge AI Optimization**: Improving ML inference efficiency on embedded hardware.
-
 ## References
 - [OpenCV](https://www.opencv-srf.com/2017/11/opencv-cpp-api.html)
 - [ROS 2](https://docs.ros.org/en/foxy/Installation.html)
 - [TensorFlow](https://www.tensorflow.org/)
-
----
 
