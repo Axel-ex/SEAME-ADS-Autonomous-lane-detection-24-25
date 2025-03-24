@@ -36,11 +36,13 @@ The system consists of multiple ROS 2 nodes handling different tasks:
 
 ```mermaid
 flowchart LR
-    cam[Camera Node] -->|sensor_msgs/Image| vision[Vision Processing Node]
-    vision -->|lane_msgs/LanePosition|  motion_control[Motion control]
+    cam[Camera Node] -->|sensor_msgs/Image| vision[Classic Vision Node]
+    cam[Camera Node] -->|sensor_msgs/Image| ml_vision[ML Vision Node]
+    vision -->|lane_msgs/LanePosition| control[Motion Control]
+    ml_vision -->|lane_msgs/LanePosition| control[Motion Control]
     
-    motion_control -->|geometry_msgs/Twist| servo[Servo Motor Node]
-    motion_control -->|geometry_msgs/Twist| dc[DC Motor Node]
+    control -->|geometry_msgs/Twist| servo[Servo Motor Node]
+    control -->|geometry_msgs/Twist| dc[DC Motor Node]
     
 ```
 
