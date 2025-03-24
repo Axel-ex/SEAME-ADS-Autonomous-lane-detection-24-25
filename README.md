@@ -3,7 +3,7 @@
 ## Overview
 This project focuses on the development of an **Autonomous Driving System (ADS)** capable of detecting lanes and steering accordingly.
 
-Utilizing **ROS 2**, a **Jetson Nano**, and a **Raspberry Pi**, we designed a system that integrates **computer vision and machine learning** to detect lanes, calculate optimal paths, and execute autonomous steering. The system leverage GPU accelerated computations the jetson nano make possible to significantly reduce computation time.
+Utilizing **ROS 2**, a **Jetson Nano**, and a **Raspberry Pi**, we designed a system that integrates **computer vision and machine learning** to detect lanes, calculate optimal paths, and execute autonomous steering. The system leverage GPU accelerated computations on the jetson nano, reducing significantly computation time compared to CPU based computations.
 
 This project showcases the integration of **AI, embedded systems, and robotics** in the development of autonomous driving systems.
 
@@ -53,7 +53,7 @@ flowchart LR
 - **Motor Controller**: Executes the steering and movement commands.
 
 ## Key Features
-- **Hybrid Lane Detection**: Combines traditional computer vision with ML-based approaches.
+- **Hybrid Lane Detection**: Ability to switch from traditional computer vision to ML-based approaches.
 - **Real-time Processing**: Optimized to run efficiently on Jetson Nano (CUDA acceleration).
 - **ROS 2 Integration**: Modular and scalable for future improvements.
 - **Simulation / Reality testing**: Tested in both virtual (Carla) and real-world environments.
