@@ -1,23 +1,46 @@
 #include "PIDController.hpp"
+#include <algorithm>
 
-PIDController::PIDController(float kp, float ki, float kd)
-    : kp_(kp), ki_(ki), kd_(kd)
+PIDController::PIDController()
 {
+    prev_err_ = 0;
+    integral_err_ = 0;
+    last_time_ = std::chrono::steady_clock::now();
 }
 
-PIDController::PIDController() : kp_(0.5), ki_(0.1), kd_(0.2) {}
-
-void PIDController::initializePID(float kp, float ki, float kd)
+void PIDController::initializePID(std::shared_ptr<rclcpp::Node> node)
 {
-    kp_ = kp;
-    kd_ = kd;
-    ki_ = ki;
+    node_ptr_ = node;
 }
 
-void PIDController::calculateSteering()
+double PIDController::calculate(double error)
 {
-    // TODO:
-    // 1- calculate vehicle position and orientation
-    // 2- find centerline at the lookahead distance
-    // 3- calculate lateral error
+    auto current_time = std::chrono::steady_clock::now();
+    auto dt = current_time - last_time_;
+    double dt_sec = std::chrono::duration<double>(dt).count();
+    auto kp = node_ptr_->get_parameter("kp").as_double();
+    auto ki = node_ptr_->get_parameter("ki").as_double();
+    auto kd = node_ptr_->get_parameter("kd").as_double();
+
+    // Avoid division by zero or too small dt
+    if (dt_sec < 0.001)
+        dt_sec = 0.001;
+
+    // Calculate integral and derivative terms
+    integral_err_ += error * dt_sec;
+    integral_err_ = std::clamp(integral_err_, -5.0, 5.0); // Avoid unwinding
+    double derivative = (error - prev_err_) / dt_sec;
+
+    // Calculate control signal
+    double output = (kp * error) + (ki * integral_err_) + (kd * derivative);
+
+    // Update values
+    prev_err_ = error;
+    last_time_ = current_time;
+
+    RCLCPP_WARN_THROTTLE(node_ptr_->get_logger(), *node_ptr_->get_clock(), 3000,
+                         "integral: %.2f, derivative: %.2f", integral_err_,
+                         derivative);
+
+    return output;
 }
