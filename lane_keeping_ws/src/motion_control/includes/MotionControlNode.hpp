@@ -12,6 +12,8 @@
 
 using Point32 = geometry_msgs::msg::Point32;
 
+constexpr int WARN_FREQ = 5000;
+
 /**
  * @class MotionControlNode
  * @brief Recieves lane positions, calculate lane center and steer to keep the

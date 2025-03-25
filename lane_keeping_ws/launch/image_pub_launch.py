@@ -14,20 +14,36 @@ def generate_launch_description():
             package='classic_vision',
             node_executable='classic_vision_node',
             node_name='classic_vision',
+            output={
+                'stdout': 'screen',
+                'stderr': 'screen',
+            }
         ),
         Node(
             package='image_publisher',
             node_executable='image_publisher_node',  
             node_name='image_publisher',  
         ),
-        # Node(
-        #     package='motion_control',
-        #     node_executable='motion_control_node',  
-        #     node_name='motion_control',  
-        # ),
+        Node(
+            package='motion_control',
+            node_executable='motion_control_node',  
+            node_name='motion_control',  
+            output={
+                'stdout': 'screen',
+                'stderr': 'screen',
+            },
+            # arguments=['--ros-args', 
+            #         '--log-level',
+            #         'info']
+        ),
         Node(
             package='lane_visualization',
             node_executable='lane_visualization_node',  
             node_name='lane_visualization',  
+            output={
+                'stdout': 'screen',
+                'stderr': 'screen',
+            }
+
         ),
     ])

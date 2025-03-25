@@ -74,7 +74,6 @@ void LaneVisualizationNode::rawImageCallback(
         return;
     }
 
-    RCLCPP_INFO(this->get_logger(), "starting analysis");
     auto converted = cv_bridge::toCvShare(msg, msg->encoding);
     cv::Mat img = converted->image;
 

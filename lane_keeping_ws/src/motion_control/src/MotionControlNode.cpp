@@ -37,8 +37,8 @@ void MotionControlNode::lanePositionCallback(
         findLaneCenter(left_coefs, right_coefs, lane_msg->image_height.data);
     if (!lane_center.x && !lane_center.y)
     {
-        RCLCPP_WARN(this->get_logger(),
-                    "No lane points detected. Stoping the vehicle");
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *get_clock(), WARN_FREQ,
+                             "No lane points detected. Stoping the vehicle");
         stopVehicle();
         return;
     }
@@ -46,9 +46,6 @@ void MotionControlNode::lanePositionCallback(
     lane_center.x = kalmman_filter_.update(lane_center.x);
     auto heading_point = findHeadingPoint(lane_msg->image_width.data,
                                           lane_msg->image_height.data);
-    RCLCPP_INFO(get_logger(),
-                "lane center: x: %.2f y: %.2f, heading point: x: %.2f y:%.2f",
-                lane_center.x, lane_center.y, heading_point.x, heading_point.y);
     calculateAndPublishControls(lane_center, heading_point,
                                 lane_msg->image_width.data);
     publishPolyfitCoefficients(left_coefs, right_coefs, lane_center);
@@ -68,7 +65,7 @@ void MotionControlNode::calculatePolyfitCoefs(
         return;
     else if (left_x.size() < 3)
     {
-        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                              "Lost left lane");
         right_coefs =
             calculate(right_x.data(), right_y.data(), degree, right_x.size());
@@ -76,7 +73,7 @@ void MotionControlNode::calculatePolyfitCoefs(
     }
     else if (right_x.size() < 3)
     {
-        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                              "Lost right lane");
         left_coefs =
             calculate(left_x.data(), left_y.data(), degree, left_x.size());
@@ -149,9 +146,9 @@ void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
     error = error / (img_width / 2.0);
 
     double steering = pid_controller_.calculate(error);
-    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
-                         "lane_center: %.2f, error: %.2f, steering %.2f",
-                         lane_center.x, error, steering);
+    RCLCPP_DEBUG_THROTTLE(get_logger(), *get_clock(), 2000,
+                          "lane_center: %.2f, error: %.2f, steering %.2f",
+                          lane_center.x, error, steering);
 
     geometry_msgs::msg::Twist msg;
     msg.linear.x = get_parameter("base_speed").as_double();
