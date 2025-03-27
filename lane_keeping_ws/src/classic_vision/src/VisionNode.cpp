@@ -143,13 +143,13 @@ void VisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines,
         double slope = static_cast<double>(y2 - y1) / (x2 - x1);
 
         // remove horizontal lines
-        if (std::abs(slope) < 0.3)
+        if (std::abs(slope) < 0.2)
             continue;
 
         // Classify lines based on slope and position
-        if (slope < 0 && x1 < img_width / 2 && x2 < img_width / 2)
+        if (slope < 0)
             left_lines.push_back(line);
-        else if (slope > 0 && x1 > img_width / 2 && x2 > img_width / 2)
+        else if (slope > 0)
             right_lines.push_back(line);
     }
 
