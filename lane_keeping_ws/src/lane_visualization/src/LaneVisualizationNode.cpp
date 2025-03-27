@@ -70,7 +70,8 @@ void LaneVisualizationNode::rawImageCallback(
 {
     if (left_coefs_.empty() || right_coefs_.empty())
     {
-        RCLCPP_INFO(this->get_logger(), "empty polyfit coefs");
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *get_clock(), 5000,
+                             "empty polyfit coefs");
         return;
     }
 
@@ -119,7 +120,7 @@ void LaneVisualizationNode::rawImageCallback(
                cv::Scalar(0, 255, 0), 2);
 
     // Draw target point
-    cv::circle(img, cv::Point(img.cols / 2, img.rows - 80), 1,
+    cv::circle(img, cv::Point(img.cols / 2, lane_center_.y), 1,
                cv::Scalar(255, 0, 0), 2);
 
     // publish the result

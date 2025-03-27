@@ -11,7 +11,7 @@ using namespace cv;
 
 VisionNode::VisionNode() : Node("vision_node")
 {
-    auto qos = rclcpp::QoS(60); // TODO: is QOS adapted?
+    auto qos = rclcpp::QoS(QOS);
     raw_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
         "image_raw", qos,
         [this](sensor_msgs::msg::Image::SharedPtr img)

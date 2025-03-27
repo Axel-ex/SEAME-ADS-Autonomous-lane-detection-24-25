@@ -8,6 +8,7 @@
 #include <sensor_msgs/msg/image.hpp>
 
 constexpr int DEBUG_LOG_FREQ_MS = 5000;
+constexpr int QOS = 10;
 
 /**
  * @class VisionNode

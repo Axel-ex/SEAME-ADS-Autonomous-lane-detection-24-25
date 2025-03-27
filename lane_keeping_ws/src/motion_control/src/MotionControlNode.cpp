@@ -18,8 +18,8 @@ MotionControlNode::MotionControlNode()
     declare_parameter("kp", 0.5);
     declare_parameter("ki", 0.1);
     declare_parameter("kd", 0.2);
-    declare_parameter("base_speed", 0.2);
-    declare_parameter("lookahead_index", 80);
+    declare_parameter("base_speed", 0.7);
+    declare_parameter("lookahead_index", 130);
 }
 
 void MotionControlNode::initPIDController()
@@ -37,18 +37,18 @@ void MotionControlNode::lanePositionCallback(
         findLaneCenter(left_coefs, right_coefs, lane_msg->image_height.data);
     if (!lane_center.x && !lane_center.y)
     {
-        RCLCPP_WARN(this->get_logger(),
-                    "No lane points detected. Stoping the vehicle");
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *get_clock(), 5000,
+                             "No lane points detected. Stoping the vehicle");
         stopVehicle();
         return;
     }
-    // adjust measure value with the filter
     lane_center.x = kalmman_filter_.update(lane_center.x);
     auto heading_point = findHeadingPoint(lane_msg->image_width.data,
                                           lane_msg->image_height.data);
-    RCLCPP_INFO(get_logger(),
-                "lane center: x: %.2f y: %.2f, heading point: x: %.2f y:%.2f",
-                lane_center.x, lane_center.y, heading_point.x, heading_point.y);
+    RCLCPP_INFO_THROTTLE(
+        get_logger(), *get_clock(), 5000,
+        "lane center: x: %.2f y: %.2f, heading point: x: %.2f y:%.2f",
+        lane_center.x, lane_center.y, heading_point.x, heading_point.y);
     calculateAndPublishControls(lane_center, heading_point,
                                 lane_msg->image_width.data);
     publishPolyfitCoefficients(left_coefs, right_coefs, lane_center);
@@ -93,6 +93,8 @@ void MotionControlNode::calculatePolyfitCoefs(
 
 /**
  * @brief Find lane center at fix distance  img_height - "lookahead_index"
+ *
+ * Lane center will always be found since when a lane is missing it is infered
  *
  * @param left_coefs
  * @param right_coef
@@ -174,12 +176,12 @@ void MotionControlNode::estimateMissingLane(std::vector<double>& left_coefs,
     if (left_coefs.empty())
     {
         left_coefs = right_coefs;
-        left_coefs[0] += estimated_lane_width_;
+        left_coefs[0] += (estimated_lane_width_ * 2);
     }
     else
     {
         right_coefs = left_coefs;
-        right_coefs[0] -= estimated_lane_width_;
+        right_coefs[0] -= (estimated_lane_width_ * 2);
     }
 }
 
