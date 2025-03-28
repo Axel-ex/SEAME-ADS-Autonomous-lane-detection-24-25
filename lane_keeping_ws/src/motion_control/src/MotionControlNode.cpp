@@ -61,19 +61,25 @@ void MotionControlNode::RANSACFilter(std::vector<double>& x,
     if (x.size() < 3)
         return;
 
-    std::vector<cv::Point2f> points, inliners;
+    // Convert to cv::Mat to use OpenCV functions
+    std::vector<cv::Point2f> points;
     for (size_t i = 0; i < x.size(); ++i)
-        points.emplace_back(x[i], y[i]);
+        points.push_back(cv::Point2f(x[i], y[i]));
 
-    std::vector<uchar> inlier_mask(points.size());
-    cv::Mat H =
-        cv::findHomography(points, points, cv::RANSAC, 5.0, inlier_mask);
+    // Fit a line using RANSAC
+    cv::Vec4f line;
+    cv::fitLine(points, line, cv::DIST_L2, 0, 0.01, 0.01);
 
+    // Filter points that are far from the fitted line
     std::vector<double> filtered_x, filtered_y;
     for (size_t i = 0; i < points.size(); ++i)
     {
-        if (inlier_mask[i])
-        { // If it's an inlier
+        double distance = std::abs(line[1] * points[i].x -
+                                   line[0] * points[i].y + line[2] * line[3]) /
+                          std::sqrt(line[1] * line[1] + line[0] * line[0]);
+
+        if (distance < 500)
+        {
             filtered_x.push_back(points[i].x);
             filtered_y.push_back(points[i].y);
         }
@@ -92,8 +98,8 @@ void MotionControlNode::calculatePolyfitCoefs(
 
     separateCoordinates(lane_msg->left_lane, left_x, left_y);
     separateCoordinates(lane_msg->right_lane, right_x, right_y);
-    RANSACFilter(left_x, left_y);
-    RANSACFilter(right_x, right_y);
+    // RANSACFilter(left_x, left_y);
+    // RANSACFilter(right_x, right_y);
 
     if (left_x.size() >= 3 && right_x.size() >= 3)
     {
