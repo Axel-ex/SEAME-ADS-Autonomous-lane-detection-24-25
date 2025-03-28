@@ -11,7 +11,7 @@ using namespace cv;
 
 VisionNode::VisionNode() : Node("vision_node")
 {
-    auto qos = rclcpp::QoS(QOS);
+    auto qos = rclcpp::QoS(QOS).best_effort();
     raw_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
         "image_raw", qos,
         [this](sensor_msgs::msg::Image::SharedPtr img)
@@ -75,14 +75,7 @@ void VisionNode::preProcessImage(cuda::GpuMat& gpu_img)
     cropToROI(gpu_img);
     publishMaskImg(gpu_img);
     applyCannyEdge(gpu_img);
-
-    // Save edge detection result
-    Mat cpu_edges;
-    gpu_img.download(cpu_edges);
-    std_msgs::msg::Header hdr;
-    sensor_msgs::msg::Image::SharedPtr msg;
-    msg = cv_bridge::CvImage(hdr, "mono8", cpu_edges).toImageMsg();
-    edge_img_pub_.publish(msg);
+    // publishEdgeImage(gpu_img);
 }
 
 std::vector<Vec4i> VisionNode::getLines(cuda::GpuMat& gpu_img)
@@ -97,30 +90,14 @@ std::vector<Vec4i> VisionNode::getLines(cuda::GpuMat& gpu_img)
 
     line_detector->detect(gpu_img, gpu_lines);
 
-    // Download lines from GPU to CPU
-    Mat lines_cpu;
-
-    // Create the host matrix with CV_32SC4 type
-    lines_cpu.create(1, gpu_lines.cols, CV_32SC4);
-    gpu_lines.download(lines_cpu);
-
     // Convert to vector of Vec4i
     std::vector<Vec4i> lines;
-    if (!lines_cpu.empty())
+    if (!gpu_lines.empty())
     {
-        lines.reserve(lines_cpu.cols);
-        int* data = lines_cpu.ptr<int>(); // Use int* instead of float*
-
-        for (int i = 0; i < lines_cpu.cols; ++i)
-        {
-            // Each line is stored as 4 consecutive int values
-            int x1 = data[i * 4];
-            int y1 = data[i * 4 + 1];
-            int x2 = data[i * 4 + 2];
-            int y2 = data[i * 4 + 3];
-
-            lines.push_back(Vec4i(x1, y1, x2, y2));
-        }
+        Mat lines_cpu(1, gpu_lines.cols, CV_32SC4);
+        gpu_lines.download(lines_cpu);
+        lines.assign(lines_cpu.ptr<Vec4i>(),
+                     lines_cpu.ptr<Vec4i>() + lines_cpu.cols);
     }
 
     RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(),
@@ -143,7 +120,7 @@ void VisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines,
         double slope = static_cast<double>(y2 - y1) / (x2 - x1);
 
         // remove horizontal lines
-        if (std::abs(slope) < 0.2)
+        if (std::abs(slope) < 0.3)
             continue;
 
         // Classify lines based on slope and position
@@ -254,7 +231,9 @@ void VisionNode::publishMaskImg(cuda::GpuMat& gpu_img)
     std_msgs::msg::Header hdr;
     sensor_msgs::msg::Image::SharedPtr msg;
     Mat mask;
+
     gpu_img.download(mask);
+    hdr.stamp = now();
     msg = cv_bridge::CvImage(hdr, "mono8", mask).toImageMsg();
     mask_pub_.publish(msg);
 }
@@ -275,4 +254,14 @@ void VisionNode::applyCannyEdge(cuda::GpuMat& gpu_img)
     Ptr<cuda::CannyEdgeDetector> canny = cuda::createCannyEdgeDetector(
         lower_canny_treshold, upper_canny_treshold);
     canny->detect(gpu_img, gpu_img);
+}
+
+void VisionNode::publishEdgeImage(cuda::GpuMat& gpu_img)
+{
+    Mat cpu_edges;
+    gpu_img.download(cpu_edges);
+    std_msgs::msg::Header hdr;
+    sensor_msgs::msg::Image::SharedPtr msg;
+    msg = cv_bridge::CvImage(hdr, "mono8", cpu_edges).toImageMsg();
+    edge_img_pub_.publish(msg);
 }
