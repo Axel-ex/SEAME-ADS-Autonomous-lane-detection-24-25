@@ -1,6 +1,7 @@
 #pragma once
 
 #include <KalmanFilter.hpp>
+#include <LaneBuffer.hpp>
 #include <PIDController.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/twist.hpp>
@@ -25,7 +26,7 @@ class MotionControlNode : public rclcpp::Node
         void initPIDController();
 
     private:
-        int estimated_lane_width_;     // in case one of the lane is missing
+        LaneBuffer lane_buffer_;       // in case one of the lane is missing
         PIDController pid_controller_; // smooth out the steering
         KalmanFilter kalmman_filter_;  // filter absurd lane center measurements
 
@@ -50,8 +51,6 @@ class MotionControlNode : public rclcpp::Node
                                const std::vector<double>& right_coef,
                                int img_height);
         Point32 findHeadingPoint(int img_width, int img_height);
-        void estimateMissingLane(std::vector<double>& left_coefs,
-                                 std::vector<double>& right_coefs);
         void calculateAndPublishControls(Point32& lane_center,
                                          Point32& heading_point, int img_width);
         void publishPolyfitCoefficients(const std::vector<double>& left_coefs,

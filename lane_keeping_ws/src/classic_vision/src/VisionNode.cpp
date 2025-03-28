@@ -30,7 +30,6 @@ VisionNode::VisionNode() : Node("vision_node")
 
 void VisionNode::initPublisher()
 {
-
     auto it = image_transport::ImageTransport(shared_from_this());
     edge_img_pub_ = it.advertise("edges_img", 1);
     mask_pub_ = it.advertise("mask_img", 1);

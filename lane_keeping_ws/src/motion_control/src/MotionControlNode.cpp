@@ -4,8 +4,7 @@
 using namespace rclcpp;
 
 MotionControlNode::MotionControlNode()
-    : kalmman_filter_(0.1, 0.5), Node("motion_control_node"),
-      estimated_lane_width_(225)
+    : Node("motion_control_node"), kalmman_filter_(0.1, 0.5), lane_buffer_(3)
 {
     lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
         "lane_position", 10,
@@ -33,6 +32,7 @@ void MotionControlNode::lanePositionCallback(
     std::vector<double> left_coefs, right_coefs;
 
     calculatePolyfitCoefs(left_coefs, right_coefs, lane_msg);
+    lane_buffer_.addCoeffs(left_coefs, right_coefs);
     auto lane_center =
         findLaneCenter(left_coefs, right_coefs, lane_msg->image_height.data);
     if (!lane_center.x && !lane_center.y)
@@ -64,31 +64,31 @@ void MotionControlNode::calculatePolyfitCoefs(
     separateCoordinates(lane_msg->left_lane, left_x, left_y);
     separateCoordinates(lane_msg->right_lane, right_x, right_y);
 
-    if (left_x.size() < 3 && right_x.size() < 3)
-        return;
-    else if (left_x.size() < 3)
+    if (left_x.size() >= 3 && right_x.size() >= 3)
     {
-        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
-                             "Lost left lane");
+        left_coefs =
+            calculate(left_x.data(), left_y.data(), degree, left_x.size());
         right_coefs =
             calculate(right_x.data(), right_y.data(), degree, right_x.size());
-        estimateMissingLane(left_coefs, right_coefs);
     }
-    else if (right_x.size() < 3)
+    else if (left_x.size() < 3 && lane_buffer_.hasLeftLane())
+    {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
+                             "Using buffered left lane");
+        right_coefs =
+            calculate(right_x.data(), right_y.data(), degree, right_x.size());
+        left_coefs = lane_buffer_.getLastLeft();
+    }
+    else if (right_x.size() < 3 && lane_buffer_.hasRightLane())
     {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
                              "Lost right lane");
         left_coefs =
             calculate(left_x.data(), left_y.data(), degree, left_x.size());
-        estimateMissingLane(left_coefs, right_coefs);
+        right_coefs = lane_buffer_.getLastRight();
     }
     else
-    {
-        left_coefs =
-            calculate(left_x.data(), left_y.data(), degree, left_x.size());
-        right_coefs =
-            calculate(right_x.data(), right_y.data(), degree, right_x.size());
-    }
+        return;
 }
 
 /**
@@ -159,30 +159,6 @@ void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
     msg.linear.x = get_parameter("base_speed").as_double();
     msg.angular.z = steering;
     cmd_vel_pub_->publish(msg);
-}
-
-/**
- * @brief estimate the missing coefs lane coefs.
- *
- * estimate the missing lane coef by shifting the intercept in the right
- * direction depending on which lane is missing
- *
- * @param left_coefs
- * @param right_coefs
- */
-void MotionControlNode::estimateMissingLane(std::vector<double>& left_coefs,
-                                            std::vector<double>& right_coefs)
-{
-    if (left_coefs.empty())
-    {
-        left_coefs = right_coefs;
-        left_coefs[0] += (estimated_lane_width_ * 2);
-    }
-    else
-    {
-        right_coefs = left_coefs;
-        right_coefs[0] -= (estimated_lane_width_ * 2);
-    }
 }
 
 void MotionControlNode::separateCoordinates(const std::vector<Point32>& points,

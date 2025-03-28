@@ -19,6 +19,7 @@ set(srcs
 	${src_dir}PIDController.cpp
 	${src_dir}PolyFit.cpp
 	${src_dir}KalmanFilter.cpp
+	${src_dir}LaneBuffer.cpp
 )
 
 # Include directories
