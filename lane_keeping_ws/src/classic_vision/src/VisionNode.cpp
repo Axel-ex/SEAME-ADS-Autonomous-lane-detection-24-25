@@ -125,7 +125,7 @@ void VisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines,
         // Classify lines based on slope and position
         if (slope < 0 && x1 < (img_width / 2))
             left_lines.push_back(line);
-        else if (slope > 0 && x1 < (img_width / 2))
+        else if (slope > 0 && x1 > (img_width / 2))
             right_lines.push_back(line);
     }
 
