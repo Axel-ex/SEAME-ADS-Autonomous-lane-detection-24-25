@@ -1,5 +1,6 @@
 #include "MotionControlNode.hpp"
 #include "PolyFit.hpp"
+#include <opencv2/opencv.hpp>
 
 using namespace rclcpp;
 
@@ -54,6 +55,34 @@ void MotionControlNode::lanePositionCallback(
     publishPolyfitCoefficients(left_coefs, right_coefs, lane_center);
 }
 
+void MotionControlNode::RANSACFilter(std::vector<double>& x,
+                                     std::vector<double>& y)
+{
+    if (x.size() < 3)
+        return;
+
+    std::vector<cv::Point2f> points, inliners;
+    for (size_t i = 0; i < x.size(); ++i)
+        points.emplace_back(x[i], y[i]);
+
+    std::vector<uchar> inlier_mask(points.size());
+    cv::Mat H =
+        cv::findHomography(points, points, cv::RANSAC, 5.0, inlier_mask);
+
+    std::vector<double> filtered_x, filtered_y;
+    for (size_t i = 0; i < points.size(); ++i)
+    {
+        if (inlier_mask[i])
+        { // If it's an inlier
+            filtered_x.push_back(points[i].x);
+            filtered_y.push_back(points[i].y);
+        }
+    }
+
+    x = filtered_x;
+    y = filtered_y;
+}
+
 void MotionControlNode::calculatePolyfitCoefs(
     std::vector<double>& left_coefs, std::vector<double>& right_coefs,
     lane_msgs::msg::LanePositions::SharedPtr lane_msg)
@@ -63,6 +92,8 @@ void MotionControlNode::calculatePolyfitCoefs(
 
     separateCoordinates(lane_msg->left_lane, left_x, left_y);
     separateCoordinates(lane_msg->right_lane, right_x, right_y);
+    RANSACFilter(left_x, left_y);
+    RANSACFilter(right_x, right_y);
 
     if (left_x.size() >= 3 && right_x.size() >= 3)
     {

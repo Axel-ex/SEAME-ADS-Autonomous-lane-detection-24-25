@@ -10,8 +10,8 @@
 using namespace std;
 
 #define MAXIT 100
-#define EPS 3.0e-7
 #define FPMIN 1.0e-30
+constexpr double POLY_EPS = 3.0e-7;
 
 #define STOP 1.0e-8
 #define TINY 1.0e-30

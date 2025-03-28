@@ -11,6 +11,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #   add_compile_options(-Wall -Wextra -Wpedantic -g)
 # endif()
 
+find_package(OpenCV REQUIRED COMPONENTS core imgproc calib3d)
+
 set(exec_name ${PROJECT_NAME}_node)
 set(src_dir src/)
 set(srcs
@@ -42,6 +44,9 @@ endif()
 
 add_executable(${exec_name} ${srcs})
 
+target_link_libraries(${exec_name}
+  ${OpenCV_LIBS}
+)
 ament_target_dependencies(${exec_name} rclcpp std_msgs sensor_msgs lane_msgs visualization_msgs)
 
 install(TARGETS ${exec_name} DESTINATION lib/${PROJECT_NAME})
