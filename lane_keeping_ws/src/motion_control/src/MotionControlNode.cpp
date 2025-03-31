@@ -15,10 +15,10 @@ MotionControlNode::MotionControlNode()
         create_publisher<lane_msgs::msg::PolyfitCoefs>("polyfit_coefs", 10);
     cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
 
-    declare_parameter("kp", 0.5);
-    declare_parameter("ki", 0.1);
-    declare_parameter("kd", 0.2);
-    declare_parameter("base_speed", 0.7);
+    declare_parameter("kp", 1.0);
+    declare_parameter("ki", 0.0);
+    declare_parameter("kd", 0.0);
+    declare_parameter("base_speed", 0.5);
     declare_parameter("lookahead_index", 130);
 }
 
@@ -94,7 +94,7 @@ void MotionControlNode::calculatePolyfitCoefs(
     lane_msgs::msg::LanePositions::SharedPtr lane_msg)
 {
     std::vector<double> left_x, left_y, right_x, right_y;
-    size_t degree = 2;
+    size_t degree = 1;
 
     separateCoordinates(lane_msg->left_lane, left_x, left_y);
     separateCoordinates(lane_msg->right_lane, right_x, right_y);
