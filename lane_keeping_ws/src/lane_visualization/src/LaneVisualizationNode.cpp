@@ -6,18 +6,18 @@ LaneVisualizationNode::LaneVisualizationNode()
     : rclcpp::Node("lane_visualization_node")
 {
     raw_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-        "image_raw", 10,
+        "image_raw", 1,
         [this](const sensor_msgs::msg::Image::SharedPtr msg)
         { this->rawImageCallback(msg); });
 
     polyfit_coefs_sub_ =
         this->create_subscription<lane_msgs::msg::PolyfitCoefs>(
-            "polyfit_coefs", 10,
+            "polyfit_coefs", 1,
             [this](const lane_msgs::msg::PolyfitCoefs::SharedPtr msg)
             { this->storeCoefs(msg); });
 
     lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
-        "lane_position", 10,
+        "lane_position", 1,
         [this](const lane_msgs::msg::LanePositions::SharedPtr msg)
         { this->storeLanePosition(msg); });
 

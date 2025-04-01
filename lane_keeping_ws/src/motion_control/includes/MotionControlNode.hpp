@@ -22,7 +22,7 @@ class MotionControlNode : public rclcpp::Node
 {
     public:
         MotionControlNode();
-        ~MotionControlNode() = default;
+        ~MotionControlNode();
         void initPIDController();
 
     private:
@@ -40,10 +40,10 @@ class MotionControlNode : public rclcpp::Node
         // Private methods
         void
         lanePositionCallback(lane_msgs::msg::LanePositions::SharedPtr lane_msg);
-        void separateCoordinates(const std::vector<Point32>& points,
-                                 std::vector<double>& x,
-                                 std::vector<double>& y);
-        void RANSACFilter(std::vector<double>& x, std::vector<double>& y);
+        void separateAndOrderCoordinates(const std::vector<Point32>& points,
+                                         std::vector<double>& x,
+                                         std::vector<double>& y);
+        // void RANSACFilter(std::vector<double>& x, std::vector<double>& y);
         void calculatePolyfitCoefs(
             std::vector<double>& left_coefs, std::vector<double>& right_coefs,
             lane_msgs::msg::LanePositions::SharedPtr lane_msg);

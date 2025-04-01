@@ -410,7 +410,6 @@ std::vector<double> calculate(double* x, double* y, size_t degree, size_t n)
 
     // Initialize values
     // **************************************************************
-    cout << x << endl;
     nstar = n - 1;
     if (fixedinter)
         nstar = n;

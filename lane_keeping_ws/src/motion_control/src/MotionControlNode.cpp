@@ -22,6 +22,8 @@ MotionControlNode::MotionControlNode()
     declare_parameter("lookahead_index", 130);
 }
 
+MotionControlNode::~MotionControlNode() { stopVehicle(); }
+
 void MotionControlNode::initPIDController()
 {
     pid_controller_.initializePID(shared_from_this());
@@ -55,49 +57,50 @@ void MotionControlNode::lanePositionCallback(
     publishPolyfitCoefficients(left_coefs, right_coefs, lane_center);
 }
 
-void MotionControlNode::RANSACFilter(std::vector<double>& x,
-                                     std::vector<double>& y)
-{
-    if (x.size() < 3)
-        return;
-
-    // Convert to cv::Mat to use OpenCV functions
-    std::vector<cv::Point2f> points;
-    for (size_t i = 0; i < x.size(); ++i)
-        points.push_back(cv::Point2f(x[i], y[i]));
-
-    // Fit a line using RANSAC
-    cv::Vec4f line;
-    cv::fitLine(points, line, cv::DIST_L2, 0, 0.01, 0.01);
-
-    // Filter points that are far from the fitted line
-    std::vector<double> filtered_x, filtered_y;
-    for (size_t i = 0; i < points.size(); ++i)
-    {
-        double distance = std::abs(line[1] * points[i].x -
-                                   line[0] * points[i].y + line[2] * line[3]) /
-                          std::sqrt(line[1] * line[1] + line[0] * line[0]);
-
-        if (distance < 500)
-        {
-            filtered_x.push_back(points[i].x);
-            filtered_y.push_back(points[i].y);
-        }
-    }
-
-    x = filtered_x;
-    y = filtered_y;
-}
+// void MotionControlNode::RANSACFilter(std::vector<double>& x,
+//                                      std::vector<double>& y)
+// {
+//     if (x.size() < 3)
+//         return;
+//
+//     // Convert to cv::Mat to use OpenCV functions
+//     std::vector<cv::Point2f> points;
+//     for (size_t i = 0; i < x.size(); ++i)
+//         points.push_back(cv::Point2f(x[i], y[i]));
+//
+//     // Fit a line using RANSAC
+//     cv::Vec4f line;
+//     cv::fitLine(points, line, cv::DIST_L2, 0, 0.01, 0.01);
+//
+//     // Filter points that are far from the fitted line
+//     std::vector<double> filtered_x, filtered_y;
+//     for (size_t i = 0; i < points.size(); ++i)
+//     {
+//         double distance = std::abs(line[1] * points[i].x -
+//                                    line[0] * points[i].y + line[2] * line[3])
+//                                    /
+//                           std::sqrt(line[1] * line[1] + line[0] * line[0]);
+//
+//         if (distance < 500)
+//         {
+//             filtered_x.push_back(points[i].x);
+//             filtered_y.push_back(points[i].y);
+//         }
+//     }
+//
+//     x = filtered_x;
+//     y = filtered_y;
+// }
 
 void MotionControlNode::calculatePolyfitCoefs(
     std::vector<double>& left_coefs, std::vector<double>& right_coefs,
     lane_msgs::msg::LanePositions::SharedPtr lane_msg)
 {
     std::vector<double> left_x, left_y, right_x, right_y;
-    size_t degree = 1;
+    size_t degree = 2;
 
-    separateCoordinates(lane_msg->left_lane, left_x, left_y);
-    separateCoordinates(lane_msg->right_lane, right_x, right_y);
+    separateAndOrderCoordinates(lane_msg->left_lane, left_x, left_y);
+    separateAndOrderCoordinates(lane_msg->right_lane, right_x, right_y);
     // RANSACFilter(left_x, left_y);
     // RANSACFilter(right_x, right_y);
 
@@ -124,8 +127,7 @@ void MotionControlNode::calculatePolyfitCoefs(
             calculate(left_x.data(), left_y.data(), degree, left_x.size());
         right_coefs = lane_buffer_.getLastRight();
     }
-    else
-        return;
+    lane_buffer_.addCoeffs(left_coefs, right_coefs);
 }
 
 /**
@@ -150,7 +152,6 @@ MotionControlNode::findLaneCenter(const std::vector<double>& left_coefs,
     int lookahead = img_height - lookahead_index;
     lookahead = std::max(0, std::min(lookahead, img_height));
 
-    // solve the quadtratic equations
     double y = static_cast<double>(lookahead);
     double x_left =
         solveQuadratic(left_coefs[2], left_coefs[1], left_coefs[0] - y);
@@ -198,17 +199,22 @@ void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
     cmd_vel_pub_->publish(msg);
 }
 
-void MotionControlNode::separateCoordinates(const std::vector<Point32>& points,
-                                            std::vector<double>& x,
-                                            std::vector<double>& y)
+void MotionControlNode::separateAndOrderCoordinates(
+    const std::vector<Point32>& points, std::vector<double>& x,
+    std::vector<double>& y)
 {
     x.clear();
     y.clear();
 
-    for (const auto& point : points)
+    std::vector<std::pair<double, double>> points_pair;
+    for (auto& point : points)
+        points_pair.push_back({point.y, point.x});
+    std::sort(points_pair.begin(), points_pair.end());
+
+    for (const auto& point : points_pair)
     {
-        x.push_back(point.x);
-        y.push_back(point.y);
+        x.push_back(point.second);
+        y.push_back(point.first);
     }
 }
 

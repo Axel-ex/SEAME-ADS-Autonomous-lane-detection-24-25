@@ -35,11 +35,27 @@ find_package(sensor_msgs REQUIRED)
 find_package(lane_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 
+# Gtest
 if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  set(ament_cmake_copyright_FOUND TRUE)
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
+  find_package(ament_cmake_gmock REQUIRED)
+  
+  # Create test executable
+  ament_add_gmock(${PROJECT_NAME}_test 
+	  test/src/LaneBufferTest.cpp
+	  ${src_dir}LaneBuffer.cpp
+  )
+  
+  target_include_directories(${PROJECT_NAME}_test PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+    test/include
+  )
+  
+  # Add dependencies to the test target
+  ament_target_dependencies(${PROJECT_NAME}_test 
+    rclcpp
+	lane_msgs
+  )
 endif()
 
 add_executable(${exec_name} ${srcs})
