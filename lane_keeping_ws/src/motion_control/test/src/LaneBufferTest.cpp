@@ -4,8 +4,7 @@
 class LaneBufferTest : public ::testing::Test
 {
     protected:
-        LaneBufferTest()
-            : lane_buffer(3) {} // Initialize LaneBuffer with max_size = 3
+        LaneBufferTest() : lane_buffer(3) {}
 
         LaneBuffer lane_buffer;
 };
@@ -18,8 +17,8 @@ TEST_F(LaneBufferTest, TestInitialization)
 
 TEST_F(LaneBufferTest, TestAddCoeffs)
 {
-    std::vector<double> left_coefs = {1.0, 2.0, 3.0, 4.0};
-    std::vector<double> right_coefs = {5.0, 6.0, 7.0, 8.0};
+    std::vector<double> left_coefs = {1.0, 2.0, 3.0};
+    std::vector<double> right_coefs = {5.0, 6.0, 7.0};
 
     lane_buffer.addCoeffs(left_coefs, right_coefs);
 
@@ -32,23 +31,23 @@ TEST_F(LaneBufferTest, TestAddCoeffs)
 
 TEST_F(LaneBufferTest, TestBufferLimit)
 {
-    std::vector<double> left1 = {1.0, 1.1, 1.2, 1.3};
-    std::vector<double> left2 = {2.0, 2.1, 2.2, 2.3};
-    std::vector<double> left3 = {3.0, 3.1, 3.2, 3.3};
-    std::vector<double> left4 = {4.0, 4.1, 4.2, 4.3}; // Should push out left1
+    std::vector<double> left1 = {1.0, 1.1, 1.2};
+    std::vector<double> left2 = {2.0, 2.1, 2.2};
+    std::vector<double> left3 = {3.0, 3.1, 3.2};
+    std::vector<double> left4 = {4.0, 4.1, 4.2};
 
     lane_buffer.addCoeffs(left1, left1);
     lane_buffer.addCoeffs(left2, left2);
     lane_buffer.addCoeffs(left3, left3);
     lane_buffer.addCoeffs(left4, left4);
 
-    EXPECT_EQ(lane_buffer.getLastLeft(), left4); // Last added should be left4
+    EXPECT_EQ(lane_buffer.getLastLeft(), left4);
 }
 
 TEST_F(LaneBufferTest, TestGetLastCoefficients)
 {
-    std::vector<double> left_coefs = {10.0, 20.0, 30.0, 40.0};
-    std::vector<double> right_coefs = {50.0, 60.0, 70.0, 80.0};
+    std::vector<double> left_coefs = {10.0, 20.0, 30.0};
+    std::vector<double> right_coefs = {50.0, 60.0, 70.0};
 
     lane_buffer.addCoeffs(left_coefs, right_coefs);
 

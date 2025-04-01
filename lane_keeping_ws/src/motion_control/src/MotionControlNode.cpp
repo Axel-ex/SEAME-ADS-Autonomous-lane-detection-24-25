@@ -35,6 +35,10 @@ void MotionControlNode::lanePositionCallback(
     std::vector<double> left_coefs, right_coefs;
 
     calculatePolyfitCoefs(left_coefs, right_coefs, lane_msg);
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
+                         "Adding left coef size %d and right coef size %d\n",
+                         left_coefs.size(), right_coefs.size());
+
     lane_buffer_.addCoeffs(left_coefs, right_coefs);
     auto lane_center =
         findLaneCenter(left_coefs, right_coefs, lane_msg->image_height.data);
@@ -57,41 +61,6 @@ void MotionControlNode::lanePositionCallback(
     publishPolyfitCoefficients(left_coefs, right_coefs, lane_center);
 }
 
-// void MotionControlNode::RANSACFilter(std::vector<double>& x,
-//                                      std::vector<double>& y)
-// {
-//     if (x.size() < 3)
-//         return;
-//
-//     // Convert to cv::Mat to use OpenCV functions
-//     std::vector<cv::Point2f> points;
-//     for (size_t i = 0; i < x.size(); ++i)
-//         points.push_back(cv::Point2f(x[i], y[i]));
-//
-//     // Fit a line using RANSAC
-//     cv::Vec4f line;
-//     cv::fitLine(points, line, cv::DIST_L2, 0, 0.01, 0.01);
-//
-//     // Filter points that are far from the fitted line
-//     std::vector<double> filtered_x, filtered_y;
-//     for (size_t i = 0; i < points.size(); ++i)
-//     {
-//         double distance = std::abs(line[1] * points[i].x -
-//                                    line[0] * points[i].y + line[2] * line[3])
-//                                    /
-//                           std::sqrt(line[1] * line[1] + line[0] * line[0]);
-//
-//         if (distance < 500)
-//         {
-//             filtered_x.push_back(points[i].x);
-//             filtered_y.push_back(points[i].y);
-//         }
-//     }
-//
-//     x = filtered_x;
-//     y = filtered_y;
-// }
-
 void MotionControlNode::calculatePolyfitCoefs(
     std::vector<double>& left_coefs, std::vector<double>& right_coefs,
     lane_msgs::msg::LanePositions::SharedPtr lane_msg)
@@ -101,8 +70,6 @@ void MotionControlNode::calculatePolyfitCoefs(
 
     separateAndOrderCoordinates(lane_msg->left_lane, left_x, left_y);
     separateAndOrderCoordinates(lane_msg->right_lane, right_x, right_y);
-    // RANSACFilter(left_x, left_y);
-    // RANSACFilter(right_x, right_y);
 
     if (left_x.size() >= 3 && right_x.size() >= 3)
     {
@@ -114,20 +81,21 @@ void MotionControlNode::calculatePolyfitCoefs(
     else if (left_x.size() < 3 && lane_buffer_.hasLeftLane())
     {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
-                             "Using buffered left lane");
+                             "Left lane missing → using buffered left lane");
+        left_coefs = lane_buffer_.getLastLeft();
         right_coefs =
             calculate(right_x.data(), right_y.data(), degree, right_x.size());
-        left_coefs = lane_buffer_.getLastLeft();
     }
     else if (right_x.size() < 3 && lane_buffer_.hasRightLane())
     {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
-                             "Lost right lane");
+                             "Right lane missing → using buffered right lane");
+        right_coefs = lane_buffer_.getLastRight();
         left_coefs =
             calculate(left_x.data(), left_y.data(), degree, left_x.size());
-        right_coefs = lane_buffer_.getLastRight();
     }
-    lane_buffer_.addCoeffs(left_coefs, right_coefs);
+    // If non of the condition are met, no lane are detected, the coefs stay
+    // empty and the error is catch later in the program.
 }
 
 /**

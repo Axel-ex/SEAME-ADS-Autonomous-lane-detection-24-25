@@ -14,8 +14,12 @@ class LaneBuffer
 
         void addCoeffs(std::vector<double>& left_coefs,
                        std::vector<double>& right_coefs);
+
         bool hasLeftLane();
         bool hasRightLane();
+
+        size_t getLeftSize();
+        size_t getRightSize();
 
     private:
         size_t max_size_;
