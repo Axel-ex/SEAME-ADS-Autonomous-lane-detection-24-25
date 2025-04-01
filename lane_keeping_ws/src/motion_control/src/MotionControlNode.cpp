@@ -8,12 +8,12 @@ MotionControlNode::MotionControlNode()
     : Node("motion_control_node"), kalmman_filter_(0.1, 0.5), lane_buffer_(3)
 {
     lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
-        "lane_position", 10,
+        "lane_position", 1,
         [this](lane_msgs::msg::LanePositions::SharedPtr lane_msg)
         { MotionControlNode::lanePositionCallback(lane_msg); });
     polyfit_coefs_pub_ =
-        create_publisher<lane_msgs::msg::PolyfitCoefs>("polyfit_coefs", 10);
-    cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+        create_publisher<lane_msgs::msg::PolyfitCoefs>("polyfit_coefs", 1);
+    cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 1);
 
     declare_parameter("kp", 1.0);
     declare_parameter("ki", 0.0);
