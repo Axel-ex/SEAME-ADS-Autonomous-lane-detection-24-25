@@ -35,13 +35,10 @@ void MotionControlNode::lanePositionCallback(
     std::vector<double> left_coefs, right_coefs;
 
     calculatePolyfitCoefs(left_coefs, right_coefs, lane_msg);
-    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
-                         "Adding left coef size %d and right coef size %d\n",
-                         left_coefs.size(), right_coefs.size());
-
     lane_buffer_.addCoeffs(left_coefs, right_coefs);
     auto lane_center =
         findLaneCenter(left_coefs, right_coefs, lane_msg->image_height.data);
+
     if (!lane_center.x && !lane_center.y)
     {
         RCLCPP_WARN_THROTTLE(this->get_logger(), *get_clock(), 5000,
@@ -49,16 +46,17 @@ void MotionControlNode::lanePositionCallback(
         stopVehicle();
         return;
     }
+
     lane_center.x = kalmman_filter_.update(lane_center.x);
     auto heading_point = findHeadingPoint(lane_msg->image_width.data,
                                           lane_msg->image_height.data);
-    RCLCPP_INFO_THROTTLE(
-        get_logger(), *get_clock(), 5000,
-        "lane center: x: %.2f y: %.2f, heading point: x: %.2f y:%.2f",
-        lane_center.x, lane_center.y, heading_point.x, heading_point.y);
     calculateAndPublishControls(lane_center, heading_point,
                                 lane_msg->image_width.data);
     publishPolyfitCoefficients(left_coefs, right_coefs, lane_center);
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+                         "right: %.4f; %.2f; %.2f, left: %.4f; %.2f; %.2f\n",
+                         right_coefs[2], right_coefs[1], right_coefs[0],
+                         left_coefs[2], left_coefs[1], left_coefs[0]);
 }
 
 void MotionControlNode::calculatePolyfitCoefs(
@@ -122,9 +120,9 @@ MotionControlNode::findLaneCenter(const std::vector<double>& left_coefs,
 
     double y = static_cast<double>(lookahead);
     double x_left =
-        solveQuadratic(left_coefs[2], left_coefs[1], left_coefs[0] - y);
-    double x_right =
-        solveQuadratic(right_coefs[2], right_coefs[1], right_coefs[0] - y);
+        solveQuadratic(left_coefs[2], left_coefs[1], left_coefs[0] - y, false);
+    double x_right = solveQuadratic(right_coefs[2], right_coefs[1],
+                                    right_coefs[0] - y, true);
 
     // Ensure x_left and x_right are valid (within image bounds)
     x_left = std::max(0.0, std::min(x_left, static_cast<double>(img_height)));
