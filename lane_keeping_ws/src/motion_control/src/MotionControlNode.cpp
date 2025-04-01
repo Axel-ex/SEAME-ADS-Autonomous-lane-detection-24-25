@@ -41,7 +41,7 @@ void MotionControlNode::lanePositionCallback(
 
     if (!lane_center.x && !lane_center.y)
     {
-        RCLCPP_WARN_THROTTLE(this->get_logger(), *get_clock(), 5000,
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *get_clock(), WARN_FREQ,
                              "No lane points detected. Stoping the vehicle");
         stopVehicle();
         return;
@@ -53,7 +53,7 @@ void MotionControlNode::lanePositionCallback(
     calculateAndPublishControls(lane_center, heading_point,
                                 lane_msg->image_width.data);
     publishPolyfitCoefficients(left_coefs, right_coefs, lane_center);
-    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                          "right: %.4f; %.2f; %.2f, left: %.4f; %.2f; %.2f\n",
                          right_coefs[2], right_coefs[1], right_coefs[0],
                          left_coefs[2], left_coefs[1], left_coefs[0]);
@@ -78,7 +78,7 @@ void MotionControlNode::calculatePolyfitCoefs(
     }
     else if (left_x.size() < 3 && lane_buffer_.hasLeftLane())
     {
-        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                              "Left lane missing → using buffered left lane");
         left_coefs = lane_buffer_.getLastLeft();
         right_coefs =
@@ -86,7 +86,7 @@ void MotionControlNode::calculatePolyfitCoefs(
     }
     else if (right_x.size() < 3 && lane_buffer_.hasRightLane())
     {
-        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                              "Right lane missing → using buffered right lane");
         right_coefs = lane_buffer_.getLastRight();
         left_coefs =
@@ -124,6 +124,9 @@ MotionControlNode::findLaneCenter(const std::vector<double>& left_coefs,
     double x_right = solveQuadratic(right_coefs[2], right_coefs[1],
                                     right_coefs[0] - y, true);
 
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
+                         "x_left: %.2f, x_right: %.2f", x_left, x_right);
+
     // Ensure x_left and x_right are valid (within image bounds)
     x_left = std::max(0.0, std::min(x_left, static_cast<double>(img_height)));
     x_right = std::max(0.0, std::min(x_right, static_cast<double>(img_height)));
@@ -155,7 +158,7 @@ void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
     error = error / (img_width / 2.0);
 
     double steering = pid_controller_.calculate(error);
-    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                          "lane_center: %.2f, error: %.2f, steering %.2f",
                          lane_center.x, error, steering);
 

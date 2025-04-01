@@ -473,5 +473,5 @@ double solveQuadratic(double a, double b, double c, bool is_right_lane)
     if (is_right_lane)
         return std::max(t_pos, t_neg);
     else
-        return std::min(t_pos, t_neg);
+        return t_neg > 0 ? t_neg : t_pos;
 }

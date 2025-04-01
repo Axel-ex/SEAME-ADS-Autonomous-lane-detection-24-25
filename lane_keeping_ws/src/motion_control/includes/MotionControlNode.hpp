@@ -12,6 +12,7 @@
 #include <std_msgs/msg/string.hpp>
 
 using Point32 = geometry_msgs::msg::Point32;
+constexpr int WARN_FREQ = 3000;
 
 /**
  * @class MotionControlNode
