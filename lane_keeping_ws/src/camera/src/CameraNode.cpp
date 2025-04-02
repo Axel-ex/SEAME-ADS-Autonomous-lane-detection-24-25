@@ -28,6 +28,7 @@ CameraNode::~CameraNode()
     running_ = false;
     if (capture_thread_.joinable())
         capture_thread_.join();
+    cap_.release();
 }
 
 void CameraNode::initPublisherAndCapture()

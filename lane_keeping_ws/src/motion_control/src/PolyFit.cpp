@@ -410,7 +410,6 @@ std::vector<double> calculate(double* x, double* y, size_t degree, size_t n)
 
     // Initialize values
     // **************************************************************
-    cout << x << endl;
     nstar = n - 1;
     if (fixedinter)
         nstar = n;
@@ -461,14 +460,18 @@ std::vector<double> calculate(double* x, double* y, size_t degree, size_t n)
     return vec_coef;
 }
 
-double solveQuadratic(double a, double b, double c)
+double solveQuadratic(double a, double b, double c, bool is_right_lane)
 {
-    double t_plus = (-1 * b + sqrt(b * b - 4 * a * c)) / (2 * a);
-    double t_minu = (-1 * b - sqrt(b * b - 4 * a * c)) / (2 * a);
-    if (t_plus >= 0 && (t_minu <= 0 || t_plus <= t_minu))
-        return (t_plus);
-    else if (t_minu >= 0)
-        return (t_minu);
+    double discriminant = b * b - 4 * a * c;
+    if (discriminant < 0)
+        return -1; // No real solution
+
+    double sqrt_discriminant = sqrt(discriminant);
+    double t_pos = (-b + sqrt_discriminant) / (2 * a);
+    double t_neg = (-b - sqrt_discriminant) / (2 * a);
+
+    if (is_right_lane)
+        return std::max(t_pos, t_neg);
     else
-        return (-1);
+        return t_neg > 0 ? t_neg : t_pos;
 }

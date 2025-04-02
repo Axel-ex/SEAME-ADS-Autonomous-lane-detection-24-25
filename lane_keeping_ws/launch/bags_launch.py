@@ -19,6 +19,10 @@ def generate_launch_description():
             package='motion_control',
             node_executable='motion_control_node',  
             node_name='motion_control',  
+            output={
+                'stdout': 'screen',
+                'stderr': 'screen',
+            }
         ),
         Node(
             package='lane_visualization',

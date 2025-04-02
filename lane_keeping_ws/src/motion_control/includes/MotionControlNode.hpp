@@ -1,6 +1,7 @@
 #pragma once
 
 #include <KalmanFilter.hpp>
+#include <LaneBuffer.hpp>
 #include <PIDController.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/twist.hpp>
@@ -11,6 +12,7 @@
 #include <std_msgs/msg/string.hpp>
 
 using Point32 = geometry_msgs::msg::Point32;
+constexpr int WARN_FREQ = 3000;
 
 /**
  * @class MotionControlNode
@@ -21,11 +23,11 @@ class MotionControlNode : public rclcpp::Node
 {
     public:
         MotionControlNode();
-        ~MotionControlNode() = default;
+        ~MotionControlNode();
         void initPIDController();
 
     private:
-        int estimated_lane_width_;     // in case one of the lane is missing
+        LaneBuffer lane_buffer_;       // in case one of the lane is missing
         PIDController pid_controller_; // smooth out the steering
         KalmanFilter kalmman_filter_;  // filter absurd lane center measurements
 
@@ -39,9 +41,10 @@ class MotionControlNode : public rclcpp::Node
         // Private methods
         void
         lanePositionCallback(lane_msgs::msg::LanePositions::SharedPtr lane_msg);
-        void separateCoordinates(const std::vector<Point32>& points,
-                                 std::vector<double>& x,
-                                 std::vector<double>& y);
+        void separateAndOrderCoordinates(const std::vector<Point32>& points,
+                                         std::vector<double>& x,
+                                         std::vector<double>& y);
+        // void RANSACFilter(std::vector<double>& x, std::vector<double>& y);
         void calculatePolyfitCoefs(
             std::vector<double>& left_coefs, std::vector<double>& right_coefs,
             lane_msgs::msg::LanePositions::SharedPtr lane_msg);
@@ -49,8 +52,6 @@ class MotionControlNode : public rclcpp::Node
                                const std::vector<double>& right_coef,
                                int img_height);
         Point32 findHeadingPoint(int img_width, int img_height);
-        void estimateMissingLane(std::vector<double>& left_coefs,
-                                 std::vector<double>& right_coefs);
         void calculateAndPublishControls(Point32& lane_center,
                                          Point32& heading_point, int img_width);
         void publishPolyfitCoefficients(const std::vector<double>& left_coefs,
