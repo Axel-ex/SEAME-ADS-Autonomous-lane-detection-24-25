@@ -1,0 +1,71 @@
+name: Build on Pull Request
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches:
+      - main
+  push:
+    branches:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Install llvm17 toolchain
+      run: |
+        sudo apt-get update
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 17
+        sudo apt-get install -y clang-17 build-essential cmake curl git clang-tidy-17 wget
+        sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-17 100
+
+
+    - name: Install clang-tidy
+      run: |
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y # Rust for
+        sudo apt install -y cargo
+        sudo git clone https://github.com/lmapii/run-clang-tidy.git
+        cd run-clang-tidy
+        cargo build --release --target-dir /tmp/target
+        sudo mv /tmp/target/release/run-clang-tidy /usr/local/bin/run-clang-tidy-rust
+
+
+    - name: Install ROS2 eloquent
+      run: |
+         sudo apt update && sudo apt install curl gnupg2 lsb-release
+         curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add -
+         sudo sh -c 'echo "deb [arch=$(dpkg --print-architecture)] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" > /etc/apt/sources.list.d/ros2-latest.list'
+         sudo apt update && sudo apt install ros-dev-tools
+         sudo apt install -y ros-eloquent-desktop
+         source /opt/ros/eloquent/setup.bash
+
+    - name: Build the project
+      run: |
+          source /opt/ros/eloquent/setup.bash
+          # Initialize rosdep
+          sudo rosdep init || true
+          rosdep update
+          # Install dependencies
+          rosdep install --from-paths . --ignore-src -r -y
+          # Build
+          colcon build --symlink-install
+    #
+    # - name: Run tests
+    #   run: |
+    #     source /opt/ros/eloquent/setup.bash
+    #     cd $ROS_BUILD_DIR
+    #     source ./install/setup.bash
+    #     colcon test --ctest-args tests --packages-skip camera_ros --executor sequential
+    #     colcon test-result --all --verbose
+    #
+    # - name: Run clang-tidy
+    #   run: |
+    #     cd $ROS_BUILD_DIR
+    #     run-clang-tidy-rust tidy.json -j 4 --suppress-warnings
+
