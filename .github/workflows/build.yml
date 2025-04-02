@@ -17,3 +17,5 @@ jobs:
     - name: Build the project
       run: |
         source /opt/ros/eloquent/setup.bash
+        cd /home/axel/SEAME-ADS-Autonomous-lane-detection-24-25/lane_keeping_ws/home/axel/SEAME-ADS-Autonomous-lane-detection-24-25/lane_keeping_ws
+        colcon build --symlink-install
