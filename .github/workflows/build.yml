@@ -18,11 +18,6 @@ jobs:
         ls -la
     - name: Build the project
       run: |
-        echo "Current directory: $(pwd)"
-        ls -la
         source /opt/ros/eloquent/setup.bash
-        # rm -rf lane_keeping_ws/
-        # mkdir -p lane_keeping_ws/src
-        # cp -r ./* lane_keeping_ws/src/ 2>/dev/null || true
-        # cd lane_keeping_ws
-        # ls -la src/
+        cd lane_keeping_ws
+        colcon build --symlink-install
