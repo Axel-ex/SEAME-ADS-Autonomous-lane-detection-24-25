@@ -21,3 +21,5 @@ jobs:
         source /opt/ros/eloquent/setup.bash
         cd lane_keeping_ws
         colcon build --symlink-install
+        colcon test
+        colcon test-result --verbose
