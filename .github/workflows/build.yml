@@ -21,5 +21,9 @@ jobs:
         source /opt/ros/eloquent/setup.bash
         cd lane_keeping_ws
         colcon build --symlink-install
+    - name: Run tests
+      run: |
+        source /opt/ros/eloquent/setup.bash
+        cd lane_keeping_ws
         colcon test
         colcon test-result --verbose
