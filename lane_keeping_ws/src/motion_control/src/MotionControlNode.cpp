@@ -1,26 +1,28 @@
 #include "MotionControlNode.hpp"
 #include "PolyFit.hpp"
+#include <opencv2/opencv.hpp>
 
 using namespace rclcpp;
 
 MotionControlNode::MotionControlNode()
-    : kalmman_filter_(0.1, 0.5), Node("motion_control_node"),
-      estimated_lane_width_(225)
+    : Node("motion_control_node"), kalmman_filter_(0.1, 0.5), lane_buffer_(3)
 {
     lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
-        "lane_position", 10,
+        "lane_position", 1,
         [this](lane_msgs::msg::LanePositions::SharedPtr lane_msg)
         { MotionControlNode::lanePositionCallback(lane_msg); });
     polyfit_coefs_pub_ =
-        create_publisher<lane_msgs::msg::PolyfitCoefs>("polyfit_coefs", 10);
-    cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+        create_publisher<lane_msgs::msg::PolyfitCoefs>("polyfit_coefs", 1);
+    cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 1);
 
-    declare_parameter("kp", 0.5);
-    declare_parameter("ki", 0.1);
-    declare_parameter("kd", 0.2);
-    declare_parameter("base_speed", 0.2);
-    declare_parameter("lookahead_index", 80);
+    declare_parameter("kp", 1.0);
+    declare_parameter("ki", 0.0);
+    declare_parameter("kd", 0.0);
+    declare_parameter("base_speed", 0.5);
+    declare_parameter("lookahead_index", 130);
 }
+
+MotionControlNode::~MotionControlNode() { stopVehicle(); }
 
 void MotionControlNode::initPIDController()
 {
@@ -33,25 +35,28 @@ void MotionControlNode::lanePositionCallback(
     std::vector<double> left_coefs, right_coefs;
 
     calculatePolyfitCoefs(left_coefs, right_coefs, lane_msg);
+    lane_buffer_.addCoeffs(left_coefs, right_coefs);
     auto lane_center =
         findLaneCenter(left_coefs, right_coefs, lane_msg->image_height.data);
+
     if (!lane_center.x && !lane_center.y)
     {
-        RCLCPP_WARN(this->get_logger(),
-                    "No lane points detected. Stoping the vehicle");
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *get_clock(), WARN_FREQ,
+                             "No lane points detected. Stoping the vehicle");
         stopVehicle();
         return;
     }
-    // adjust measure value with the filter
+
     lane_center.x = kalmman_filter_.update(lane_center.x);
     auto heading_point = findHeadingPoint(lane_msg->image_width.data,
                                           lane_msg->image_height.data);
-    RCLCPP_INFO(get_logger(),
-                "lane center: x: %.2f y: %.2f, heading point: x: %.2f y:%.2f",
-                lane_center.x, lane_center.y, heading_point.x, heading_point.y);
     calculateAndPublishControls(lane_center, heading_point,
                                 lane_msg->image_width.data);
     publishPolyfitCoefficients(left_coefs, right_coefs, lane_center);
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
+                         "right: %.4f; %.2f; %.2f, left: %.4f; %.2f; %.2f\n",
+                         right_coefs[2], right_coefs[1], right_coefs[0],
+                         left_coefs[2], left_coefs[1], left_coefs[0]);
 }
 
 void MotionControlNode::calculatePolyfitCoefs(
@@ -61,38 +66,40 @@ void MotionControlNode::calculatePolyfitCoefs(
     std::vector<double> left_x, left_y, right_x, right_y;
     size_t degree = 2;
 
-    separateCoordinates(lane_msg->left_lane, left_x, left_y);
-    separateCoordinates(lane_msg->right_lane, right_x, right_y);
+    separateAndOrderCoordinates(lane_msg->left_lane, left_x, left_y);
+    separateAndOrderCoordinates(lane_msg->right_lane, right_x, right_y);
 
-    if (left_x.size() < 3 && right_x.size() < 3)
-        return;
-    else if (left_x.size() < 3)
-    {
-        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
-                             "Lost left lane");
-        right_coefs =
-            calculate(right_x.data(), right_y.data(), degree, right_x.size());
-        estimateMissingLane(left_coefs, right_coefs);
-    }
-    else if (right_x.size() < 3)
-    {
-        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 3000,
-                             "Lost right lane");
-        left_coefs =
-            calculate(left_x.data(), left_y.data(), degree, left_x.size());
-        estimateMissingLane(left_coefs, right_coefs);
-    }
-    else
+    if (left_x.size() >= 3 && right_x.size() >= 3)
     {
         left_coefs =
             calculate(left_x.data(), left_y.data(), degree, left_x.size());
         right_coefs =
             calculate(right_x.data(), right_y.data(), degree, right_x.size());
     }
+    else if (left_x.size() < 3 && lane_buffer_.hasLeftLane())
+    {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
+                             "Left lane missing → using buffered left lane");
+        left_coefs = lane_buffer_.getLastLeft();
+        right_coefs =
+            calculate(right_x.data(), right_y.data(), degree, right_x.size());
+    }
+    else if (right_x.size() < 3 && lane_buffer_.hasRightLane())
+    {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
+                             "Right lane missing → using buffered right lane");
+        right_coefs = lane_buffer_.getLastRight();
+        left_coefs =
+            calculate(left_x.data(), left_y.data(), degree, left_x.size());
+    }
+    // If non of the condition are met, no lane are detected, the coefs stay
+    // empty and the error is catch later in the program.
 }
 
 /**
  * @brief Find lane center at fix distance  img_height - "lookahead_index"
+ *
+ * Lane center will always be found since when a lane is missing it is infered
  *
  * @param left_coefs
  * @param right_coef
@@ -111,12 +118,14 @@ MotionControlNode::findLaneCenter(const std::vector<double>& left_coefs,
     int lookahead = img_height - lookahead_index;
     lookahead = std::max(0, std::min(lookahead, img_height));
 
-    // solve the quadtratic equations
     double y = static_cast<double>(lookahead);
     double x_left =
-        solveQuadratic(left_coefs[2], left_coefs[1], left_coefs[0] - y);
-    double x_right =
-        solveQuadratic(right_coefs[2], right_coefs[1], right_coefs[0] - y);
+        solveQuadratic(left_coefs[2], left_coefs[1], left_coefs[0] - y, false);
+    double x_right = solveQuadratic(right_coefs[2], right_coefs[1],
+                                    right_coefs[0] - y, true);
+
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
+                         "x_left: %.2f, x_right: %.2f", x_left, x_right);
 
     // Ensure x_left and x_right are valid (within image bounds)
     x_left = std::max(0.0, std::min(x_left, static_cast<double>(img_height)));
@@ -149,7 +158,7 @@ void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
     error = error / (img_width / 2.0);
 
     double steering = pid_controller_.calculate(error);
-    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                          "lane_center: %.2f, error: %.2f, steering %.2f",
                          lane_center.x, error, steering);
 
@@ -159,41 +168,22 @@ void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
     cmd_vel_pub_->publish(msg);
 }
 
-/**
- * @brief estimate the missing coefs lane coefs.
- *
- * estimate the missing lane coef by shifting the intercept in the right
- * direction depending on which lane is missing
- *
- * @param left_coefs
- * @param right_coefs
- */
-void MotionControlNode::estimateMissingLane(std::vector<double>& left_coefs,
-                                            std::vector<double>& right_coefs)
-{
-    if (left_coefs.empty())
-    {
-        left_coefs = right_coefs;
-        left_coefs[0] += estimated_lane_width_;
-    }
-    else
-    {
-        right_coefs = left_coefs;
-        right_coefs[0] -= estimated_lane_width_;
-    }
-}
-
-void MotionControlNode::separateCoordinates(const std::vector<Point32>& points,
-                                            std::vector<double>& x,
-                                            std::vector<double>& y)
+void MotionControlNode::separateAndOrderCoordinates(
+    const std::vector<Point32>& points, std::vector<double>& x,
+    std::vector<double>& y)
 {
     x.clear();
     y.clear();
 
-    for (const auto& point : points)
+    std::vector<std::pair<double, double>> points_pair;
+    for (auto& point : points)
+        points_pair.push_back({point.y, point.x});
+    std::sort(points_pair.begin(), points_pair.end());
+
+    for (const auto& point : points_pair)
     {
-        x.push_back(point.x);
-        y.push_back(point.y);
+        x.push_back(point.second);
+        y.push_back(point.first);
     }
 }
 

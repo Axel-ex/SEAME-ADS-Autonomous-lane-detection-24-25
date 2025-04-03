@@ -8,6 +8,7 @@
 #include <sensor_msgs/msg/image.hpp>
 
 constexpr int DEBUG_LOG_FREQ_MS = 5000;
+constexpr int QOS = 1;
 
 /**
  * @class VisionNode
@@ -45,4 +46,5 @@ class VisionNode : public rclcpp::Node
         void publishLanePositions(std::vector<cv::Vec4i>& lines, int img_width,
                                   int img_height);
         void publishMaskImg(cv::cuda::GpuMat& gpu_img);
+        void publishEdgeImage(cv::cuda::GpuMat& gpu_img);
 };
