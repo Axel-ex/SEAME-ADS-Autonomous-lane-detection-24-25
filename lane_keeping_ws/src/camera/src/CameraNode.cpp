@@ -11,7 +11,7 @@ CameraNode::CameraNode() : Node("camera_node"), running_(true)
 {
     std::string pipeline =
         "nvarguscamerasrc ! video/x-raw(memory:NVMM), format=NV12, width=640, "
-        "height=480, framerate=30/1 ! nvvidconv ! video/x-raw, format=BGRx ! "
+        "height=480, framerate=15/1 ! nvvidconv ! video/x-raw, format=BGRx ! "
         "videoconvert ! video/x-raw, format=BGR ! appsink";
     cap_ = VideoCapture(pipeline, cv::CAP_GSTREAMER);
     if (!cap_.isOpened())
@@ -28,6 +28,7 @@ CameraNode::~CameraNode()
     running_ = false;
     if (capture_thread_.joinable())
         capture_thread_.join();
+    cap_.release();
 }
 
 void CameraNode::initPublisherAndCapture()

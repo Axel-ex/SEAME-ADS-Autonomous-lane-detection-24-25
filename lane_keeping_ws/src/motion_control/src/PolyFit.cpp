@@ -25,8 +25,7 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-
- // Adapted from https://github.com/codeplea/incbeta
+// Adapted from https://github.com/codeplea/incbeta
 double incbeta(double a, double b, double x)
 {
     if (x < 0.0 || x > 1.0)
@@ -45,7 +44,9 @@ double incbeta(double a, double b, double x)
     }
     /*The continued fraction converges nicely for x < (a+1)/(a+b+2)*/
     if (x > (a + 1.0) / (a + b + 2.0))
-        return (1.0 - incbeta(b, a, 1.0 - x)); /*Use the fact that beta is symmetrical.*/
+        return (
+            1.0 -
+            incbeta(b, a, 1.0 - x)); /*Use the fact that beta is symmetrical.*/
 
     /*Find the first part before the continued fraction.*/
     const double lbeta_ab = lgamma(a) + lgamma(b) - lgamma(a + b);
@@ -63,9 +64,11 @@ double incbeta(double a, double b, double x)
         if (i == 0)
             numerator = 1.0; /*First numerator is 1.0.*/
         else if (i % 2 == 0)
-            numerator = (m * (b - m) * x) / ((a + 2.0 * m - 1.0) * (a + 2.0 * m)); /*Even term.*/
+            numerator = (m * (b - m) * x) /
+                        ((a + 2.0 * m - 1.0) * (a + 2.0 * m)); /*Even term.*/
         else
-            numerator = -((a + m) * (a + b + m) * x) / ((a + 2.0 * m) * (a + 2.0 * m + 1)); /*Odd term.*/
+            numerator = -((a + m) * (a + b + m) * x) /
+                        ((a + 2.0 * m) * (a + 2.0 * m + 1)); /*Odd term.*/
         /*Do an iteration of Lentz's algorithm.*/
         d = 1.0 + numerator * d;
         if (fabs(d) < TINY)
@@ -125,7 +128,7 @@ double invincbeta(double y, double alpha, double beta)
 double** Make2DArray(const size_t rows, const size_t cols)
 {
 
-    double** array= new double* [rows];
+    double** array = new double*[rows];
     for (size_t i = 0; i < rows; i++)
         array[i] = new double[cols];
     for (size_t i = 0; i < rows; i++)
@@ -156,7 +159,8 @@ double** MatTrans(double** array, const size_t rows, const size_t cols)
 
 // Perform the multiplication of matrix A[m1,m2] by B[m2,m3]
 // **************************************************************
-double** MatMul(const size_t m1, const size_t m2, const size_t m3, double** A, double** B)
+double** MatMul(const size_t m1, const size_t m2, const size_t m3, double** A,
+                double** B)
 {
     double** array = Make2DArray(m1, m3);
     for (size_t i = 0; i < m1; i++)
@@ -173,7 +177,8 @@ double** MatMul(const size_t m1, const size_t m2, const size_t m3, double** A, d
 
 // Perform the multiplication of matrix A[m1,m2] by vector v[m2,1]
 // **************************************************************
-void MatVectMul(const size_t m1, const size_t m2, double** A, double* v, double* Av)
+void MatVectMul(const size_t m1, const size_t m2, double** A, double* v,
+                double* Av)
 {
     for (size_t i = 0; i < m1; i++)
     {
@@ -212,8 +217,7 @@ double determinant(double** a, const size_t n)
     return det;
 }
 
-
-// Perform the 
+// Perform the
 // **************************************************************
 void transpose(double** num, double** fac, double** inverse, const size_t r)
 {
@@ -233,7 +237,7 @@ void transpose(double** num, double** fac, double** inverse, const size_t r)
     Free2DArray(b, r);
 }
 
-// Calculates the cofactors 
+// Calculates the cofactors
 // **************************************************************
 void cofactor(double** num, double** inverse, const size_t f)
 {
@@ -272,8 +276,8 @@ void cofactor(double** num, double** inverse, const size_t f)
     }
 
     transpose(num, fac, inverse, f);
-    Free2DArray(b,f);
-    Free2DArray(fac,f);
+    Free2DArray(b, f);
+    Free2DArray(fac, f);
 }
 
 
@@ -366,16 +370,17 @@ double CalculateR2Adj(const double* x, const double* y, const double* a, double*
 
 // Perform the fit of data n data points (x,y) with a polynomial of order k
 // **************************************************************
-void PolyFit(const double* x, double* y, const size_t n, const size_t k, const bool fixedinter,
-    const double fixedinterval, double* coeficients, double** Weights, double** XTWXInv)
+void PolyFit(const double* x, double* y, const size_t n, const size_t k,
+             const bool fixedinter, const double fixedinterval,
+             double* coeficients, double** Weights, double** XTWXInv)
 {
 
     // Definition of variables
     // **************************************************************
-    double** X = Make2DArray(n, k + 1);        // [n,k+1]
-    double** XT;                               // [k+1,n]
-    double** XTW;                              // [k+1,n]
-    double** XTWX;                             // [k+1,k+1]
+    double** X = Make2DArray(n, k + 1); // [n,k+1]
+    double** XT;                        // [k+1,n]
+    double** XTW;                       // [k+1,n]
+    double** XTWX;                      // [k+1,k+1]
 
     double* XTWY = new double[k + 1];
     double* Y = new double[n];
@@ -394,14 +399,14 @@ void PolyFit(const double* x, double* y, const size_t n, const size_t k, const b
 
     // Matrix calculations
     // **************************************************************
-    XT = MatTrans(X, n, k + 1);                 // Calculate XT
-    XTW = MatMul(k + 1, n, n, XT, Weights);         // Calculate XT*W
-    XTWX = MatMul(k + 1, n, k + 1, XTW, X);           // Calculate (XTW)*X
+    XT = MatTrans(X, n, k + 1);             // Calculate XT
+    XTW = MatMul(k + 1, n, n, XT, Weights); // Calculate XT*W
+    XTWX = MatMul(k + 1, n, k + 1, XTW, X); // Calculate (XTW)*X
 
     if (fixedinter)
         XTWX[0][0] = 1.;
 
-    cofactor(XTWX, XTWXInv, k + 1);             // Calculate (XTWX)^-1
+    cofactor(XTWX, XTWXInv, k + 1); // Calculate (XTWX)^-1
 
     for (size_t m = 0; m < n; m++)
     {
@@ -410,8 +415,9 @@ void PolyFit(const double* x, double* y, const size_t n, const size_t k, const b
         else
             Y[m] = y[m];
     }
-    MatVectMul(k + 1, n, XTW, Y, XTWY);             // Calculate (XTW)*Y
-    MatVectMul(k + 1, k + 1, XTWXInv, XTWY, coeficients);    // Calculate coeficients = (XTWXInv)*XTWY
+    MatVectMul(k + 1, n, XTW, Y, XTWY); // Calculate (XTW)*Y
+    MatVectMul(k + 1, k + 1, XTWXInv, XTWY,
+               coeficients); // Calculate coeficients = (XTWXInv)*XTWY
 
     if (fixedinter)
         coeficients[0] = fixedinterval;
@@ -438,24 +444,24 @@ double calculatePoly(const double x, const double* a, const size_t n)
 // Calculate the weights matrix
 // **************************************************************
 void CalculateWeights(const double* erry, double** Weights, const size_t n,
-    const int type)
+                      const int type)
 {
     for (size_t i = 0; i < n; i++)
     {
         switch (type)
         {
-            case 0:
-                Weights[i][i] = 1.;
-                break;
-            case 1:
-                Weights[i][i] = erry[i];
-                break;
-            case 2:
-                if (erry[i] > 0.)
-                    Weights[i][i] = 1. / (erry[i] * erry[i]);
-                else
-                    Weights[i][i] = 0.;
-                break;
+        case 0:
+            Weights[i][i] = 1.;
+            break;
+        case 1:
+            Weights[i][i] = erry[i];
+            break;
+        case 2:
+            if (erry[i] > 0.)
+                Weights[i][i] = 1. / (erry[i] * erry[i]);
+            else
+                Weights[i][i] = 0.;
+            break;
         }
     }
 }
@@ -475,25 +481,23 @@ void DisplayCoefs(const size_t k, const double* coefbeta)
     }
 }
 
-std::vector<double> calculate(double *x, double *y, size_t degree, size_t n)
+std::vector<double> calculate(double* x, double* y, size_t degree, size_t n)
 {
-    bool fixedinter = false;                         // Fixed the intercept (coefficient A0)
-    int wtype = 0;                                   // Weight: 0 = none (default), 1 = sigma, 2 = 1/sigma^2
-    double fixedinterval = 0.;                       // The fixed intercept value (if applicable)
-    double erry[] = {};       // Data points (err on y) (if applicable)
+    bool fixedinter = false; // Fixed the intercept (coefficient A0)
+    int wtype = 0; // Weight: 0 = none (default), 1 = sigma, 2 = 1/sigma^2
+    double fixedinterval = 0.; // The fixed intercept value (if applicable)
+    double erry[] = {};        // Data points (err on y) (if applicable)
 
     // Definition of other variables
     // **************************************************************
-    size_t nstar = 0;                                // equal to n (fixed intercept) or (n-1) not fixed
-    double *coefbeta = new double[degree + 1];                            // Coefficients of the polynomial
+    size_t nstar = 0; // equal to n (fixed intercept) or (n-1) not fixed
+    double* coefbeta = new double[degree + 1]; // Coefficients of the polynomial
 
-    double** XTWXInv;                                // Matrix XTWX Inverse [degree+1,degree+1]
-    double** Weights;                                // Matrix Weights [n,n]
-
+    double** XTWXInv; // Matrix XTWX Inverse [degree+1,degree+1]
+    double** Weights; // Matrix Weights [n,n]
 
     // Initialize values
     // **************************************************************
-    cout << x << endl;
     nstar = n - 1;
     if (fixedinter)
         nstar = n;
@@ -503,7 +507,8 @@ std::vector<double> calculate(double *x, double *y, size_t degree, size_t n)
 
     if (degree > nstar)
     {
-        cout << "The polynomial order is too high. Max should be " << n << " for adjustable A0 ";
+        cout << "The polynomial order is too high. Max should be " << n
+             << " for adjustable A0 ";
         cout << "and " << n - 1 << " for fixed A0. ";
         cout << "Program stopped" << endl;
         exit(1);
@@ -524,21 +529,17 @@ std::vector<double> calculate(double *x, double *y, size_t degree, size_t n)
 
     if (determinant(Weights, n) == 0.)
     {
-        cout << "One or more points have 0 error. Review the errors on points or use no weighting. ";
+        cout << "One or more points have 0 error. Review the errors on points "
+                "or use no weighting. ";
         cout << "Program stopped" << endl;
         exit(1);
     }
 
     // Calculate the coefficients of the fit
     // **************************************************************
-    PolyFit(x, y, n, degree, fixedinter, fixedinterval, coefbeta, Weights, XTWXInv);
-    DisplayCoefs(degree, coefbeta);
-    double r2 = CalculateR2COD(x, y, coefbeta, Weights, fixedinter, n, degree + 1);
-    while (r2 < 0.95)
-    {
-        std::cout << "Cod " << r2  << " degree = " << degree << "\n";
-        r2 = CalculateR2COD(x, y, coefbeta, Weights, fixedinter, n, degree++ + 1);
-    }
+    PolyFit(x, y, n, degree, fixedinter, fixedinterval, coefbeta, Weights,
+            XTWXInv);
+    // DisplayCoefs(degree, coefbeta);
 
     Free2DArray(XTWXInv, degree + 1);
     Free2DArray(Weights, n);
@@ -693,3 +694,19 @@ std::vector<double> find_best_fit(double *x, double *y, size_t n)
     std::cout << std::endl;
     return 0;
 }*/
+
+double solveQuadratic(double a, double b, double c, bool is_right_lane)
+{
+    double discriminant = b * b - 4 * a * c;
+    if (discriminant < 0)
+        return -1; // No real solution
+
+    double sqrt_discriminant = sqrt(discriminant);
+    double t_pos = (-b + sqrt_discriminant) / (2 * a);
+    double t_neg = (-b - sqrt_discriminant) / (2 * a);
+
+    if (is_right_lane)
+        return std::max(t_pos, t_neg);
+    else
+        return t_neg > 0 ? t_neg : t_pos;
+}
