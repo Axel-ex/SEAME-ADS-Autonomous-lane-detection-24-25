@@ -542,12 +542,12 @@ std::vector<double> calculate(double *x, double *y, size_t degree, size_t n)
 
     Free2DArray(XTWXInv, degree + 1);
     Free2DArray(Weights, n);
-    std::vector<double> vec_coef(coefbeta, coefbeta + degree);
+    std::vector<double> vec_coef(coefbeta, coefbeta + degree + 1);
     delete[] coefbeta;
     return vec_coef;
 }
 
-double calculate2(double *x, double *y, size_t degree, size_t n)
+double *calculate2(double *x, double *y, size_t degree, size_t n, double*** Weights)
 {
     bool fixedinter = false;                         // Fixed the intercept (coefficient A0)
     int wtype = 0;                                   // Weight: 0 = none (default), 1 = sigma, 2 = 1/sigma^2
@@ -560,12 +560,10 @@ double calculate2(double *x, double *y, size_t degree, size_t n)
     double *coefbeta = new double[degree + 1];                            // Coefficients of the polynomial
 
     double** XTWXInv;                                // Matrix XTWX Inverse [degree+1,degree+1]
-    double** Weights;                                // Matrix Weights [n,n]
 
 
     // Initialize values
     // **************************************************************
-    cout << x << endl;
     nstar = n - 1;
     if (fixedinter)
         nstar = n;
@@ -588,13 +586,13 @@ double calculate2(double *x, double *y, size_t degree, size_t n)
     }
 
     XTWXInv = Make2DArray(degree + 1, degree + 1);
-    Weights = Make2DArray(n, n);
+    //Weights = Make2DArray(n, n);
 
     // Build the weight matrix
     // **************************************************************
-    CalculateWeights(erry, Weights, n, wtype);
+    CalculateWeights(erry, (*Weights), n, wtype);
 
-    if (determinant(Weights, n) == 0.)
+    if (determinant((*Weights), n) == 0.)
     {
         cout << "One or more points have 0 error. Review the errors on points or use no weighting. ";
         cout << "Program stopped" << endl;
@@ -603,25 +601,40 @@ double calculate2(double *x, double *y, size_t degree, size_t n)
 
     // Calculate the coefficients of the fit
     // **************************************************************
-    PolyFit(x, y, n, degree, fixedinter, fixedinterval, coefbeta, Weights, XTWXInv);
-    DisplayCoefs(degree, coefbeta);
-    double r2 = CalculateR2COD(x, y, coefbeta, Weights, fixedinter, n, degree + 1);
+    PolyFit(x, y, n, degree, fixedinter, fixedinterval, coefbeta, (*Weights), XTWXInv);
+    //DisplayCoefs(degree, coefbeta);
     
 
     Free2DArray(XTWXInv, degree + 1);
-    Free2DArray(Weights, n);
-    //std::vector<double> vec_coef(coefbeta, coefbeta + degree);
-    delete[] coefbeta;
-    return r2;
+    
+    return coefbeta;
 }
 
+std::vector<double> find_best_fit(double *x, double *y, size_t n)
+{
+    double                      **Weights;
+    double                      *coefbeta;
+
+    std::vector<double>         r2_dump;
+    std::vector<vector<double>> coef_dump;
+
+    for (int i = 1; i < 5; i++)
+    {
+        Weights = Make2DArray(n, n);
+        coefbeta = calculate2(x, y, i, n, &Weights);
+        r2_dump.push_back(CalculateR2COD(x, y, coefbeta, Weights, false, n, i + 1));
+        coef_dump.push_back(std::vector<double>(coefbeta, coefbeta + i + 1));
+        delete[] coefbeta;
+        Free2DArray(Weights, n);
+    }
+    auto it = std::max_element(r2_dump.begin(), r2_dump.end());    
+    return coef_dump[distance(r2_dump.begin(), it)];
+}
 
 // The main program
 // **************************************************************
-int main()
+/*int main()
 {
-    size_t k = 1;  // Polynomial order
-    
     double y[] = { 372.5895394992980000,
         362.6829307301930000,
         352.8964341410370000,
@@ -668,13 +681,15 @@ int main()
         52700.00,
         100700.00,
     };
-    double r2 = calculate2(x,y, k, sizeof(x) / sizeof(double));
-    while (r2 < 0.93 && r2 > 0)
-    {
-        std::cout << "\t\t\tCod " << r2  << " degree = " << k << "\n";
-        r2 = calculate2(x,y, ++k, sizeof(x) / sizeof(double));
+    std::vector<double> vec = find_best_fit(x, y, sizeof(x) / sizeof(double));
+    for (size_t i = 0; i < vec.size(); ++i) {
+        std::cout << vec[i] << " ";
     }
-    std::cout << "\t\t\tCod " << r2  << " degree = " << k << "\n";
-
+    std::cout << std::endl;
+    std::vector<double> vec2 = solve_quartic(vec[0], vec[1], vec[2], vec[3]);
+    for (size_t j = 0; j < vec2.size(); ++j) {
+        std::cout << vec2[j] << " ";
+    }
+    std::cout << std::endl;
     return 0;
-}
+}*/
