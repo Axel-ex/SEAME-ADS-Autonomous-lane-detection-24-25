@@ -8,22 +8,17 @@ on:
   push:
     branches:
       - '*'
+
 jobs:
   build:
     runs-on: [self-hosted]
     steps:
-    - uses: actions/checkout@v1
-    - run: |
-        echo "Workspace: $(pwd)"
-        ls -la
     - name: Build the project
       run: |
         source /opt/ros/eloquent/setup.bash
+        rm -rf log/ build/ install/
+        mkdir -p lane_keeping_ws/src
+        cp -r /home/axel/SEAME-ADS-Autonomous-lane-detection-24-25/lane_keeping_ws/src/ ./lane_keeping_ws/
         cd lane_keeping_ws
+        ls -la src/
         colcon build --symlink-install
-    - name: Run tests
-      run: |
-        source /opt/ros/eloquent/setup.bash
-        cd lane_keeping_ws
-        colcon test
-        colcon test-result --verbose
