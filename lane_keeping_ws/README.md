@@ -1,4 +1,4 @@
-# ROS2 Lane Detection and Motion Control System
+# ROS2 Lane keeping workspace
 
 ## Overview
 This ROS2-based system runs on a Jetson Nano and processes camera input to detect lane markings and control vehicle motion accordingly. The system consists of multiple nodes that handle image capture, lane detection, motion control, and visualization.
@@ -9,19 +9,10 @@ This ROS2-based system runs on a Jetson Nano and processes camera input to detec
 3. **Motion Control Node**: Estimates lane distance and adjusts steering.
 4. **Lane Visualization Node**: Publishes processed lane data for visualization in Rviz.
 
-## Package Structure
-```
-.
-├── camera
-├── classic_vision
-├── image_publisher
-├── lane_msgs
-├── lane_visualization
-└── motion_control
-```
-Each package follows the ROS2 standard with `CMakeLists.txt`, `package.xml`, source files (`src`), and header files (`includes`).
+## Software architecture
 
----
+![System Diagram](../.github/images/software_architecture.png)
+
 ## Node Descriptions
 
 ### 1. Camera Node (`camera`)
@@ -30,7 +21,7 @@ Each package follows the ROS2 standard with `CMakeLists.txt`, `package.xml`, sou
   - `/image_raw` (sensor_msgs::Image)
 
 ### 2. Classic Vision Node (`classic_vision`)
-**Function**: Processes raw images to detect lane markings.
+**Function**: Processes raw images to detect lane markings using OpenCV.
 - **Subscribes**:
   - `/image_raw` (sensor_msgs::Image)
 - **Publishes**:
@@ -43,26 +34,33 @@ Each package follows the ROS2 standard with `CMakeLists.txt`, `package.xml`, sou
 	- `mine_line_length`
 	- `rho`
 
-### 3. Image Publisher Node (`image_publisher`)
+### 3. Classic Vision Node (`classic_vision`)
+**Function**: Processes raw images to detect lane markings using TensorRT.
+- **Subscribes**:
+  - `/image_raw` (sensor_msgs::Image)
+- **Publishes**:
+  - `/lane_position` (custom message)
+
+### 4. Image Publisher Node (`image_publisher`)
 **Function**: Auxiliary node for testing image data flow.
 - **Publishes**:
   - `/debug_image` (sensor_msgs::Image)
 - **Parameters**:
   - `image_name`: image from assets folder
 
-### 4. Lane Messages (`lane_msgs`)
+### 5. Lane Messages (`lane_msgs`)
 **Function**: Defines custom message types for lane detection data.
 - **Custom Messages**:
   - `LanePosition.msg`: Lane position relative to vehicle
 
-### 5. Lane Visualization (`lane_visualization`)
-**Function**: Publishes visualization markers for Rviz.
+### 6. Lane Visualization (`lane_visualization`)
+**Function**: Publishes visual representation of lane_position.
 - **Subscribes**:
   - `/lane_position` (custom message)
 - **Publishes**:
-  - `/visualization_marker` (visualization_msgs::Marker)
+  - `/processed_img` (sensor_msgs::Image)
 
-### 6. Motion Control Node (`motion_control`)
+### 7. Motion Control Node (`motion_control`)
 **Function**: Computes steering commands based on lane position.
 - **Subscribes**:
   - `/lane_position` (custom message)
@@ -70,7 +68,6 @@ Each package follows the ROS2 standard with `CMakeLists.txt`, `package.xml`, sou
   - `/cmd_vel` (geometry_msgs::Twist)
 - **Parameters**:
   - `base_speed`: base speed of vehicle
-  - `bucket_size`: vertical size in pixel for points clustering
   - `lookahead_index`: distance (in buckets) to the reference point
   - `kp`, `ki`, `kd`: proportional, integral and derivative gain.
 ---
