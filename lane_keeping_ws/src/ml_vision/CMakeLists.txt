@@ -39,13 +39,6 @@ find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(lane_msgs REQUIRED)
 
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  set(ament_cmake_copyright_FOUND TRUE)
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
-
 add_executable(${exec_name} ${srcs})
 
 # Link against OpenCV and other libraries
