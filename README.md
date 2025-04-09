@@ -39,3 +39,7 @@ ros2 bag play <name_of_the_bag>
 ros2 run launch launch/bags_launch.py
 
 ```
+4. To launch RQT visualization tool and visualize images beeing published into topics, run:
+```bash
+ros2 run rqt_image_view rqt_image_view
+```
