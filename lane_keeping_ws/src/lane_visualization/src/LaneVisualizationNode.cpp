@@ -6,18 +6,18 @@ LaneVisualizationNode::LaneVisualizationNode()
     : rclcpp::Node("lane_visualization_node")
 {
     raw_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-        "image_raw", 10,
+        "image_raw", 1,
         [this](const sensor_msgs::msg::Image::SharedPtr msg)
         { this->rawImageCallback(msg); });
 
     polyfit_coefs_sub_ =
         this->create_subscription<lane_msgs::msg::PolyfitCoefs>(
-            "polyfit_coefs", 10,
+            "polyfit_coefs", 1,
             [this](const lane_msgs::msg::PolyfitCoefs::SharedPtr msg)
             { this->storeCoefs(msg); });
 
     lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
-        "lane_position", 10,
+        "lane_position", 1,
         [this](const lane_msgs::msg::LanePositions::SharedPtr msg)
         { this->storeLanePosition(msg); });
 
@@ -70,7 +70,8 @@ void LaneVisualizationNode::rawImageCallback(
 {
     if (left_coefs_.empty() || right_coefs_.empty())
     {
-        RCLCPP_INFO(this->get_logger(), "empty polyfit coefs");
+        RCLCPP_WARN_THROTTLE(this->get_logger(), *get_clock(), 5000,
+                             "empty polyfit coefs");
         return;
     }
 
@@ -119,7 +120,7 @@ void LaneVisualizationNode::rawImageCallback(
                cv::Scalar(0, 255, 0), 2);
 
     // Draw target point
-    cv::circle(img, cv::Point(img.cols / 2, img.rows - 80), 1,
+    cv::circle(img, cv::Point(img.cols / 2, lane_center_.y), 1,
                cv::Scalar(255, 0, 0), 2);
 
     // publish the result
