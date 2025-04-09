@@ -3,51 +3,47 @@ project(ml_vision)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# CUDA support
 set(CUDA_TOOLKIT_ROOT_DIR "/usr/local/cuda-10.2")
 set(CMAKE_CUDA_COMPILER "${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc")
-set(CMAKE_CUDA_ARCHITECTURES 53)  # Jetson Nano uses sm_53
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-O3)
-find_package(CUDA REQUIRED)
-enable_language(CUDA)
-find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui cudaimgproc cudawarping cudafilters)
 
-# Enable C++17
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+include_directories(
+  ${CUDA_TOOLKIT_ROOT_DIR}/include  )
 
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
-endif()
+# Manually specify TensorRT paths (Jetson-specific)
+set(TENSORRT_INCLUDE_DIRS "/usr/include/aarch64-linux-gnu")
+set(TENSORRT_LIB_DIR "/usr/lib/aarch64-linux-gnu")
+include_directories(${TENSORRT_INCLUDE_DIRS})
+link_directories(${TENSORRT_LIB_DIR})
 
-set(exec_name ${PROJECT_NAME}_node)
-set(src_dir src/)
-set(srcs
-        ${src_dir}main.cpp
-		${src_dir}MlVisionNode.cpp)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui)
 
-
-# Include directories
-include_directories(${OpenCV_INCLUDE_DIRS} includes)
-
-# Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
-find_package(image_transport REQUIRED)
 find_package(lane_msgs REQUIRED)
 
-add_executable(${exec_name} ${srcs})
+include_directories(includes)
 
-# Link against OpenCV and other libraries
-target_link_libraries(${exec_name}
-  ${OpenCV_LIBS}
-  ${CUDA_LIBRARIES}
+
+add_executable(${PROJECT_NAME}_node
+  src/main.cpp
+  src/MlVisionNode.cpp
 )
 
-ament_target_dependencies(${exec_name} rclcpp std_msgs sensor_msgs cv_bridge image_transport lane_msgs)
+target_link_libraries(${PROJECT_NAME}_node
+  ${OpenCV_LIBS}
+  nvinfer
+  nvinfer_plugin
+  cudart  # From CUDA
+)
 
-install(TARGETS ${exec_name} DESTINATION lib/${PROJECT_NAME})
+ament_target_dependencies(${PROJECT_NAME}_node
+  rclcpp
+  sensor_msgs
+  cv_bridge
+  lane_msgs
+)
+
+install(TARGETS ${PROJECT_NAME}_node DESTINATION lib/${PROJECT_NAME})
 ament_package()
