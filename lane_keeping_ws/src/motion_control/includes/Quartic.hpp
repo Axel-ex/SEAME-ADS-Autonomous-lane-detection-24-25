@@ -1,6 +1,5 @@
-
-#ifndef QUARTIC_H_INCLUDED
-#define QUARTIC_H_INCLUDED
+#ifndef QUARTIC_HPP
+#define QUARTIC_HPP
 
 #include <complex>
 #include <cmath>
@@ -49,4 +48,4 @@ unsigned int solveP3(double* x, double a, double b, double c);
 // (attention - this function returns dynamically allocated array. It has to be released afterwards)
 std::vector<double> solve_quartic(double a, double b, double c, double d);
 
-#endif // QUARTIC_H_INCLUDED
+#endif
