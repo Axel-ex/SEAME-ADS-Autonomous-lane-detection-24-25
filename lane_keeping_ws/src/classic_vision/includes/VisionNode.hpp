@@ -12,12 +12,13 @@ constexpr int QOS = 1;
 
 /**
  * @class VisionNode
- * @brief Processes the image and extract lane positions
+ * @brief Processes camera images to detect lane positions using
+ * GPU-accelerated OpenCV.
  *
- * Apply treshold, gaussian blur, and canny edge to obtain only edges. Using a
- * Hough transform, the lines following the edges are extracted and publish in a
- * custom msg (LanePositions)
- *
+ * Subscribes to raw camera images, applies thresholding, morphological
+ * operations, and Hough line detection to identify lane markings. Publishes
+ * detected lane positions as `lane_msgs/msg/LanePositions` and optional debug
+ * images (edges/mask).
  */
 class VisionNode : public rclcpp::Node
 {

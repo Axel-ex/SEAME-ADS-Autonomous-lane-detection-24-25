@@ -9,6 +9,16 @@
 
 using namespace cv;
 
+/**
+ *  * @brief Initializes the VisionNode with ROS2 subscriptions, publishers, and
+ * parameters.
+ *
+ * - Subscribes to `image_raw` (best-effort QoS).
+ * - Publishes `lane_position` (LanePositions messages).
+ * - Declares parameters for lane detection tuning:
+ *   - `max_detected_lines`, `low/high_canny_treshold`, `rho`
+ *   - `is_white_lane`, `treshold_sensitivity`
+ */
 VisionNode::VisionNode() : Node("vision_node")
 {
     auto qos = rclcpp::QoS(QOS).best_effort();
@@ -35,6 +45,15 @@ void VisionNode::initPublisher()
     mask_pub_ = it.advertise("mask_img", 1);
 }
 
+/**
+ * @brief Callback for processing incoming camera images.
+ *
+ * - Converts ROS2 Image message to OpenCV format (GPU-accelerated).
+ * - Applies preprocessing, line detection, and lane position estimation.
+ * - Handles empty images and OpenCV exceptions gracefully.
+ *
+ * @param img_msg Shared pointer to the incoming sensor_msgs/Image.
+ */
 void VisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
 {
     try
@@ -65,6 +84,17 @@ void VisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
     }
 }
 
+/**
+ * @brief Applies GPU-accelerated preprocessing pipeline to an image.
+ *
+ * Steps:
+ * 1. Thresholding (adaptive based on `is_white_lane` parameter).
+ * 2. Morphological transformations (dilation + erosion).
+ * 3. ROI cropping (trapezoidal mask).
+ * 4. Canny edge detection.
+ *
+ * @param gpu_img Input/Output image in GPU memory (cuda::GpuMat).
+ */
 void VisionNode::preProcessImage(cuda::GpuMat& gpu_img)
 {
     auto is_white_lane = get_parameter("is_white_lane").as_bool();
@@ -77,6 +107,15 @@ void VisionNode::preProcessImage(cuda::GpuMat& gpu_img)
     // publishEdgeImage(gpu_img);
 }
 
+/**
+ * @brief Detects lines using GPU-accelerated Hough transform.
+ *
+ * - Configures Hough detector with `max_detected_lines` and `rho` parameters.
+ * - Converts GPU results to CPU vector<Vec4i>.
+ *
+ * @param gpu_img Preprocessed edge image (GPU memory).
+ * @return Vector of detected lines (each as Vec4i: x1, y1, x2, y2).
+ */
 std::vector<Vec4i> VisionNode::getLines(cuda::GpuMat& gpu_img)
 {
     auto max_detected_lines =
@@ -105,6 +144,18 @@ std::vector<Vec4i> VisionNode::getLines(cuda::GpuMat& gpu_img)
     return lines;
 }
 
+/**
+ * @brief Classifies lines as left/right lanes and publishes results.
+ *
+ * - Filters horizontal lines (slope < 0.3).
+ * - Splits lines by slope and image position.
+ * - Constructs LanePositions message with:
+ *   - Left/right lane points (geometry_msgs/Point32).
+ *   - Original image dimensions.
+ *
+ * @param lines Detected lines from Hough transform.
+ * @param img_width, img_height Source image dimensions.
+ */
 void VisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines,
                                       int img_width, int img_height)
 {
@@ -157,6 +208,13 @@ void VisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines,
     lane_pos_pub_->publish(msg);
 }
 
+/**
+ * @brief Applies white/yellow lane thresholding based on `is_white_lane`
+ * parameter.
+ *
+ * @param gpu_img
+ * @param is_white_lane
+ */
 void VisionNode::applyTreshold(cuda::GpuMat& gpu_img, bool is_white_lane)
 {
     auto sensitivity = get_parameter("treshold_sensitivity").as_int();
@@ -176,6 +234,11 @@ void VisionNode::applyTreshold(cuda::GpuMat& gpu_img, bool is_white_lane)
     }
 }
 
+/**
+ * @brief Applies dilation + erosion (closing) to reduce noise in binary image.
+ *
+ * @param gpu_img
+ */
 void VisionNode::applyMorphoTransfo(cuda::GpuMat& gpu_img)
 {
     // Morphological transformation
@@ -199,6 +262,11 @@ void VisionNode::applyMorphoTransfo(cuda::GpuMat& gpu_img)
     erode_filter->apply(gpu_img, gpu_img);
 }
 
+/**
+ * @brief Crops image to ROI (hardcoded dimensions).
+ *
+ * @param gpu_img
+ */
 void VisionNode::cropToROI(cuda::GpuMat& gpu_img)
 {
     int width = gpu_img.cols;
@@ -225,18 +293,12 @@ void VisionNode::cropToROI(cuda::GpuMat& gpu_img)
     cuda::bitwise_and(gpu_img, gpu_roi_mask, gpu_img);
 }
 
-void VisionNode::publishMaskImg(cuda::GpuMat& gpu_img)
-{
-    std_msgs::msg::Header hdr;
-    sensor_msgs::msg::Image::SharedPtr msg;
-    Mat mask;
-
-    gpu_img.download(mask);
-    hdr.stamp = now();
-    msg = cv_bridge::CvImage(hdr, "mono8", mask).toImageMsg();
-    mask_pub_.publish(msg);
-}
-
+/**
+ * @brief Runs GPU-accelerated Canny edge detection with parameterized
+ * thresholds.
+ *
+ * @param gpu_img
+ */
 void VisionNode::applyCannyEdge(cuda::GpuMat& gpu_img)
 {
     // Apply Gaussian blur
@@ -253,6 +315,18 @@ void VisionNode::applyCannyEdge(cuda::GpuMat& gpu_img)
     Ptr<cuda::CannyEdgeDetector> canny = cuda::createCannyEdgeDetector(
         lower_canny_treshold, upper_canny_treshold);
     canny->detect(gpu_img, gpu_img);
+}
+
+void VisionNode::publishMaskImg(cuda::GpuMat& gpu_img)
+{
+    std_msgs::msg::Header hdr;
+    sensor_msgs::msg::Image::SharedPtr msg;
+    Mat mask;
+
+    gpu_img.download(mask);
+    hdr.stamp = now();
+    msg = cv_bridge::CvImage(hdr, "mono8", mask).toImageMsg();
+    mask_pub_.publish(msg);
 }
 
 void VisionNode::publishEdgeImage(cuda::GpuMat& gpu_img)
