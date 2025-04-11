@@ -245,13 +245,13 @@ void VisionNode::applyMorphoTransfo(cuda::GpuMat& gpu_img)
     auto morpho_size = 3;
     auto morph_element = cv::MORPH_ELLIPSE;
 
-    // create the structuring element (kernel)
+    // create the kernel (this operation is a convolution)
     Mat elem = getStructuringElement(
         morph_element, Size(2 * morpho_size + 1, 2 * morpho_size + 1),
         Point(morpho_size, morpho_size));
     cuda::GpuMat gpu_elem(elem);
 
-    // Create the filter to erode / dilate for better results
+    // Create the filters
     auto dilate_filter =
         cuda::createMorphologyFilter(cv::MORPH_DILATE, gpu_img.type(), elem);
     auto erode_filter =
@@ -274,7 +274,7 @@ void VisionNode::cropToROI(cuda::GpuMat& gpu_img)
 
     Mat roi_mask = Mat::zeros(height, width, CV_8UC1);
 
-    // Define the region of interest as a polygon (example: trapezoid shape)
+    // Define the region of interest as a polygon
     std::vector<cv::Point> roi_points = {
         cv::Point(0, height),         // Bottom-left
         cv::Point(width, height),     // Bottom-right

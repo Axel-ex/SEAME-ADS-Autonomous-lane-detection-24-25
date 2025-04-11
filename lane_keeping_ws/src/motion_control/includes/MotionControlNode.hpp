@@ -15,9 +15,15 @@ using Point32 = geometry_msgs::msg::Point32;
 constexpr int WARN_FREQ = 3000;
 
 /**
- * @class MotionControlNode
- * @brief Recieves lane positions, calculate lane center and steer to keep the
- * vehicle in the center of the lane.
+ * @classss MotionControlNode
+ * @brief Implements lane-keeping control using polynomial fitting and PID
+ * control.
+ *
+ * - Subscribes to detected lane positions (`lane_position` topic).
+ * - Fits polynomials to left/right lane markings.
+ * - Calculates steering commands using PID control.
+ * - Publishes `cmd_vel` (Twist) and polynomial coefficients (`polyfit_coefs`).
+ * - Handles missing lanes via buffering and Kalman filtering.
  */
 class MotionControlNode : public rclcpp::Node
 {
@@ -38,13 +44,11 @@ class MotionControlNode : public rclcpp::Node
             polyfit_coefs_pub_;
         rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
 
-        // Private methods
         void
         lanePositionCallback(lane_msgs::msg::LanePositions::SharedPtr lane_msg);
         void separateAndOrderCoordinates(const std::vector<Point32>& points,
                                          std::vector<double>& x,
                                          std::vector<double>& y);
-        // void RANSACFilter(std::vector<double>& x, std::vector<double>& y);
         void calculatePolyfitCoefs(
             std::vector<double>& left_coefs, std::vector<double>& right_coefs,
             lane_msgs::msg::LanePositions::SharedPtr lane_msg);

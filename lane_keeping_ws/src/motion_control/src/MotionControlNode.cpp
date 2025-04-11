@@ -4,6 +4,14 @@
 
 using namespace rclcpp;
 
+/**
+ * @brief Initializes ROS2 subscriptions, publishers, and control parameters.
+ *
+ * Parameters:
+ * - `kp`, `ki`, `kd`: PID gains.
+ * - `base_speed`: Default forward velocity.
+ * - `lookahead_index`: Vertical pixel offset for lane center calculation.
+ */
 MotionControlNode::MotionControlNode()
     : Node("motion_control_node"), kalmman_filter_(0.1, 0.5), lane_buffer_(3)
 {
@@ -29,6 +37,16 @@ void MotionControlNode::initPIDController()
     pid_controller_.initializePID(shared_from_this());
 }
 
+/**
+ * @brief Processes incoming lane positions and computes control commands.
+ *
+ * - Fits polynomials to lane markings (with buffer fallback for missing lanes).
+ * - Computes lane center using lookahead distance.
+ * - Applies Kalman filtering to lane center position.
+ * - Calculates steering via PID control.
+ *
+ * @param lane_msg Shared pointer to LanePositions message.
+ */
 void MotionControlNode::lanePositionCallback(
     lane_msgs::msg::LanePositions::SharedPtr lane_msg)
 {
@@ -59,6 +77,18 @@ void MotionControlNode::lanePositionCallback(
                          left_coefs[2], left_coefs[1], left_coefs[0]);
 }
 
+/**
+ * @brief Fits 2nd-degree polynomials to left/right lane points.
+ *
+ * - Separates and sorts lane coordinates by y-position.
+ * - Uses buffered coefficients if current lane detection fails.
+ * - Requires ≥3 points per lane for new fits.
+ *
+ * @param left_coefs Output vector for left lane coefficients [a, b, c]
+ * (ax²+bx+c).
+ * @param right_coefs Output vector for right lane coefficients.
+ * @param lane_msg Input lane positions message.
+ */
 void MotionControlNode::calculatePolyfitCoefs(
     std::vector<double>& left_coefs, std::vector<double>& right_coefs,
     lane_msgs::msg::LanePositions::SharedPtr lane_msg)
@@ -97,13 +127,15 @@ void MotionControlNode::calculatePolyfitCoefs(
 }
 
 /**
- * @brief Find lane center at fix distance  img_height - "lookahead_index"
+ * @brief Computes lane center at a fixed lookahead distance.
  *
- * Lane center will always be found since when a lane is missing it is infered
+ * - Solves left/right lane polynomials at y = (image_height - lookahead_index).
+ * - Returns (0,0) if no valid lanes detected.
  *
- * @param left_coefs
- * @param right_coef
- * @return y position of the lane center at index "lookahead"
+ * @param left_coefs Left lane polynomial coefficients.
+ * @param right_coefs Right lane polynomial coefficients.
+ * @param img_height Image height for coordinate scaling.
+ * @return Lane center point (x,y) in image coordinates.
  */
 Point32
 MotionControlNode::findLaneCenter(const std::vector<double>& left_coefs,
@@ -138,6 +170,13 @@ MotionControlNode::findLaneCenter(const std::vector<double>& left_coefs,
     return lane_center;
 }
 
+/**
+ * @brief Find where the car is heading using lookahead_index parameter
+ *
+ * @param img_width
+ * @param img_height
+ * @return
+ */
 Point32 MotionControlNode::findHeadingPoint(int img_width, int img_height)
 {
     Point32 result;
@@ -150,6 +189,16 @@ Point32 MotionControlNode::findHeadingPoint(int img_width, int img_height)
     return result;
 }
 
+/**
+ * @brief Computes steering command using PID control.
+ *
+ * - Error: Normalized horizontal offset between lane center and image midpoint.
+ * - Publishes Twist message with `base_speed` and steering angle.
+ *
+ * @param lane_center Current lane center position.
+ * @param heading_point Reference point (image center at lookahead distance).
+ * @param img_width For error normalization.
+ */
 void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
                                                     Point32& heading_point,
                                                     int img_width)
@@ -168,6 +217,12 @@ void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
     cmd_vel_pub_->publish(msg);
 }
 
+/**
+ * @brief Separates and sorts lane points by y-coordinate.
+ *
+ * - Converts vector<Point32> to sorted vectors of x/y coordinates.
+ * - Ensures polynomial fitting follows lane direction.
+ */
 void MotionControlNode::separateAndOrderCoordinates(
     const std::vector<Point32>& points, std::vector<double>& x,
     std::vector<double>& y)
@@ -196,6 +251,12 @@ void MotionControlNode::stopVehicle()
     cmd_vel_pub_->publish(msg);
 }
 
+/**
+ * @brief Publishes polynomial coefficients and lane center.
+ *
+ * - Used for visualization and debugging.
+ * - Converts coefficients to float for message compatibility.
+ */
 void MotionControlNode::publishPolyfitCoefficients(
     const std::vector<double>& left_coefs,
     const std::vector<double>& right_coefs, Point32& lane_center)
