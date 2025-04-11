@@ -1,0 +1,5 @@
+<map id="MotionControlNode" name="MotionControlNode">
+<area shape="rect" id="node3" href="$classPIDController.html" title="PIDController" alt="" coords="83,5,184,32"/>
+<area shape="rect" id="node4" href="$classKalmanFilter.html" title="1d Kalman filter. " alt="" coords="209,5,303,32"/>
+<area shape="rect" id="node5" href="$classLaneBuffer.html" title="LaneBuffer" alt="" coords="340,5,425,32"/>
+</map>
