@@ -1,0 +1,53 @@
+\subsection*{Overview}
+
+This project focuses on the development of an {\bfseries Autonomous Driving System (A\+DS)} capable of detecting lanes and steering accordingly.
+
+Utilizing {\bfseries R\+OS 2}, a {\bfseries Jetson Nano}, and a {\bfseries Raspberry Pi}, we designed a system that integrates {\bfseries computer vision and machine learning} to detect lanes, calculate optimal paths, and execute autonomous steering. The system leverage G\+PU accelerated computations on the jetson nano, reducing significantly computation time compared to a C\+PU based approach.
+
+\subsection*{Project Scope}
+
+This project aims to bridge the gap between {\bfseries simulation-\/based} testing and {\bfseries real-\/world autonomous driving} by designing and deploying an A\+I-\/driven lane detection and control system. The system consists of multiple R\+OS 2 nodes encapsulating specific aspects of the system (see \href{https://github.com/Axel-ex/SEAME-ADS-Autonomous-lane-detection-24-25/tree/ml_vision/lane_keeping_ws}{\tt here} for more detail on each node responsability)\+:
+
+
+\begin{DoxyItemize}
+\item {\bfseries R\+OS 2 Nodes} for real-\/time data processing and vehicle control.
+\item {\bfseries Computer Vision (Open\+CV)} for basic lane detection.
+\item {\bfseries Machine Learning (Py\+Torch/\+Tensor\+Flow)} for advanced lane detection.
+\item {\bfseries Carla sim} for software in the loop testing.
+\end{DoxyItemize}
+
+\subsection*{Key Features}
+
+
+\begin{DoxyItemize}
+\item {\bfseries R\+OS 2 Integration}\+: Modular and scalable for future improvements.
+\item {\bfseries Hybrid Lane Detection}\+: Ability to switch from traditional computer vision to M\+L-\/based approaches.
+\item {\bfseries Real-\/time Processing}\+: Optimized to run efficiently on Jetson Nano (C\+U\+DA acceleration).
+\item {\bfseries Simulation / Reality testing}\+: Tested in both virtual (Carla) and real-\/world environments.
+\end{DoxyItemize}
+
+\subsection*{Launch instructions}
+
+
+\begin{DoxyEnumerate}
+\item To launch all nodes\+: 
+\begin{DoxyCode}
+ros2 run launch launch/jetson\_launch.py
+\end{DoxyCode}
+
+\item To launch the system without the camera (usefull to replay data using ros2 bags) 
+\begin{DoxyCode}
+ros2 run launch launch/bags\_launch.py
+\end{DoxyCode}
+ then you can replay some recorded data in another terminal 
+\begin{DoxyCode}
+cd ../bags
+ros2 bag play <name\_of\_the\_bag>
+\end{DoxyCode}
+
+\item To launch the system with the image publisher (usefull to develop / to debug) 
+\begin{DoxyCode}
+ros2 run launch launch/bags\_launch.py
+\end{DoxyCode}
+ 
+\end{DoxyEnumerate}
