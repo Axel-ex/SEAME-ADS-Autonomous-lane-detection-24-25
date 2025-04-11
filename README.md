@@ -4,6 +4,8 @@ This project focuses on the development of an **Autonomous Driving System (ADS)*
 
 Utilizing **ROS 2**, a **Jetson Nano**, and a **Raspberry Pi**, we designed a system that integrates **computer vision and machine learning** to detect lanes, calculate optimal paths, and execute autonomous steering. The system leverage GPU accelerated computations on the jetson nano, reducing significantly computation time compared to a CPU based approach.
 
+Documentation for the sources of this project can be find [here](https://axel-ex.github.io/SEAME-ADS-Autonomous-lane-detection-24-25).
+
 ## Project Scope
 This project aims to bridge the gap between **simulation-based** testing and **real-world autonomous driving** by designing and deploying an AI-driven lane detection and control system. The system consists of multiple ROS 2 nodes encapsulating specific aspects of the system (see [here](https://github.com/Axel-ex/SEAME-ADS-Autonomous-lane-detection-24-25/tree/ml_vision/lane_keeping_ws) for more detail on each node responsability):
 

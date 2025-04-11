@@ -70,4 +70,3 @@ This ROS2-based system runs on a Jetson Nano and processes camera input to detec
   - `base_speed`: base speed of vehicle
   - `lookahead_index`: distance (in buckets) to the reference point
   - `kp`, `ki`, `kd`: proportional, integral and derivative gain.
----
