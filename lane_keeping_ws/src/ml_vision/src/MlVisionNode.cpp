@@ -92,22 +92,20 @@ void MlVisionNode::allocateDevices()
     Dims output_dims = engine_->getBindingDimensions(output_index);
 
     // WARN: make sure these match the expected input / output of the model
-    size_t input_size = 1;
     for (int i = 0; i < input_dims.nbDims; i++)
-        input_size *= input_dims.d[i];
-    input_size *= sizeof(float);
+        input_size_ *= input_dims.d[i];
+    input_size_ *= sizeof(float);
 
-    size_t output_size = 1;
     for (int i = 0; i < output_dims.nbDims; i++)
-        output_size *= output_dims.d[i];
-    output_size *= sizeof(float);
+        output_size_ *= output_dims.d[i];
+    output_size_ *= sizeof(float);
 
     // allocate memory and transfer ownership to our smartpointer
     void* raw_input_ptr = nullptr;
     void* raw_output_ptr = nullptr;
 
-    cudaError_t input_err = cudaMalloc(&raw_input_ptr, input_size);
-    cudaError_t output_err = cudaMalloc(&raw_output_ptr, output_size);
+    cudaError_t input_err = cudaMalloc(&raw_input_ptr, input_size_);
+    cudaError_t output_err = cudaMalloc(&raw_output_ptr, output_size_);
     if (input_err != cudaSuccess && output_err != cudaSuccess)
         RCLCPP_ERROR(this->get_logger(),
                      "An error occured while allocating for input / output "
@@ -134,15 +132,25 @@ void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
         return;
     }
     auto flat_img = flattenImage(converted);
-    // TODO: Perform inference
+    auto output = runInference(flat_img);
+    if (output.empty())
+        RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), LOG_FREQ,
+                              "Fail running inference");
 }
 
+/**
+ * @brief transform an Image into a flat vector (raw sequence of bytes)
+ *
+ * @param img_ptr
+ * @return
+ */
 std::vector<float>
 MlVisionNode::flattenImage(cv_bridge::CvImageConstPtr img_ptr)
 {
     cv::Mat img = img_ptr->image;
-    cv::resize(img, img, INPUT_SIZE);
-    std::vector<float> flatten_img(INPUT_SIZE.height * INPUT_SIZE.width * 3);
+    cv::resize(img, img, INPUT_IMG_SIZE);
+    std::vector<float> flatten_img(INPUT_IMG_SIZE.height *
+                                   INPUT_IMG_SIZE.width * 3);
 
     for (int y = 0; y < img.rows; y++)
     {
@@ -158,4 +166,26 @@ MlVisionNode::flattenImage(cv_bridge::CvImageConstPtr img_ptr)
         }
     }
     return flatten_img;
+}
+
+std::vector<float> MlVisionNode::runInference(std::vector<float>& flat_img)
+{
+    // Transfer raw data to GPU
+    cudaMemcpy(d_input_.get(), flat_img.data(), input_size_,
+               cudaMemcpyHostToDevice);
+
+    void* bindings[2] = {d_input_.get(), d_output_.get()};
+    bool status = context_->executeV2(bindings);
+    if (!status)
+    {
+        // TODO: free resources
+        return std::vector<float>();
+    }
+
+    // Get back the result into CPU
+    std::vector<float> output(output_size_ / sizeof(float));
+    cudaMemcpy(output.data(), d_output_.get(), output_size_,
+               cudaMemcpyDeviceToHost);
+
+    return output;
 }

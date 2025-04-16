@@ -11,7 +11,8 @@ constexpr auto INPUT_LAYER_NAME = "input_1";
 constexpr auto OUTPUT_LAYER_NAME = "conv2d_14";
 constexpr int LOG_FREQ = 5000;
 
-const cv::Size INPUT_SIZE(256, 256);
+const cv::Size INPUT_IMG_SIZE(256, 256);
+const cv::Size OUTPUT_IMG_SIZE(256, 256);
 
 using namespace nvinfer1;
 
@@ -58,6 +59,8 @@ class MlVisionNode : public rclcpp::Node
         TrtUniquePtr<IRuntime> runtime_;
         TrtUniquePtr<IExecutionContext> context_;
         TrtUniquePtr<ICudaEngine> engine_;
+        size_t input_size_{1};
+        size_t output_size_{1};
         CudaUniquePtr<void> d_input_;
         CudaUniquePtr<void> d_output_;
 
@@ -65,4 +68,5 @@ class MlVisionNode : public rclcpp::Node
         void allocateDevices();
         void rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg);
         std::vector<float> flattenImage(cv_bridge::CvImageConstPtr img_ptr);
+        std::vector<float> runInference(std::vector<float>& flat_img);
 };
