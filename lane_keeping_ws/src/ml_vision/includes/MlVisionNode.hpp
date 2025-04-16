@@ -1,13 +1,17 @@
 #pragma once
 
 #include <NvInfer.h>
+#include <cv_bridge/cv_bridge.h>
 #include <lane_msgs/msg/lane_positions.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 
-constexpr auto engine_path = "model.engine";
-constexpr auto input_layer_name = "input_1";
-constexpr auto output_layer_name = "conv2d_14";
+constexpr auto ENGINE_PATH = "model.engine";
+constexpr auto INPUT_LAYER_NAME = "input_1";
+constexpr auto OUTPUT_LAYER_NAME = "conv2d_14";
+constexpr int LOG_FREQ = 5000;
+
+const cv::Size INPUT_SIZE(256, 256);
 
 using namespace nvinfer1;
 
@@ -51,7 +55,6 @@ class MlVisionNode : public rclcpp::Node
         rclcpp::Publisher<lane_msgs::msg::LanePositions>::SharedPtr
             lane_pos_pub_;
 
-        void rawImageCallback(sensor_msgs::msg::Image::SharedPtr img);
         TrtUniquePtr<IRuntime> runtime_;
         TrtUniquePtr<IExecutionContext> context_;
         TrtUniquePtr<ICudaEngine> engine_;
@@ -60,4 +63,6 @@ class MlVisionNode : public rclcpp::Node
 
         ICudaEngine* createCudaEngine();
         void allocateDevices();
+        void rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg);
+        std::vector<float> flattenImage(cv_bridge::CvImageConstPtr img_ptr);
 };

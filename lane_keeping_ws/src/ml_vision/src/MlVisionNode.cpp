@@ -63,7 +63,7 @@ bool MlVisionNode::init()
  */
 ICudaEngine* MlVisionNode::createCudaEngine()
 {
-    std::ifstream infile(engine_path, std::ios::binary);
+    std::ifstream infile(ENGINE_PATH, std::ios::binary);
     if (!infile)
     {
         RCLCPP_ERROR(this->get_logger(), "Couldnt open engine file");
@@ -85,8 +85,8 @@ ICudaEngine* MlVisionNode::createCudaEngine()
  */
 void MlVisionNode::allocateDevices()
 {
-    const int input_index = engine_->getBindingIndex(input_layer_name);
-    const int output_index = engine_->getBindingIndex(output_layer_name);
+    const int input_index = engine_->getBindingIndex(INPUT_LAYER_NAME);
+    const int output_index = engine_->getBindingIndex(OUTPUT_LAYER_NAME);
 
     Dims input_dims = engine_->getBindingDimensions(input_index);
     Dims output_dims = engine_->getBindingDimensions(output_index);
@@ -124,7 +124,38 @@ void MlVisionNode::allocateDevices()
  *
  * @param img
  */
-void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img)
+void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
 {
-    //
+    auto converted = cv_bridge::toCvShare(img_msg, img_msg->encoding);
+    if (converted->image.empty())
+    {
+        RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), LOG_FREQ,
+                              "Error: received image is empty");
+        return;
+    }
+    auto flat_img = flattenImage(converted);
+    // TODO: Perform inference
+}
+
+std::vector<float>
+MlVisionNode::flattenImage(cv_bridge::CvImageConstPtr img_ptr)
+{
+    cv::Mat img = img_ptr->image;
+    cv::resize(img, img, INPUT_SIZE);
+    std::vector<float> flatten_img(INPUT_SIZE.height * INPUT_SIZE.width * 3);
+
+    for (int y = 0; y < img.rows; y++)
+    {
+        for (int x = 0; x < img.cols; x++)
+        {
+            cv::Vec3b pixel = img.at<cv::Vec3b>(x, y);
+            flatten_img[(y * img.cols + x) * 3] =
+                static_cast<float>(pixel[2] / 255.0);
+            flatten_img[(y * img.cols + x) * 3 + 1] =
+                static_cast<float>(pixel[1] / 255.0);
+            flatten_img[(y * img.cols + x) * 3 + 2] =
+                static_cast<float>(pixel[0] / 255.0);
+        }
+    }
+    return flatten_img;
 }
