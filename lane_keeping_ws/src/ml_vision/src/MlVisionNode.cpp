@@ -1,5 +1,6 @@
 #include <Logger.hpp>
 #include <MlVisionNode.hpp>
+#include <cv_bridge/cv_bridge.h>
 #include <fstream>
 
 /**
@@ -67,6 +68,12 @@ bool MlVisionNode::init()
     allocateDevices();
     if (!d_input_ || !d_output_)
         return false;
+
+    // For debug purpose
+    auto it = image_transport::ImageTransport(shared_from_this());
+    edge_img_pub_ = it.advertise("edge_img", 1);
+    raw_mask_pub_ = it.advertise("raw_mask", 1);
+    processed_mask_pub_ = it.advertise("processed_mask", 1);
 
     return true;
 }
@@ -159,9 +166,10 @@ void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
                               "Fail running inference");
         return;
     }
-    cv::cuda::GpuMat gpu_img(OUTPUT_IMG_SIZE.height, OUTPUT_IMG_SIZE.width,
-                             CV_32FC1, output.data());
-    postProcessing(gpu_img);
+    publishRawOutput(output);
+    // cv::cuda::GpuMat gpu_img(OUTPUT_IMG_SIZE.height, OUTPUT_IMG_SIZE.width,
+    //                          CV_32FC1, output.data());
+    // postProcessing(gpu_img);
 
     // TODO:
     // 1) Make the output a gpu image
@@ -224,4 +232,15 @@ void MlVisionNode::postProcessing(cv::cuda::GpuMat& gpu_img)
 {
     // morpho transformation
     // apply canny edge
+}
+
+void MlVisionNode::publishRawOutput(std::vector<float>& output) const
+{
+    cv::Mat output_img(OUTPUT_IMG_SIZE.height, OUTPUT_IMG_SIZE.height, CV_32FC1,
+                       output.data());
+    cv::normalize(output_img, output_img, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+
+    sensor_msgs::msg::Image mask_msg;
+    std_msgs::msg::Header header;
+    auto msg = cv_bridge::CvImage(header, "mono8", output_img);
 }
