@@ -6,6 +6,8 @@
 #include <sensor_msgs/msg/image.hpp>
 
 constexpr auto engine_path = "model.engine";
+constexpr auto input_layer_name = "input_1";
+constexpr auto output_layer_name = "conv2d_14";
 
 using namespace nvinfer1;
 
@@ -57,4 +59,5 @@ class MlVisionNode : public rclcpp::Node
         CudaUniquePtr<void> d_output_;
 
         ICudaEngine* createCudaEngine();
+        void allocateDevices();
 };
