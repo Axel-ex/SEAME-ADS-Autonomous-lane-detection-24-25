@@ -70,7 +70,7 @@ bool MlVisionNode::init()
         return false;
 
     // For debug purpose
-    auto it = image_transport::ImageTransport(shared_from_this());
+    image_transport::ImageTransport it(shared_from_this());
     edge_img_pub_ = it.advertise("edge_img", 1);
     raw_mask_pub_ = it.advertise("raw_mask", 1);
     processed_mask_pub_ = it.advertise("processed_mask", 1);

@@ -22,6 +22,7 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(lane_msgs REQUIRED)
+find_package(image_transport REQUIRED)
 
 include_directories(includes)
 
@@ -44,6 +45,7 @@ ament_target_dependencies(${PROJECT_NAME}_node
   sensor_msgs
   cv_bridge
   lane_msgs
+  image_transport
 )
 
 install(TARGETS ${PROJECT_NAME}_node DESTINATION lib/${PROJECT_NAME})
