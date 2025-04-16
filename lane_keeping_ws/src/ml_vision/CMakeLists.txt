@@ -29,6 +29,7 @@ include_directories(includes)
 add_executable(${PROJECT_NAME}_node
   src/main.cpp
   src/MlVisionNode.cpp
+  src/Logger.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}_node
