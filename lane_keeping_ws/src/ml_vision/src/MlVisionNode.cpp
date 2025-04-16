@@ -2,15 +2,33 @@
 #include <MlVisionNode.hpp>
 #include <fstream>
 
+/**
+ * @brief Initialize ROS subscriber and publisher as well as OpenCV objects used
+ * for post processing of inference output
+ */
 MlVisionNode::MlVisionNode() : rclcpp::Node("ml_vision_node")
 {
-    raw_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+    raw_img_sub_ = create_subscription<sensor_msgs::msg::Image>(
         "raw_img", 1,
         [this](sensor_msgs::msg::Image::SharedPtr img)
-        { this->rawImageCallback(img); });
+        { rawImageCallback(img); });
 
-    lane_pos_pub_ = this->create_publisher<lane_msgs::msg::LanePositions>(
-        "lane_positions", 10);
+    lane_pos_pub_ =
+        create_publisher<lane_msgs::msg::LanePositions>("lane_positions", 10);
+
+    canny_edge_detector_ =
+        cv::cuda::createCannyEdgeDetector(LOW_CANNY, HIGH_CANNY);
+    hough_segment_detector_ = cv::cuda::createHoughSegmentDetector(
+        1.0, 180 / CV_PI, MIN_LINE_LENGTH, MAX_LINE_GAP, MAX_DETECTED_LINE);
+
+    cv::Mat kernel = cv::getStructuringElement(
+        cv::MORPH_ELLIPSE, cv::Size(KERNEL_SIZE * 2 + 1, KERNEL_SIZE * 2 + 1),
+        cv::Point(KERNEL_SIZE, KERNEL_SIZE));
+
+    dilation_filter_ =
+        cv::cuda::createMorphologyFilter(cv::MORPH_DILATE, CV_8UC1, kernel);
+    erosion_filter_ =
+        cv::cuda::createMorphologyFilter(cv::MORPH_ERODE, CV_8UC1, kernel);
 }
 
 /**
@@ -25,26 +43,26 @@ bool MlVisionNode::init()
     runtime_.reset(createInferRuntime(logger));
     if (!runtime_)
     {
-        RCLCPP_ERROR(this->get_logger(), "Fail creating runtime");
+        RCLCPP_ERROR(get_logger(), "Fail creating runtime");
         return false;
     }
-    RCLCPP_INFO(this->get_logger(), "Runtime succefully created");
+    RCLCPP_INFO(get_logger(), "Runtime succefully created");
 
     engine_.reset(createCudaEngine());
     if (!engine_)
     {
-        RCLCPP_ERROR(this->get_logger(), "Fail creating engine");
+        RCLCPP_ERROR(get_logger(), "Fail creating engine");
         return false;
     }
-    RCLCPP_INFO(this->get_logger(), "engine succefully created");
+    RCLCPP_INFO(get_logger(), "engine succefully created");
 
     context_.reset(engine_->createExecutionContext());
     if (!context_)
     {
-        RCLCPP_ERROR(this->get_logger(), "Fail creating context");
+        RCLCPP_ERROR(get_logger(), "Fail creating context");
         return false;
     }
-    RCLCPP_INFO(this->get_logger(), "context succefully created");
+    RCLCPP_INFO(get_logger(), "context succefully created");
 
     allocateDevices();
     if (!d_input_ || !d_output_)
@@ -57,7 +75,7 @@ bool MlVisionNode::init()
  * @brief Create engine for inference
  *
  * Reads the file found at @engine_path byte by byte and deserialize the data
- * using the runtime
+ * using the runtime.
  *
  * @return
  */
@@ -66,10 +84,10 @@ ICudaEngine* MlVisionNode::createCudaEngine()
     std::ifstream infile(ENGINE_PATH, std::ios::binary);
     if (!infile)
     {
-        RCLCPP_ERROR(this->get_logger(), "Couldnt open engine file");
+        RCLCPP_ERROR(get_logger(), "Couldnt open engine file");
         return nullptr;
     }
-    RCLCPP_INFO(this->get_logger(), "Engine file loaded");
+    RCLCPP_INFO(get_logger(), "Engine file loaded");
 
     infile.seekg(0, std::ios::end);
     auto size = infile.tellg();
@@ -106,8 +124,8 @@ void MlVisionNode::allocateDevices()
 
     cudaError_t input_err = cudaMalloc(&raw_input_ptr, input_size_);
     cudaError_t output_err = cudaMalloc(&raw_output_ptr, output_size_);
-    if (input_err != cudaSuccess && output_err != cudaSuccess)
-        RCLCPP_ERROR(this->get_logger(),
+    if (input_err != cudaSuccess || output_err != cudaSuccess)
+        RCLCPP_ERROR(get_logger(),
                      "An error occured while allocating for input / output "
                      "device: input: %s, output: %s",
                      cudaGetErrorString(input_err),
@@ -131,11 +149,25 @@ void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
                               "Error: received image is empty");
         return;
     }
-    auto flat_img = flattenImage(converted);
-    auto output = runInference(flat_img);
+
+    std::vector<float> input = flattenImage(converted);
+    std::vector<float> output = runInference(input);
+
     if (output.empty())
+    {
         RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), LOG_FREQ,
                               "Fail running inference");
+        return;
+    }
+    cv::cuda::GpuMat gpu_img(OUTPUT_IMG_SIZE.height, OUTPUT_IMG_SIZE.width,
+                             CV_32FC1, output.data());
+    postProcessing(gpu_img);
+
+    // TODO:
+    // 1) Make the output a gpu image
+    // 2) Post process
+    // 3) extract lines
+    // 4) Publish lane position
 }
 
 /**
@@ -145,7 +177,7 @@ void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
  * @return
  */
 std::vector<float>
-MlVisionNode::flattenImage(cv_bridge::CvImageConstPtr img_ptr)
+MlVisionNode::flattenImage(cv_bridge::CvImageConstPtr img_ptr) const
 {
     cv::Mat img = img_ptr->image;
     cv::resize(img, img, INPUT_IMG_SIZE);
@@ -168,7 +200,8 @@ MlVisionNode::flattenImage(cv_bridge::CvImageConstPtr img_ptr)
     return flatten_img;
 }
 
-std::vector<float> MlVisionNode::runInference(std::vector<float>& flat_img)
+std::vector<float>
+MlVisionNode::runInference(const std::vector<float>& flat_img) const
 {
     // Transfer raw data to GPU
     cudaMemcpy(d_input_.get(), flat_img.data(), input_size_,
@@ -177,15 +210,18 @@ std::vector<float> MlVisionNode::runInference(std::vector<float>& flat_img)
     void* bindings[2] = {d_input_.get(), d_output_.get()};
     bool status = context_->executeV2(bindings);
     if (!status)
-    {
-        // TODO: free resources
         return std::vector<float>();
-    }
 
-    // Get back the result into CPU
+    // Get back the result onto CPU
     std::vector<float> output(output_size_ / sizeof(float));
     cudaMemcpy(output.data(), d_output_.get(), output_size_,
                cudaMemcpyDeviceToHost);
 
     return output;
+}
+
+void MlVisionNode::postProcessing(cv::cuda::GpuMat& gpu_img)
+{
+    // morpho transformation
+    // apply canny edge
 }

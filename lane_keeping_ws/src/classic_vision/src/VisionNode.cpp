@@ -9,6 +9,10 @@
 
 using namespace cv;
 
+// TODO: Store cv object (filters, line_detector....) inside of the node for
+// optimised execution
+// Some parameters should be remove if doing that, since the object will be
+// constructed only once with specific values
 VisionNode::VisionNode() : Node("vision_node")
 {
     auto qos = rclcpp::QoS(QOS).best_effort();
@@ -186,7 +190,6 @@ void VisionNode::applyMorphoTransfo(cuda::GpuMat& gpu_img)
     Mat elem = getStructuringElement(
         morph_element, Size(2 * morpho_size + 1, 2 * morpho_size + 1),
         Point(morpho_size, morpho_size));
-    cuda::GpuMat gpu_elem(elem);
 
     // Create the filter to erode / dilate for better results
     auto dilate_filter =

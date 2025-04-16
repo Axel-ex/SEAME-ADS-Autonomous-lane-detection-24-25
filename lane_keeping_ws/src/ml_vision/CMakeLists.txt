@@ -15,7 +15,7 @@ set(TENSORRT_LIB_DIR "/usr/lib/aarch64-linux-gnu")
 include_directories(${TENSORRT_INCLUDE_DIRS})
 link_directories(${TENSORRT_LIB_DIR})
 
-find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui cudaimgproc cudawarping cudafilters)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
