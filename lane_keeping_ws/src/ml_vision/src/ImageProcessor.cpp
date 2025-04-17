@@ -8,7 +8,7 @@ ImageProcessor::ImageProcessor(const cv::Size& input_size,
     canny_edge_detector_ =
         cv::cuda::createCannyEdgeDetector(LOW_CANNY, HIGH_CANNY);
     line_detector_ = cv::cuda::createHoughSegmentDetector(
-        1.0, 180 / CV_PI, MIN_LINE_LENGTH, MAX_LINE_GAP, MAX_DETECTED_LINE);
+        1.0, CV_PI / 180.0f, MIN_LINE_LENGTH, MAX_LINE_GAP, MAX_DETECTED_LINE);
 
     cv::Mat kernel = cv::getStructuringElement(
         cv::MORPH_ELLIPSE, cv::Size(KERNEL_SIZE * 2 + 1, KERNEL_SIZE * 2 + 1),

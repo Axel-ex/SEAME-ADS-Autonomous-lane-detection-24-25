@@ -78,8 +78,8 @@ void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
     image_processor_->applyCannyEdge(gpu_img);
     publishDebug(gpu_img, edge_img_pub_);
 
-    // auto lines = image_processor_->getLines(gpu_img);
-    // publishLanePositions(lines);
+    auto lines = image_processor_->getLines(gpu_img);
+    publishLanePositions(lines);
 }
 
 void MlVisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines)
