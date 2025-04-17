@@ -30,6 +30,8 @@ include_directories(includes)
 add_executable(${PROJECT_NAME}_node
   src/main.cpp
   src/MlVisionNode.cpp
+  src/InferenceEngine.cpp
+  src/ImageProcessor.cpp
   src/Logger.cpp
 )
 
