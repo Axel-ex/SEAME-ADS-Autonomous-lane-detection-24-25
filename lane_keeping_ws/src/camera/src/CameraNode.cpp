@@ -26,9 +26,10 @@ CameraNode::CameraNode() : Node("camera_node"), running_(true)
 CameraNode::~CameraNode()
 {
     running_ = false;
+    cap_.release();
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
     if (capture_thread_.joinable())
         capture_thread_.join();
-    cap_.release();
 }
 
 void CameraNode::initPublisherAndCapture()

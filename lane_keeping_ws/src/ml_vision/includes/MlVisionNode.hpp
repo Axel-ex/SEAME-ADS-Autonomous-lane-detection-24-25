@@ -11,7 +11,8 @@
 #include <sensor_msgs/msg/image.hpp>
 
 // TENSORRT
-constexpr auto ENGINE_PATH = "model.engine";
+constexpr auto ENGINE_PATH =
+    "/home/axel/SEAME-ADS-Autonomous-lane-detection-24-25/model.engine";
 constexpr auto INPUT_LAYER_NAME = "input_1";
 constexpr auto OUTPUT_LAYER_NAME = "conv2d_14";
 const cv::Size INPUT_IMG_SIZE(256, 256);
@@ -20,6 +21,7 @@ const cv::Size OUTPUT_IMG_SIZE(256, 256);
 // OPENCV
 constexpr int LOW_CANNY = 50;
 constexpr int HIGH_CANNY = 80;
+constexpr float TRESHOLD = 120;
 
 constexpr int MIN_LINE_LENGTH = 20;
 constexpr int MAX_LINE_GAP = 20;
@@ -101,7 +103,7 @@ class MlVisionNode : public rclcpp::Node
 
         // OpenCV (lane extraction from inference result)
         cv::Ptr<cv::cuda::CannyEdgeDetector> canny_edge_detector_;
-        cv::Ptr<cv::cuda::HoughSegmentDetector> hough_segment_detector_;
+        cv::Ptr<cv::cuda::HoughSegmentDetector> line_detector_;
         cv::Ptr<cv::cuda::Filter> erosion_filter_;
         cv::Ptr<cv::cuda::Filter> dilation_filter_;
 
@@ -114,7 +116,10 @@ class MlVisionNode : public rclcpp::Node
         std::vector<float>
         runInference(const std::vector<float>& flat_img) const;
         void postProcessing(cv::cuda::GpuMat& gpu_img);
+        std::vector<cv::Vec4i> getLines(cv::cuda::GpuMat& gpu_img);
+        void publishLanePositions(std::vector<cv::Vec4i>& lines);
 
         // Debug
-        void publishRawOutput(std::vector<float>& output) const;
+        void publishDebug(cv::cuda::GpuMat& gpu_img,
+                          image_transport::Publisher& publisher) const;
 };

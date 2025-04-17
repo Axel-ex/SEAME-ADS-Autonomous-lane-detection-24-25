@@ -10,7 +10,7 @@
 MlVisionNode::MlVisionNode() : rclcpp::Node("ml_vision_node")
 {
     raw_img_sub_ = create_subscription<sensor_msgs::msg::Image>(
-        "raw_img", 1,
+        "image_raw", 1,
         [this](sensor_msgs::msg::Image::SharedPtr img)
         { rawImageCallback(img); });
 
@@ -19,7 +19,7 @@ MlVisionNode::MlVisionNode() : rclcpp::Node("ml_vision_node")
 
     canny_edge_detector_ =
         cv::cuda::createCannyEdgeDetector(LOW_CANNY, HIGH_CANNY);
-    hough_segment_detector_ = cv::cuda::createHoughSegmentDetector(
+    line_detector_ = cv::cuda::createHoughSegmentDetector(
         1.0, 180 / CV_PI, MIN_LINE_LENGTH, MAX_LINE_GAP, MAX_DETECTED_LINE);
 
     cv::Mat kernel = cv::getStructuringElement(
@@ -76,6 +76,42 @@ bool MlVisionNode::init()
     processed_mask_pub_ = it.advertise("processed_mask", 1);
 
     return true;
+}
+
+/**
+ * @brief Callback upon receving a new frame from the Camera node
+ *
+ * @param img
+ */
+void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
+{
+    auto converted = cv_bridge::toCvShare(img_msg, img_msg->encoding);
+    if (converted->image.empty())
+    {
+        RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), LOG_FREQ,
+                              "Error: received image is empty");
+        return;
+    }
+
+    std::vector<float> input = flattenImage(converted);
+    std::vector<float> output = runInference(input);
+
+    if (output.empty())
+    {
+        RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), LOG_FREQ,
+                              "Fail running inference");
+        return;
+    }
+
+    cv::Mat output_img(OUTPUT_IMG_SIZE.height, OUTPUT_IMG_SIZE.width, CV_32FC1,
+                       output.data());
+    cv::normalize(output_img, output_img, 0, 255, cv::NORM_MINMAX, CV_8UC1);
+    cv::cuda::GpuMat gpu_img;
+    gpu_img.upload(output_img);
+
+    postProcessing(gpu_img);
+    // auto lines = getLines(gpu_img);
+    // publishLanePositions(lines);
 }
 
 /**
@@ -143,42 +179,6 @@ void MlVisionNode::allocateDevices()
 }
 
 /**
- * @brief Callback upon receving a new frame from the Camera node
- *
- * @param img
- */
-void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
-{
-    auto converted = cv_bridge::toCvShare(img_msg, img_msg->encoding);
-    if (converted->image.empty())
-    {
-        RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), LOG_FREQ,
-                              "Error: received image is empty");
-        return;
-    }
-
-    std::vector<float> input = flattenImage(converted);
-    std::vector<float> output = runInference(input);
-
-    if (output.empty())
-    {
-        RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), LOG_FREQ,
-                              "Fail running inference");
-        return;
-    }
-    publishRawOutput(output);
-    // cv::cuda::GpuMat gpu_img(OUTPUT_IMG_SIZE.height, OUTPUT_IMG_SIZE.width,
-    //                          CV_32FC1, output.data());
-    // postProcessing(gpu_img);
-
-    // TODO:
-    // 1) Make the output a gpu image
-    // 2) Post process
-    // 3) extract lines
-    // 4) Publish lane position
-}
-
-/**
  * @brief transform an Image into a flat vector (raw sequence of bytes)
  *
  * @param img_ptr
@@ -196,13 +196,11 @@ MlVisionNode::flattenImage(cv_bridge::CvImageConstPtr img_ptr) const
     {
         for (int x = 0; x < img.cols; x++)
         {
-            cv::Vec3b pixel = img.at<cv::Vec3b>(x, y);
-            flatten_img[(y * img.cols + x) * 3] =
-                static_cast<float>(pixel[2] / 255.0);
-            flatten_img[(y * img.cols + x) * 3 + 1] =
-                static_cast<float>(pixel[1] / 255.0);
-            flatten_img[(y * img.cols + x) * 3 + 2] =
-                static_cast<float>(pixel[0] / 255.0);
+            cv::Vec3b pixel = img.at<cv::Vec3b>(y, x);
+            size_t base = (y * img.cols + x) * 3;
+            flatten_img[base + 0] = static_cast<float>(pixel[2] / 255.0);
+            flatten_img[base + 1] = static_cast<float>(pixel[1] / 255.0);
+            flatten_img[base + 2] = static_cast<float>(pixel[0] / 255.0);
         }
     }
     return flatten_img;
@@ -230,17 +228,92 @@ MlVisionNode::runInference(const std::vector<float>& flat_img) const
 
 void MlVisionNode::postProcessing(cv::cuda::GpuMat& gpu_img)
 {
-    // morpho transformation
-    // apply canny edge
+    cv::cuda::threshold(gpu_img, gpu_img, TRESHOLD, 255, CV_THRESH_BINARY);
+    dilation_filter_->apply(gpu_img, gpu_img);
+    erosion_filter_->apply(gpu_img, gpu_img);
+    publishDebug(gpu_img, raw_mask_pub_);
+    canny_edge_detector_->detect(gpu_img, gpu_img);
+    publishDebug(gpu_img, edge_img_pub_);
 }
 
-void MlVisionNode::publishRawOutput(std::vector<float>& output) const
+std::vector<cv::Vec4i> MlVisionNode::getLines(cv::cuda::GpuMat& gpu_img)
 {
-    cv::Mat output_img(OUTPUT_IMG_SIZE.height, OUTPUT_IMG_SIZE.height, CV_32FC1,
-                       output.data());
-    cv::normalize(output_img, output_img, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
-    sensor_msgs::msg::Image mask_msg;
+    cv::cuda::GpuMat gpu_lines;
+    line_detector_->detect(gpu_img, gpu_lines);
+
+    // Convert to vector of Vec4i
+    std::vector<cv::Vec4i> lines;
+    if (!gpu_lines.empty())
+    {
+        cv::Mat lines_cpu(1, gpu_lines.cols, CV_32SC4);
+        gpu_lines.download(lines_cpu);
+        lines.assign(lines_cpu.ptr<cv::Vec4i>(),
+                     lines_cpu.ptr<cv::Vec4i>() + lines_cpu.cols);
+    }
+
+    RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(), LOG_FREQ,
+                          "Detected %zu valid lines", lines.size());
+    return lines;
+}
+
+void MlVisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines)
+{
+    lane_msgs::msg::LanePositions msg;
+    msg.header.stamp = this->now();
+
+    std::vector<cv::Vec4i> left_lines, right_lines;
+
+    for (const auto& line : lines)
+    {
+        int x1 = line[0], y1 = line[1], x2 = line[2], y2 = line[3];
+        double slope = static_cast<double>(y2 - y1) / (x2 - x1);
+
+        // remove horizontal lines
+        if (std::abs(slope) < 0.3)
+            continue;
+
+        // Classify lines based on slope and position
+        if (slope < 0 && x1 < (OUTPUT_IMG_SIZE.width / 2))
+            left_lines.push_back(line);
+        else if (slope > 0 && x1 > (OUTPUT_IMG_SIZE.width / 2))
+            right_lines.push_back(line);
+    }
+
+    // Add left lane lines to the message
+    for (auto& line : left_lines)
+    {
+        geometry_msgs::msg::Point32 p1, p2;
+        p1.x = line[0];
+        p1.y = line[1];
+        p2.x = line[2];
+        p2.y = line[3];
+        msg.left_lane.insert(msg.left_lane.end(), {p1, p2});
+    }
+
+    // Add right lane lines to the message
+    for (auto& line : right_lines)
+    {
+        geometry_msgs::msg::Point32 p1, p2;
+        p1.x = line[0];
+        p1.y = line[1];
+        p2.x = line[2];
+        p2.y = line[3];
+        msg.right_lane.insert(msg.right_lane.end(), {p1, p2});
+    }
+
+    msg.image_width.data = OUTPUT_IMG_SIZE.width;
+    msg.image_height.data = OUTPUT_IMG_SIZE.height;
+
+    lane_pos_pub_->publish(msg);
+}
+
+void MlVisionNode::publishDebug(cv::cuda::GpuMat& gpu_img,
+                                image_transport::Publisher& publisher) const
+{
     std_msgs::msg::Header header;
-    auto msg = cv_bridge::CvImage(header, "mono8", output_img);
+    cv::Mat cpu_img;
+    gpu_img.download(cpu_img);
+    auto msg = cv_bridge::CvImage(header, "mono8", cpu_img);
+    publisher.publish(msg.toImageMsg());
 }
