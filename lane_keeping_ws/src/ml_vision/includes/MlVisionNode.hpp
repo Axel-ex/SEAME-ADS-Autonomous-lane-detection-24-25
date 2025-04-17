@@ -41,9 +41,9 @@ class MlVisionNode : public rclcpp::Node
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_img_sub_;
         rclcpp::Publisher<lane_msgs::msg::LanePositions>::SharedPtr
             lane_pos_pub_;
-        image_transport::Publisher edge_img_pub_;
         image_transport::Publisher raw_mask_pub_;
-        image_transport::Publisher processed_mask_pub_;
+        image_transport::Publisher tresholded_mask_pub_;
+        image_transport::Publisher edge_mask_pub_;
 
         // ML and CV
         std::unique_ptr<InferenceEngine> inference_engine_;

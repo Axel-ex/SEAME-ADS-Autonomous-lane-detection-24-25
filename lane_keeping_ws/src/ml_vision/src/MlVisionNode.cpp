@@ -30,9 +30,9 @@ bool MlVisionNode::init()
 
     // For debug purpose
     image_transport::ImageTransport it(shared_from_this());
-    edge_img_pub_ = it.advertise("edge_img", 1);
+    edge_mask_pub_ = it.advertise("edge_img", 1);
     raw_mask_pub_ = it.advertise("raw_mask", 1);
-    processed_mask_pub_ = it.advertise("processed_mask", 1);
+    tresholded_mask_pub_ = it.advertise("tresholded_mask", 1);
 
     RCLCPP_INFO(get_logger(), "MLVisionNode initiated.");
 
@@ -70,11 +70,12 @@ void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
     cv::cuda::GpuMat gpu_img(OUTPUT_IMG_SIZE, CV_32FC1, gpu_data);
     cv::cuda::normalize(gpu_img, gpu_img, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
-    image_processor_->applyTreshold(gpu_img, TRESHOLD);
     publishDebug(gpu_img, raw_mask_pub_);
+    image_processor_->applyTreshold(gpu_img, TRESHOLD);
+    publishDebug(gpu_img, tresholded_mask_pub_);
     image_processor_->applyErosionDilation(gpu_img);
     image_processor_->applyCannyEdge(gpu_img);
-    publishDebug(gpu_img, edge_img_pub_);
+    publishDebug(gpu_img, edge_mask_pub_);
 
     auto lines = image_processor_->getLines(gpu_img);
     publishLanePositions(lines);
