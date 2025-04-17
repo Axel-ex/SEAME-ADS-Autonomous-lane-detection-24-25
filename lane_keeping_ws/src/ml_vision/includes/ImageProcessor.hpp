@@ -12,6 +12,15 @@ constexpr int MAX_LINE_GAP = 20;
 constexpr int MAX_DETECTED_LINE = 300;
 constexpr int KERNEL_SIZE = 3;
 
+/**
+ * @class ImageProcessor
+ * @brief Handles image preprocessing and feature extraction on the GPU using
+ * OpenCV CUDA.
+ *
+ * This class provides functionality for preparing images for machine learning
+ * inference, including resizing, flattening, edge detection, thresholding,
+ * morphological operations, and line detection via Hough Transform.
+ */
 class ImageProcessor
 {
     public:

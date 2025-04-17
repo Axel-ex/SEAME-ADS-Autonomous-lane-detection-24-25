@@ -2,11 +2,23 @@
 #include <Logger.hpp>
 #include <fstream>
 
+/**
+ * @brief Construct a new InferenceEngine object.
+ *
+ * @param node_ptr Shared ROS2 node pointer used for logging and context.
+ */
 InferenceEngine::InferenceEngine(std::shared_ptr<rclcpp::Node> node_ptr)
     : node_ptr_(node_ptr)
 {
 }
 
+/**
+ * @brief Initializes the inference engine: loads the serialized engine, creates
+ * context, and allocates memory.
+ *
+ * @return true if all components were successfully initialized, false
+ * otherwise.
+ */
 bool InferenceEngine::init()
 {
     Logger logger;
@@ -41,6 +53,11 @@ bool InferenceEngine::init()
     return true;
 }
 
+/**
+ * @brief Deserializes the engine from a precompiled engine file.
+ *
+ * @return Pointer to the created ICudaEngine object.
+ */
 ICudaEngine* InferenceEngine::createCudaEngine()
 {
     std::ifstream infile(ENGINE_PATH, std::ios::binary);
@@ -61,7 +78,10 @@ ICudaEngine* InferenceEngine::createCudaEngine()
 }
 
 /**
- * @brief allocate memory for input and output device
+ * @brief Allocates CUDA device memory for input and output bindings.
+ *
+ * Uses dimensions from the engine's bindings and wraps raw allocations
+ * in smart pointers with custom deleters.
  */
 void InferenceEngine::allocateDevices()
 {
@@ -98,12 +118,13 @@ void InferenceEngine::allocateDevices()
 }
 
 /**
- * @brief Run inference.
+ * @brief Runs inference on the GPU.
  *
- * The result of the inference ends up on the output device.
+ * The input image must be a flattened vector of floats. The result is stored on
+ * the GPU, and can be retrieved via getOutputDevicePtr().
  *
- * @param flat_img
- * @return
+ * @param flat_img Flattened input image.
+ * @return true if inference executed successfully, false if it failed.
  */
 bool InferenceEngine::runInference(const std::vector<float>& flat_img) const
 {
@@ -117,12 +138,12 @@ bool InferenceEngine::runInference(const std::vector<float>& flat_img) const
 }
 
 /**
- * @brief get the underlying data of the output device.
+ * @brief Returns a pointer to the GPU memory containing inference results.
  *
- * this function is usefull to get GPU data directly after running inference.
- * This way we can keep the data on the GPU until we finish processing it.
+ * This allows the post-processing pipeline to operate directly on GPU memory,
+ * avoiding unnecessary memory copies.
  *
- * @return
+ * @return float* Pointer to device memory containing the output tensor.
  */
 float* InferenceEngine::getOutputDevicePtr() const
 {

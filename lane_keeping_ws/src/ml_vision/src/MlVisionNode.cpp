@@ -18,9 +18,8 @@ MlVisionNode::MlVisionNode() : rclcpp::Node("ml_vision_node")
 }
 
 /**
- * @brief Initialize inference runtime, load engine and create context
- *
- * @return
+ * @brief Initializes inference engine, image processor, and debug publishers.
+ * @return True if successful.
  */
 bool MlVisionNode::init()
 {
@@ -41,9 +40,11 @@ bool MlVisionNode::init()
 }
 
 /**
- * @brief Callback upon receving a new frame from the Camera node
+ * @brief Callback for raw camera image subscription.
  *
- * @param img
+ * Handles image conversion, inference, and postprocessing.
+ *
+ * @param img_msg The incoming image message.
  */
 void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
 {
@@ -79,6 +80,11 @@ void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
     publishLanePositions(lines);
 }
 
+/**
+ * @brief Publishes detected lane line segments as ROS message.
+ *
+ * @param lines Vector of detected lines (Vec4i format).
+ */
 void MlVisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines)
 {
     lane_msgs::msg::LanePositions msg;
@@ -130,6 +136,13 @@ void MlVisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines)
     lane_pos_pub_->publish(msg);
 }
 
+/**
+ * @brief Publishes debug image to the topic associated with the publisher
+ * passed in argument.
+ *
+ * @param gpu_img The image to publish.
+ * @param publisher The publisher associated with the debug topic.
+ */
 void MlVisionNode::publishDebug(cv::cuda::GpuMat& gpu_img,
                                 image_transport::Publisher& publisher) const
 {

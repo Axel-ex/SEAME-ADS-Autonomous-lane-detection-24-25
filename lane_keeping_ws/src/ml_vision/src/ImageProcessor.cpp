@@ -1,6 +1,15 @@
 #include <ImageProcessor.hpp>
 #include <opencv2/opencv.hpp>
 
+/**
+ * @brief Construct a new ImageProcessor object.
+ *
+ * Initializes all CUDA filters and detectors using the given input and output
+ * sizes.
+ *
+ * @param input_size Expected input size for the ML model.
+ * @param output_size Expected size for post-processed output (if needed).
+ */
 ImageProcessor::ImageProcessor(const cv::Size& input_size,
                                const cv::Size& output_size)
     : input_size_(input_size), output_size_(output_size)
@@ -21,10 +30,13 @@ ImageProcessor::ImageProcessor(const cv::Size& input_size,
 }
 
 /**
- * @brief transform an Image into a flat vector (raw sequence of bytes)
+ * @brief Resizes and normalizes a BGR image, flattening it into a float vector.
  *
- * @param img_ptr
- * @return
+ * The image is resized to the configured input size, and each channel is
+ * normalized to [0, 1].
+ *
+ * @param img Reference to the input image (cv::Mat).
+ * @return std::vector<float> Flattened, normalized image data.
  */
 std::vector<float> ImageProcessor::flattenImage(cv::Mat& img) const
 {
@@ -45,6 +57,14 @@ std::vector<float> ImageProcessor::flattenImage(cv::Mat& img) const
     return flatten_img;
 }
 
+/**
+ * @brief Extracts lines from an edge-detected image using Hough Transform.
+ *
+ * Performs a probabilistic Hough line transform on the image.
+ *
+ * @param gpu_img Edge-detected input image.
+ * @return std::vector<cv::Vec4i> Vector of detected lines (x1, y1, x2, y2).
+ */
 std::vector<cv::Vec4i> ImageProcessor::getLines(cv::cuda::GpuMat& gpu_img)
 {
 
@@ -64,17 +84,39 @@ std::vector<cv::Vec4i> ImageProcessor::getLines(cv::cuda::GpuMat& gpu_img)
     return lines;
 }
 
+/**
+ * @brief Applies a binary threshold on a GPU image.
+ *
+ * All values above the threshold are set to 255; others are set to 0.
+ *
+ * @param gpu_img Image on which to apply thresholding (in-place).
+ * @param treshold Threshold value.
+ */
 void ImageProcessor::applyTreshold(cv::cuda::GpuMat& gpu_img, int treshold)
 {
     cv::cuda::threshold(gpu_img, gpu_img, treshold, 255, cv::THRESH_BINARY);
 }
 
+/**
+ * @brief Applies dilation followed by erosion (closing) to reduce noise.
+ *
+ * This is useful for filling small gaps in detected edges or lines.
+ *
+ * @param gpu_img Image on which to apply morphological operations (in-place).
+ */
 void ImageProcessor::applyErosionDilation(cv::cuda::GpuMat& gpu_img)
 {
     dilation_filter_->apply(gpu_img, gpu_img);
     erosion_filter_->apply(gpu_img, gpu_img);
 }
 
+/**
+ * @brief Applies the Canny edge detector to a GPU image.
+ *
+ * Detects edges in the image using CUDA-accelerated Canny filter.
+ *
+ * @param gpu_img Image on which to apply edge detection (in-place).
+ */
 void ImageProcessor::applyCannyEdge(cv::cuda::GpuMat& gpu_img)
 {
     canny_edge_detector_->detect(gpu_img, gpu_img);

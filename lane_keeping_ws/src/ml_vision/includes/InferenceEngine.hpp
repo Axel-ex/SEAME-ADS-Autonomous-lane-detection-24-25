@@ -52,8 +52,13 @@ template <typename T> using CudaUniquePtr = std::unique_ptr<T, cudaDeleter<T>>;
 
 /**
  * @class InferenceEngine
- * @brief
+ * @brief Encapsulates TensorRT engine creation, memory management, and
+ * inference execution.
  *
+ * This class manages the full lifecycle of the TensorRT engine, including
+ * deserialization, context creation, device memory allocation, and inference
+ * execution. The inference result is kept on the GPU to allow efficient
+ * post-processing.
  */
 class InferenceEngine
 {
