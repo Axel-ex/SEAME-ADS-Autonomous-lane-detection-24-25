@@ -97,8 +97,15 @@ void InferenceEngine::allocateDevices()
     d_output_.reset(raw_output_ptr);
 }
 
-std::vector<float>
-InferenceEngine::runInference(const std::vector<float>& flat_img) const
+/**
+ * @brief Run inference.
+ *
+ * The result of the inference ends up on the output device.
+ *
+ * @param flat_img
+ * @return
+ */
+bool InferenceEngine::runInference(const std::vector<float>& flat_img) const
 {
     // Transfer raw data to GPU
     cudaMemcpy(d_input_.get(), flat_img.data(), input_size_,
@@ -106,13 +113,18 @@ InferenceEngine::runInference(const std::vector<float>& flat_img) const
 
     void* bindings[2] = {d_input_.get(), d_output_.get()};
     bool status = context_->executeV2(bindings);
-    if (!status)
-        return std::vector<float>();
+    return status;
+}
 
-    // Get back the result onto CPU
-    std::vector<float> output(output_size_ / sizeof(float));
-    cudaMemcpy(output.data(), d_output_.get(), output_size_,
-               cudaMemcpyDeviceToHost);
-
-    return output;
+/**
+ * @brief get the underlying data of the output device.
+ *
+ * this function is usefull to get GPU data directly after running inference.
+ * This way we can keep the data on the GPU until we finish processing it.
+ *
+ * @return
+ */
+float* InferenceEngine::getOutputDevicePtr() const
+{
+    return static_cast<float*>(d_output_.get());
 }

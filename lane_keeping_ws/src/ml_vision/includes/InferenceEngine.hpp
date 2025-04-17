@@ -13,11 +13,6 @@ constexpr auto ENGINE_PATH =
 constexpr auto INPUT_LAYER_NAME = "input_1";
 constexpr auto OUTPUT_LAYER_NAME = "conv2d_14";
 
-// Custom deleters to be able to work with smart ptr and RAII
-// Calling destroy raise warnings due to depreciation but with the tensoRT
-// version we are working with, it still safer not to call delete on those
-// objects
-
 /**
  * @brief custom deleter for TRT objects
  *
@@ -52,10 +47,14 @@ template <typename T> struct cudaDeleter
         }
 };
 
-// Alias to make it easier to use
 template <typename T> using TrtUniquePtr = std::unique_ptr<T, TrtDeleter<T>>;
 template <typename T> using CudaUniquePtr = std::unique_ptr<T, cudaDeleter<T>>;
 
+/**
+ * @class InferenceEngine
+ * @brief
+ *
+ */
 class InferenceEngine
 {
     public:
@@ -63,8 +62,8 @@ class InferenceEngine
         ~InferenceEngine() = default;
 
         bool init();
-        std::vector<float>
-        runInference(const std::vector<float>& flat_img) const;
+        bool runInference(const std::vector<float>& flat_img) const;
+        float* getOutputDevicePtr() const;
 
     private:
         std::shared_ptr<rclcpp::Node> node_ptr_;

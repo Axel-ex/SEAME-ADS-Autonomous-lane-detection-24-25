@@ -57,20 +57,17 @@ void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
     }
 
     std::vector<float> input = image_processor_->flattenImage(image);
-    std::vector<float> output = inference_engine_->runInference(input);
-
-    if (output.empty())
+    bool status = inference_engine_->runInference(input);
+    if (!status)
     {
         RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), LOG_FREQ,
                               "Fail running inference");
         return;
     }
 
-    cv::Mat output_img(OUTPUT_IMG_SIZE.height, OUTPUT_IMG_SIZE.width, CV_32FC1,
-                       output.data());
-    cv::normalize(output_img, output_img, 0, 255, cv::NORM_MINMAX, CV_8UC1);
-    cv::cuda::GpuMat gpu_img;
-    gpu_img.upload(output_img);
+    float* gpu_data = inference_engine_->getOutputDevicePtr();
+    cv::cuda::GpuMat gpu_img(OUTPUT_IMG_SIZE, CV_32FC1, gpu_data);
+    cv::cuda::normalize(gpu_img, gpu_img, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
     image_processor_->applyTreshold(gpu_img, TRESHOLD);
     publishDebug(gpu_img, raw_mask_pub_);
