@@ -1,0 +1,47 @@
+\hypertarget{classLaneBuffer}{}\section{Lane\+Buffer Class Reference}
+\label{classLaneBuffer}\index{Lane\+Buffer@{Lane\+Buffer}}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classLaneBuffer_a28001137e1ad1e0364d60d747e76c96e}\label{classLaneBuffer_a28001137e1ad1e0364d60d747e76c96e}} 
+{\bfseries Lane\+Buffer} (size\+\_\+t max\+\_\+size)
+\item 
+\mbox{\Hypertarget{classLaneBuffer_aace7ec7b4c42278ee7fa628133308e6e}\label{classLaneBuffer_aace7ec7b4c42278ee7fa628133308e6e}} 
+std\+::vector$<$ double $>$ {\bfseries get\+Last\+Left} ()
+\item 
+\mbox{\Hypertarget{classLaneBuffer_a2b7ad2f7ce41a723eaaf75aa11af16c4}\label{classLaneBuffer_a2b7ad2f7ce41a723eaaf75aa11af16c4}} 
+std\+::vector$<$ double $>$ {\bfseries get\+Last\+Right} ()
+\item 
+\mbox{\Hypertarget{classLaneBuffer_a14620e6321b73076f67ddff2dd751da0}\label{classLaneBuffer_a14620e6321b73076f67ddff2dd751da0}} 
+void {\bfseries add\+Coeffs} (std\+::vector$<$ double $>$ \&left\+\_\+coefs, std\+::vector$<$ double $>$ \&right\+\_\+coefs)
+\item 
+\mbox{\Hypertarget{classLaneBuffer_a1fef01a11888d2ecbd9b4fea74a804e6}\label{classLaneBuffer_a1fef01a11888d2ecbd9b4fea74a804e6}} 
+bool {\bfseries has\+Left\+Lane} ()
+\item 
+\mbox{\Hypertarget{classLaneBuffer_a209a951ff1fe55079eb5b8554c55b93d}\label{classLaneBuffer_a209a951ff1fe55079eb5b8554c55b93d}} 
+bool {\bfseries has\+Right\+Lane} ()
+\item 
+\mbox{\Hypertarget{classLaneBuffer_a3cf22e3f47f14a851a99686fcdc35cfe}\label{classLaneBuffer_a3cf22e3f47f14a851a99686fcdc35cfe}} 
+size\+\_\+t {\bfseries get\+Left\+Size} ()
+\item 
+\mbox{\Hypertarget{classLaneBuffer_a8d9c5d68d724bcacbe96092d98fc6ad1}\label{classLaneBuffer_a8d9c5d68d724bcacbe96092d98fc6ad1}} 
+size\+\_\+t {\bfseries get\+Right\+Size} ()
+\end{DoxyCompactItemize}
+\subsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classLaneBuffer_afabb27169371ebf7b9ecec0bc6ac9757}\label{classLaneBuffer_afabb27169371ebf7b9ecec0bc6ac9757}} 
+size\+\_\+t {\bfseries max\+\_\+size\+\_\+}
+\item 
+\mbox{\Hypertarget{classLaneBuffer_a04a15a527a56822527ede138f916d23a}\label{classLaneBuffer_a04a15a527a56822527ede138f916d23a}} 
+std\+::deque$<$ std\+::vector$<$ double $>$ $>$ {\bfseries left\+\_\+lane\+\_\+}
+\item 
+\mbox{\Hypertarget{classLaneBuffer_abb489a9391c6013769600f0433ab80dc}\label{classLaneBuffer_abb489a9391c6013769600f0433ab80dc}} 
+std\+::deque$<$ std\+::vector$<$ double $>$ $>$ {\bfseries right\+\_\+lane\+\_\+}
+\end{DoxyCompactItemize}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+lane\+\_\+keeping\+\_\+ws/src/motion\+\_\+control/includes/Lane\+Buffer.\+hpp\item 
+lane\+\_\+keeping\+\_\+ws/src/motion\+\_\+control/src/Lane\+Buffer.\+cpp\end{DoxyCompactItemize}

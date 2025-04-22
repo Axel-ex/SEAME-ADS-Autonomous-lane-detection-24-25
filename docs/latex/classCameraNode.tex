@@ -1,0 +1,121 @@
+\hypertarget{classCameraNode}{}\section{Camera\+Node Class Reference}
+\label{classCameraNode}\index{Camera\+Node@{Camera\+Node}}
+
+
+Captures and publish camera frames using Open\+CV with G\+Streamer.  
+
+
+
+
+{\ttfamily \#include $<$Camera\+Node.\+hpp$>$}
+
+
+
+Inheritance diagram for Camera\+Node\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=154pt]{classCameraNode__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Camera\+Node\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=154pt]{classCameraNode__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classCameraNode_ab3a466dc9357b5200fb6843a6d64c5c8}{$\sim$\+Camera\+Node} ()
+\begin{DoxyCompactList}\small\item\em Ensures safe shutdown of the \hyperlink{classCameraNode}{Camera\+Node}. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \hyperlink{classCameraNode_ae82e95951417f976eed687ddf64c6d9f}{init\+Publisher\+And\+Capture} ()
+\begin{DoxyCompactList}\small\item\em Initializes the R\+O\+S2 image publisher and starts frame capture. \end{DoxyCompactList}\item 
+void \hyperlink{classCameraNode_a1a44c8d8757a75cf649cbcf49cfa1ca1}{capture\+Frame} ()
+\begin{DoxyCompactList}\small\item\em Continuously captures frames and publishes them to R\+O\+S2. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classCameraNode_a589ef67a59d2205bb65beeaef950fb29}\label{classCameraNode_a589ef67a59d2205bb65beeaef950fb29}} 
+std\+::atomic$<$ bool $>$ {\bfseries running\+\_\+}
+\item 
+\mbox{\Hypertarget{classCameraNode_ad29d310c3d87b40124d35562c62af9ef}\label{classCameraNode_ad29d310c3d87b40124d35562c62af9ef}} 
+std\+::thread {\bfseries capture\+\_\+thread\+\_\+}
+\item 
+\mbox{\Hypertarget{classCameraNode_a4d4f490deef80022a254d3de565f2611}\label{classCameraNode_a4d4f490deef80022a254d3de565f2611}} 
+cv\+::\+Video\+Capture {\bfseries cap\+\_\+}
+\item 
+\mbox{\Hypertarget{classCameraNode_a59ce8fd47a93d1baecb2611ee5336d7b}\label{classCameraNode_a59ce8fd47a93d1baecb2611ee5336d7b}} 
+image\+\_\+transport\+::\+Publisher {\bfseries image\+\_\+pub\+\_\+}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Captures and publish camera frames using Open\+CV with G\+Streamer. 
+
+This node initializes a camera pipeline (using nvidia camera stack and gstreamer), captures frames in a dedicated thread, and publishes them as R\+O\+S2 sensor\+\_\+msgs/\+Image messages on the \char`\"{}image\+\_\+raw\char`\"{} topic. 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classCameraNode_ab3a466dc9357b5200fb6843a6d64c5c8}\label{classCameraNode_ab3a466dc9357b5200fb6843a6d64c5c8}} 
+\index{Camera\+Node@{Camera\+Node}!````~Camera\+Node@{$\sim$\+Camera\+Node}}
+\index{````~Camera\+Node@{$\sim$\+Camera\+Node}!Camera\+Node@{Camera\+Node}}
+\subsubsection{\texorpdfstring{$\sim$\+Camera\+Node()}{~CameraNode()}}
+{\footnotesize\ttfamily Camera\+Node\+::$\sim$\+Camera\+Node (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Ensures safe shutdown of the \hyperlink{classCameraNode}{Camera\+Node}. 
+
+
+\begin{DoxyItemize}
+\item Signals the capture thread to stop ({\ttfamily running\+\_\+ = false}).
+\item Joins the thread if it\textquotesingle{}s still running.
+\item Releases the Open\+CV camera resource. 
+\end{DoxyItemize}
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classCameraNode_a1a44c8d8757a75cf649cbcf49cfa1ca1}\label{classCameraNode_a1a44c8d8757a75cf649cbcf49cfa1ca1}} 
+\index{Camera\+Node@{Camera\+Node}!capture\+Frame@{capture\+Frame}}
+\index{capture\+Frame@{capture\+Frame}!Camera\+Node@{Camera\+Node}}
+\subsubsection{\texorpdfstring{capture\+Frame()}{captureFrame()}}
+{\footnotesize\ttfamily void Camera\+Node\+::capture\+Frame (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Continuously captures frames and publishes them to R\+O\+S2. 
+
+
+\begin{DoxyItemize}
+\item Reads frames from the camera in a loop (non-\/blocking).
+\item Converts each Open\+CV {\ttfamily Mat} frame to a R\+O\+S2 {\ttfamily sensor\+\_\+msgs/\+Image}.
+\item Publishes the image message on the \char`\"{}image\+\_\+raw\char`\"{} topic.
+\item Exits gracefully if R\+O\+S2 is shutdown ({\ttfamily rclcpp\+::ok()}) or an error occurs. 
+\end{DoxyItemize}\mbox{\Hypertarget{classCameraNode_ae82e95951417f976eed687ddf64c6d9f}\label{classCameraNode_ae82e95951417f976eed687ddf64c6d9f}} 
+\index{Camera\+Node@{Camera\+Node}!init\+Publisher\+And\+Capture@{init\+Publisher\+And\+Capture}}
+\index{init\+Publisher\+And\+Capture@{init\+Publisher\+And\+Capture}!Camera\+Node@{Camera\+Node}}
+\subsubsection{\texorpdfstring{init\+Publisher\+And\+Capture()}{initPublisherAndCapture()}}
+{\footnotesize\ttfamily void Camera\+Node\+::init\+Publisher\+And\+Capture (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Initializes the R\+O\+S2 image publisher and starts frame capture. 
+
+
+\begin{DoxyItemize}
+\item Creates an {\ttfamily image\+\_\+transport\+::\+Image\+Transport} for efficient image publishing.
+\item Advertises the \char`\"{}image\+\_\+raw\char`\"{} topic.
+\item Calls {\ttfamily \hyperlink{classCameraNode_a1a44c8d8757a75cf649cbcf49cfa1ca1}{capture\+Frame()}} to begin the capture loop. 
+\end{DoxyItemize}
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+lane\+\_\+keeping\+\_\+ws/src/camera/includes/Camera\+Node.\+hpp\item 
+lane\+\_\+keeping\+\_\+ws/src/camera/src/Camera\+Node.\+cpp\end{DoxyCompactItemize}

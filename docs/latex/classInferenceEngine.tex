@@ -1,0 +1,159 @@
+\hypertarget{classInferenceEngine}{}\section{Inference\+Engine Class Reference}
+\label{classInferenceEngine}\index{Inference\+Engine@{Inference\+Engine}}
+
+
+Encapsulates Tensor\+RT engine creation, memory management, and inference execution.  
+
+
+
+
+{\ttfamily \#include $<$Inference\+Engine.\+hpp$>$}
+
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classInferenceEngine_a78f278f19b88965dd3bdfb24f5fa1d55}{Inference\+Engine} (std\+::shared\+\_\+ptr$<$ rclcpp\+::\+Node $>$)
+\begin{DoxyCompactList}\small\item\em Construct a new \hyperlink{classInferenceEngine}{Inference\+Engine} object. \end{DoxyCompactList}\item 
+bool \hyperlink{classInferenceEngine_a6319576a8a3ed00e735f7996cf4e6a48}{init} ()
+\begin{DoxyCompactList}\small\item\em Initializes the inference engine\+: loads the serialized engine, creates context, and allocates memory. \end{DoxyCompactList}\item 
+bool \hyperlink{classInferenceEngine_aef205091b7d9dd1614e17765c5549144}{run\+Inference} (const std\+::vector$<$ float $>$ \&flat\+\_\+img) const
+\begin{DoxyCompactList}\small\item\em Runs inference on the G\+PU. \end{DoxyCompactList}\item 
+float $\ast$ \hyperlink{classInferenceEngine_a4d28ceb717d506d3984dc5742dec831d}{get\+Output\+Device\+Ptr} () const
+\begin{DoxyCompactList}\small\item\em Returns a pointer to the G\+PU memory containing inference results. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+I\+Cuda\+Engine $\ast$ \hyperlink{classInferenceEngine_a5f66425c0553c541353a634f991c1c00}{create\+Cuda\+Engine} ()
+\begin{DoxyCompactList}\small\item\em Deserializes the engine from a precompiled engine file. \end{DoxyCompactList}\item 
+void \hyperlink{classInferenceEngine_a3937cf84f22d0652cd5fe734d9b92290}{allocate\+Devices} ()
+\begin{DoxyCompactList}\small\item\em Allocates C\+U\+DA device memory for input and output bindings. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classInferenceEngine_a6f9115552d34f667591bbe5ad1c3df2a}\label{classInferenceEngine_a6f9115552d34f667591bbe5ad1c3df2a}} 
+std\+::shared\+\_\+ptr$<$ rclcpp\+::\+Node $>$ {\bfseries node\+\_\+ptr\+\_\+}
+\item 
+\mbox{\Hypertarget{classInferenceEngine_a356266bb3a4b5caa98bb5e1302e8160b}\label{classInferenceEngine_a356266bb3a4b5caa98bb5e1302e8160b}} 
+Trt\+Unique\+Ptr$<$ I\+Runtime $>$ {\bfseries runtime\+\_\+}
+\item 
+\mbox{\Hypertarget{classInferenceEngine_a89a6c2706b1cab79fd9eacf5cd7f82be}\label{classInferenceEngine_a89a6c2706b1cab79fd9eacf5cd7f82be}} 
+Trt\+Unique\+Ptr$<$ I\+Execution\+Context $>$ {\bfseries context\+\_\+}
+\item 
+\mbox{\Hypertarget{classInferenceEngine_a1e7992d16fe4b5e25eef0517ec67bccd}\label{classInferenceEngine_a1e7992d16fe4b5e25eef0517ec67bccd}} 
+Trt\+Unique\+Ptr$<$ I\+Cuda\+Engine $>$ {\bfseries engine\+\_\+}
+\item 
+\mbox{\Hypertarget{classInferenceEngine_af0697224adebb8e40690a83db827d248}\label{classInferenceEngine_af0697224adebb8e40690a83db827d248}} 
+size\+\_\+t {\bfseries input\+\_\+size\+\_\+} \{1\}
+\item 
+\mbox{\Hypertarget{classInferenceEngine_ac88b59cb61f651e6aedb8767f78c2437}\label{classInferenceEngine_ac88b59cb61f651e6aedb8767f78c2437}} 
+size\+\_\+t {\bfseries output\+\_\+size\+\_\+} \{1\}
+\item 
+\mbox{\Hypertarget{classInferenceEngine_a7f9db5fbd5c9fc93ac1d09e8b41c4b1f}\label{classInferenceEngine_a7f9db5fbd5c9fc93ac1d09e8b41c4b1f}} 
+Cuda\+Unique\+Ptr$<$ void $>$ {\bfseries d\+\_\+input\+\_\+}
+\item 
+\mbox{\Hypertarget{classInferenceEngine_aada91220d42a1650c76797f95dc3089f}\label{classInferenceEngine_aada91220d42a1650c76797f95dc3089f}} 
+Cuda\+Unique\+Ptr$<$ void $>$ {\bfseries d\+\_\+output\+\_\+}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Encapsulates Tensor\+RT engine creation, memory management, and inference execution. 
+
+This class manages the full lifecycle of the Tensor\+RT engine, including deserialization, context creation, device memory allocation, and inference execution. The inference result is kept on the G\+PU to allow efficient post-\/processing. 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classInferenceEngine_a78f278f19b88965dd3bdfb24f5fa1d55}\label{classInferenceEngine_a78f278f19b88965dd3bdfb24f5fa1d55}} 
+\index{Inference\+Engine@{Inference\+Engine}!Inference\+Engine@{Inference\+Engine}}
+\index{Inference\+Engine@{Inference\+Engine}!Inference\+Engine@{Inference\+Engine}}
+\subsubsection{\texorpdfstring{Inference\+Engine()}{InferenceEngine()}}
+{\footnotesize\ttfamily Inference\+Engine\+::\+Inference\+Engine (\begin{DoxyParamCaption}\item[{std\+::shared\+\_\+ptr$<$ rclcpp\+::\+Node $>$}]{node\+\_\+ptr }\end{DoxyParamCaption})}
+
+
+
+Construct a new \hyperlink{classInferenceEngine}{Inference\+Engine} object. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em node\+\_\+ptr} & Shared R\+O\+S2 node pointer used for logging and context. \\
+\hline
+\end{DoxyParams}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classInferenceEngine_a3937cf84f22d0652cd5fe734d9b92290}\label{classInferenceEngine_a3937cf84f22d0652cd5fe734d9b92290}} 
+\index{Inference\+Engine@{Inference\+Engine}!allocate\+Devices@{allocate\+Devices}}
+\index{allocate\+Devices@{allocate\+Devices}!Inference\+Engine@{Inference\+Engine}}
+\subsubsection{\texorpdfstring{allocate\+Devices()}{allocateDevices()}}
+{\footnotesize\ttfamily void Inference\+Engine\+::allocate\+Devices (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Allocates C\+U\+DA device memory for input and output bindings. 
+
+Uses dimensions from the engine\textquotesingle{}s bindings and wraps raw allocations in smart pointers with custom deleters. \mbox{\Hypertarget{classInferenceEngine_a5f66425c0553c541353a634f991c1c00}\label{classInferenceEngine_a5f66425c0553c541353a634f991c1c00}} 
+\index{Inference\+Engine@{Inference\+Engine}!create\+Cuda\+Engine@{create\+Cuda\+Engine}}
+\index{create\+Cuda\+Engine@{create\+Cuda\+Engine}!Inference\+Engine@{Inference\+Engine}}
+\subsubsection{\texorpdfstring{create\+Cuda\+Engine()}{createCudaEngine()}}
+{\footnotesize\ttfamily I\+Cuda\+Engine $\ast$ Inference\+Engine\+::create\+Cuda\+Engine (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Deserializes the engine from a precompiled engine file. 
+
+\begin{DoxyReturn}{Returns}
+Pointer to the created I\+Cuda\+Engine object. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classInferenceEngine_a4d28ceb717d506d3984dc5742dec831d}\label{classInferenceEngine_a4d28ceb717d506d3984dc5742dec831d}} 
+\index{Inference\+Engine@{Inference\+Engine}!get\+Output\+Device\+Ptr@{get\+Output\+Device\+Ptr}}
+\index{get\+Output\+Device\+Ptr@{get\+Output\+Device\+Ptr}!Inference\+Engine@{Inference\+Engine}}
+\subsubsection{\texorpdfstring{get\+Output\+Device\+Ptr()}{getOutputDevicePtr()}}
+{\footnotesize\ttfamily float $\ast$ Inference\+Engine\+::get\+Output\+Device\+Ptr (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Returns a pointer to the G\+PU memory containing inference results. 
+
+This allows the post-\/processing pipeline to operate directly on G\+PU memory, avoiding unnecessary memory copies.
+
+\begin{DoxyReturn}{Returns}
+float$\ast$ Pointer to device memory containing the output tensor. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classInferenceEngine_a6319576a8a3ed00e735f7996cf4e6a48}\label{classInferenceEngine_a6319576a8a3ed00e735f7996cf4e6a48}} 
+\index{Inference\+Engine@{Inference\+Engine}!init@{init}}
+\index{init@{init}!Inference\+Engine@{Inference\+Engine}}
+\subsubsection{\texorpdfstring{init()}{init()}}
+{\footnotesize\ttfamily bool Inference\+Engine\+::init (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Initializes the inference engine\+: loads the serialized engine, creates context, and allocates memory. 
+
+\begin{DoxyReturn}{Returns}
+true if all components were successfully initialized, false otherwise. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classInferenceEngine_aef205091b7d9dd1614e17765c5549144}\label{classInferenceEngine_aef205091b7d9dd1614e17765c5549144}} 
+\index{Inference\+Engine@{Inference\+Engine}!run\+Inference@{run\+Inference}}
+\index{run\+Inference@{run\+Inference}!Inference\+Engine@{Inference\+Engine}}
+\subsubsection{\texorpdfstring{run\+Inference()}{runInference()}}
+{\footnotesize\ttfamily bool Inference\+Engine\+::run\+Inference (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ float $>$ \&}]{flat\+\_\+img }\end{DoxyParamCaption}) const}
+
+
+
+Runs inference on the G\+PU. 
+
+The input image must be a flattened vector of floats. The result is stored on the G\+PU, and can be retrieved via \hyperlink{classInferenceEngine_a4d28ceb717d506d3984dc5742dec831d}{get\+Output\+Device\+Ptr()}.
+
+
+\begin{DoxyParams}{Parameters}
+{\em flat\+\_\+img} & Flattened input image. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+true if inference executed successfully, false if it failed. 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+lane\+\_\+keeping\+\_\+ws/src/ml\+\_\+vision/includes/Inference\+Engine.\+hpp\item 
+lane\+\_\+keeping\+\_\+ws/src/ml\+\_\+vision/src/Inference\+Engine.\+cpp\end{DoxyCompactItemize}

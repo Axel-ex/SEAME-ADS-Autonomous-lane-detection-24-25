@@ -1,0 +1,156 @@
+\hypertarget{classMlVisionNode}{}\section{Ml\+Vision\+Node Class Reference}
+\label{classMlVisionNode}\index{Ml\+Vision\+Node@{Ml\+Vision\+Node}}
+
+
+Performs lane detection using a deep learning model accelerated with Tensor\+RT and C\+U\+D\+A-\/based image preprocessing.  
+
+
+
+
+{\ttfamily \#include $<$Ml\+Vision\+Node.\+hpp$>$}
+
+
+
+Inheritance diagram for Ml\+Vision\+Node\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=157pt]{classMlVisionNode__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Ml\+Vision\+Node\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=157pt]{classMlVisionNode__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classMlVisionNode_a1a07ccd1830082c3e28ff97f95819618}\label{classMlVisionNode_a1a07ccd1830082c3e28ff97f95819618}} 
+\hyperlink{classMlVisionNode_a1a07ccd1830082c3e28ff97f95819618}{Ml\+Vision\+Node} ()
+\begin{DoxyCompactList}\small\item\em Initialize R\+OS subscriber and publisher as well as Open\+CV objects used for post processing of inference output. \end{DoxyCompactList}\item 
+bool \hyperlink{classMlVisionNode_aadb64eb869ae730fa6766f95d3c352a2}{init} ()
+\begin{DoxyCompactList}\small\item\em Initializes inference engine, image processor, and debug publishers. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \hyperlink{classMlVisionNode_a1926f7a99c102f89f739240ecd44f6e7}{raw\+Image\+Callback} (sensor\+\_\+msgs\+::msg\+::\+Image\+::\+Shared\+Ptr img\+\_\+msg)
+\begin{DoxyCompactList}\small\item\em Callback for raw camera image subscription. \end{DoxyCompactList}\item 
+void \hyperlink{classMlVisionNode_a508766f7ec927847d5ce80abd9740c7c}{publish\+Lane\+Positions} (std\+::vector$<$ cv\+::\+Vec4i $>$ \&lines)
+\begin{DoxyCompactList}\small\item\em Publishes detected lane line segments as R\+OS message. \end{DoxyCompactList}\item 
+void \hyperlink{classMlVisionNode_a56422aa2b6f2843226bdeff85ebe785f}{publish\+Debug} (cv\+::cuda\+::\+Gpu\+Mat \&gpu\+\_\+img, image\+\_\+transport\+::\+Publisher \&publisher) const
+\begin{DoxyCompactList}\small\item\em Publishes debug image to the topic associated with the publisher passed in argument. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classMlVisionNode_a8ebe91f1d8bcc201e24e338e9f0c4ba4}\label{classMlVisionNode_a8ebe91f1d8bcc201e24e338e9f0c4ba4}} 
+rclcpp\+::\+Subscription$<$ sensor\+\_\+msgs\+::msg\+::\+Image $>$\+::Shared\+Ptr {\bfseries raw\+\_\+img\+\_\+sub\+\_\+}
+\item 
+\mbox{\Hypertarget{classMlVisionNode_ab2e74b44fff25866be5d3cec30b39952}\label{classMlVisionNode_ab2e74b44fff25866be5d3cec30b39952}} 
+rclcpp\+::\+Publisher$<$ lane\+\_\+msgs\+::msg\+::\+Lane\+Positions $>$\+::Shared\+Ptr {\bfseries lane\+\_\+pos\+\_\+pub\+\_\+}
+\item 
+\mbox{\Hypertarget{classMlVisionNode_a96293498d7a32bacea2df5f43bec8251}\label{classMlVisionNode_a96293498d7a32bacea2df5f43bec8251}} 
+image\+\_\+transport\+::\+Publisher {\bfseries raw\+\_\+mask\+\_\+pub\+\_\+}
+\item 
+\mbox{\Hypertarget{classMlVisionNode_ae419a723f4e2b5458808a5f0b714df73}\label{classMlVisionNode_ae419a723f4e2b5458808a5f0b714df73}} 
+image\+\_\+transport\+::\+Publisher {\bfseries tresholded\+\_\+mask\+\_\+pub\+\_\+}
+\item 
+\mbox{\Hypertarget{classMlVisionNode_a4d6f6dc34bed19ce55770a7334da690f}\label{classMlVisionNode_a4d6f6dc34bed19ce55770a7334da690f}} 
+image\+\_\+transport\+::\+Publisher {\bfseries edge\+\_\+mask\+\_\+pub\+\_\+}
+\item 
+\mbox{\Hypertarget{classMlVisionNode_a6729993d3f3b51aac48f2737d5fdadc5}\label{classMlVisionNode_a6729993d3f3b51aac48f2737d5fdadc5}} 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classInferenceEngine}{Inference\+Engine} $>$ {\bfseries inference\+\_\+engine\+\_\+}
+\item 
+\mbox{\Hypertarget{classMlVisionNode_aedc401e6a70754ff92bd7a91d2187b80}\label{classMlVisionNode_aedc401e6a70754ff92bd7a91d2187b80}} 
+std\+::unique\+\_\+ptr$<$ \hyperlink{classImageProcessor}{Image\+Processor} $>$ {\bfseries image\+\_\+processor\+\_\+}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Performs lane detection using a deep learning model accelerated with Tensor\+RT and C\+U\+D\+A-\/based image preprocessing. 
+
+Responsibilities\+:
+\begin{DoxyItemize}
+\item Subscribes to raw camera images.
+\item Runs image preprocessing (resize, flatten).
+\item Executes inference on G\+PU using Tensor\+RT.
+\item Posprocess image (treshold, morpho operations, Canny edge)
+\item Extracts lane lines from model output via Hough Transform.
+\item Publishes lane lines and debug visualizations. 
+\end{DoxyItemize}
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classMlVisionNode_aadb64eb869ae730fa6766f95d3c352a2}\label{classMlVisionNode_aadb64eb869ae730fa6766f95d3c352a2}} 
+\index{Ml\+Vision\+Node@{Ml\+Vision\+Node}!init@{init}}
+\index{init@{init}!Ml\+Vision\+Node@{Ml\+Vision\+Node}}
+\subsubsection{\texorpdfstring{init()}{init()}}
+{\footnotesize\ttfamily bool Ml\+Vision\+Node\+::init (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Initializes inference engine, image processor, and debug publishers. 
+
+\begin{DoxyReturn}{Returns}
+True if successful. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classMlVisionNode_a56422aa2b6f2843226bdeff85ebe785f}\label{classMlVisionNode_a56422aa2b6f2843226bdeff85ebe785f}} 
+\index{Ml\+Vision\+Node@{Ml\+Vision\+Node}!publish\+Debug@{publish\+Debug}}
+\index{publish\+Debug@{publish\+Debug}!Ml\+Vision\+Node@{Ml\+Vision\+Node}}
+\subsubsection{\texorpdfstring{publish\+Debug()}{publishDebug()}}
+{\footnotesize\ttfamily void Ml\+Vision\+Node\+::publish\+Debug (\begin{DoxyParamCaption}\item[{cv\+::cuda\+::\+Gpu\+Mat \&}]{gpu\+\_\+img,  }\item[{image\+\_\+transport\+::\+Publisher \&}]{publisher }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Publishes debug image to the topic associated with the publisher passed in argument. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em gpu\+\_\+img} & The image to publish. \\
+\hline
+{\em publisher} & The publisher associated with the debug topic. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classMlVisionNode_a508766f7ec927847d5ce80abd9740c7c}\label{classMlVisionNode_a508766f7ec927847d5ce80abd9740c7c}} 
+\index{Ml\+Vision\+Node@{Ml\+Vision\+Node}!publish\+Lane\+Positions@{publish\+Lane\+Positions}}
+\index{publish\+Lane\+Positions@{publish\+Lane\+Positions}!Ml\+Vision\+Node@{Ml\+Vision\+Node}}
+\subsubsection{\texorpdfstring{publish\+Lane\+Positions()}{publishLanePositions()}}
+{\footnotesize\ttfamily void Ml\+Vision\+Node\+::publish\+Lane\+Positions (\begin{DoxyParamCaption}\item[{std\+::vector$<$ cv\+::\+Vec4i $>$ \&}]{lines }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Publishes detected lane line segments as R\+OS message. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em lines} & Vector of detected lines (Vec4i format). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classMlVisionNode_a1926f7a99c102f89f739240ecd44f6e7}\label{classMlVisionNode_a1926f7a99c102f89f739240ecd44f6e7}} 
+\index{Ml\+Vision\+Node@{Ml\+Vision\+Node}!raw\+Image\+Callback@{raw\+Image\+Callback}}
+\index{raw\+Image\+Callback@{raw\+Image\+Callback}!Ml\+Vision\+Node@{Ml\+Vision\+Node}}
+\subsubsection{\texorpdfstring{raw\+Image\+Callback()}{rawImageCallback()}}
+{\footnotesize\ttfamily void Ml\+Vision\+Node\+::raw\+Image\+Callback (\begin{DoxyParamCaption}\item[{sensor\+\_\+msgs\+::msg\+::\+Image\+::\+Shared\+Ptr}]{img\+\_\+msg }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Callback for raw camera image subscription. 
+
+Handles image conversion, inference, and postprocessing.
+
+
+\begin{DoxyParams}{Parameters}
+{\em img\+\_\+msg} & The incoming image message. \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+lane\+\_\+keeping\+\_\+ws/src/ml\+\_\+vision/includes/Ml\+Vision\+Node.\+hpp\item 
+lane\+\_\+keeping\+\_\+ws/src/ml\+\_\+vision/src/Ml\+Vision\+Node.\+cpp\end{DoxyCompactItemize}

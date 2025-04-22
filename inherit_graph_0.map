@@ -1,0 +1,8 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node2" href="$classCameraNode.html" title="Captures and publish camera frames using OpenCV with GStreamer. " alt="" coords="135,5,233,32"/>
+<area shape="rect" id="node3" href="$classImagePublisherNode.html" title="ImagePublisherNode" alt="" coords="113,56,255,83"/>
+<area shape="rect" id="node4" href="$classLaneVisualizationNode.html" title="Display the geometries published by the vision and motion node (lane positions, polyfits...) " alt="" coords="107,107,261,133"/>
+<area shape="rect" id="node5" href="$classMlVisionNode.html" title="Performs lane detection using a deep learning model accelerated with TensorRT and CUDA&#45;based image pr..." alt="" coords="133,157,235,184"/>
+<area shape="rect" id="node6" href="$classMotionControlNode.html" title="Implements lane&#45;keeping control using polynomial fitting and PID control. " alt="" coords="117,208,251,235"/>
+<area shape="rect" id="node7" href="$classVisionNode.html" title="Processes camera images to detect lane positions using GPU&#45;accelerated OpenCV. " alt="" coords="139,259,229,285"/>
+</map>

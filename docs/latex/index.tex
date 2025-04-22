@@ -1,0 +1,126 @@
+\subsection*{Overview}
+
+This R\+O\+S2-\/based system runs on a Jetson Nano and processes camera input to detect lane markings and control vehicle motion accordingly. The system consists of multiple nodes that handle image capture, lane detection, motion control, and visualization.
+
+\subsubsection*{High-\/\+Level System Flow\+:}
+
+
+\begin{DoxyEnumerate}
+\item {\bfseries Camera Node}\+: Captures and publishes raw image data.
+\item {\bfseries Vision Processing Nodes}\+: Extract lane markings and publish lane position data.
+\item {\bfseries Motion Control Node}\+: Estimates lane distance and adjusts steering.
+\item {\bfseries Lane Visualization Node}\+: Publishes processed lane data for visualization in Rviz.
+\end{DoxyEnumerate}
+
+\subsection*{Software architecture}
+
+
+
+\subsection*{Node Descriptions}
+
+\subsubsection*{1. Camera Node ({\ttfamily camera})}
+
+{\bfseries Function}\+: Captures image frames and publishes them.
+\begin{DoxyItemize}
+\item {\bfseries Publishes}\+:
+\begin{DoxyItemize}
+\item {\ttfamily /image\+\_\+raw} (sensor\+\_\+msgs\+::\+Image)
+\end{DoxyItemize}
+\end{DoxyItemize}
+
+\subsubsection*{2. Classic Vision Node ({\ttfamily classic\+\_\+vision})}
+
+{\bfseries Function}\+: Processes raw images to detect lane markings using Open\+CV.
+\begin{DoxyItemize}
+\item {\bfseries Subscribes}\+:
+\begin{DoxyItemize}
+\item {\ttfamily /image\+\_\+raw} (sensor\+\_\+msgs\+::\+Image)
+\end{DoxyItemize}
+\item {\bfseries Publishes}\+:
+\begin{DoxyItemize}
+\item {\ttfamily /lane\+\_\+position} (custom message)
+\end{DoxyItemize}
+\item {\bfseries Parameters}\+:
+\begin{DoxyItemize}
+\item {\ttfamily low\+\_\+canny\+\_\+threshold} / {\ttfamily high\+\_\+canny\+\_\+treshold}\+: Edge detection parameters
+\item {\ttfamily hough\+\_\+transform\+\_\+params}\+: Line detection parameters
+\begin{DoxyItemize}
+\item {\ttfamily max\+\_\+detected\+\_\+lines}
+\item {\ttfamily max\+\_\+line\+\_\+gap}
+\item {\ttfamily mine\+\_\+line\+\_\+length}
+\item {\ttfamily rho}
+\end{DoxyItemize}
+\end{DoxyItemize}
+\end{DoxyItemize}
+
+\subsubsection*{3. Classic Vision Node ({\ttfamily classic\+\_\+vision})}
+
+{\bfseries Function}\+: Processes raw images to detect lane markings using Tensor\+RT.
+\begin{DoxyItemize}
+\item {\bfseries Subscribes}\+:
+\begin{DoxyItemize}
+\item {\ttfamily /image\+\_\+raw} (sensor\+\_\+msgs\+::\+Image)
+\end{DoxyItemize}
+\item {\bfseries Publishes}\+:
+\begin{DoxyItemize}
+\item {\ttfamily /lane\+\_\+position} (custom message)
+\end{DoxyItemize}
+\end{DoxyItemize}
+
+\subsubsection*{4. Image Publisher Node ({\ttfamily image\+\_\+publisher})}
+
+{\bfseries Function}\+: Auxiliary node for testing image data flow.
+\begin{DoxyItemize}
+\item {\bfseries Publishes}\+:
+\begin{DoxyItemize}
+\item {\ttfamily /debug\+\_\+image} (sensor\+\_\+msgs\+::\+Image)
+\end{DoxyItemize}
+\item {\bfseries Parameters}\+:
+\begin{DoxyItemize}
+\item {\ttfamily image\+\_\+name}\+: image from assets folder
+\end{DoxyItemize}
+\end{DoxyItemize}
+
+\subsubsection*{5. Lane Messages ({\ttfamily lane\+\_\+msgs})}
+
+{\bfseries Function}\+: Defines custom message types for lane detection data.
+\begin{DoxyItemize}
+\item {\bfseries Custom Messages}\+:
+\begin{DoxyItemize}
+\item {\ttfamily Lane\+Position.\+msg}\+: Lane position relative to vehicle
+\end{DoxyItemize}
+\end{DoxyItemize}
+
+\subsubsection*{6. Lane Visualization ({\ttfamily lane\+\_\+visualization})}
+
+{\bfseries Function}\+: Publishes visual representation of lane\+\_\+position.
+\begin{DoxyItemize}
+\item {\bfseries Subscribes}\+:
+\begin{DoxyItemize}
+\item {\ttfamily /lane\+\_\+position} (custom message)
+\end{DoxyItemize}
+\item {\bfseries Publishes}\+:
+\begin{DoxyItemize}
+\item {\ttfamily /processed\+\_\+img} (sensor\+\_\+msgs\+::\+Image)
+\end{DoxyItemize}
+\end{DoxyItemize}
+
+\subsubsection*{7. Motion Control Node ({\ttfamily motion\+\_\+control})}
+
+{\bfseries Function}\+: Computes steering commands based on lane position.
+\begin{DoxyItemize}
+\item {\bfseries Subscribes}\+:
+\begin{DoxyItemize}
+\item {\ttfamily /lane\+\_\+position} (custom message)
+\end{DoxyItemize}
+\item {\bfseries Publishes}\+:
+\begin{DoxyItemize}
+\item {\ttfamily /cmd\+\_\+vel} (geometry\+\_\+msgs\+::\+Twist)
+\end{DoxyItemize}
+\item {\bfseries Parameters}\+:
+\begin{DoxyItemize}
+\item {\ttfamily base\+\_\+speed}\+: base speed of vehicle
+\item {\ttfamily lookahead\+\_\+index}\+: distance (in buckets) to the reference point
+\item {\ttfamily kp}, {\ttfamily ki}, {\ttfamily kd}\+: proportional, integral and derivative gain. 
+\end{DoxyItemize}
+\end{DoxyItemize}

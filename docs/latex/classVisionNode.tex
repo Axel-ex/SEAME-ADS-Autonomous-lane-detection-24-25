@@ -1,0 +1,273 @@
+\hypertarget{classVisionNode}{}\section{Vision\+Node Class Reference}
+\label{classVisionNode}\index{Vision\+Node@{Vision\+Node}}
+
+
+Processes camera images to detect lane positions using G\+P\+U-\/accelerated Open\+CV.  
+
+
+
+
+{\ttfamily \#include $<$Vision\+Node.\+hpp$>$}
+
+
+
+Inheritance diagram for Vision\+Node\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=147pt]{classVisionNode__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Vision\+Node\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=147pt]{classVisionNode__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classVisionNode_ac084d7f3ca8b99239b9215eacae6a3b3}{Vision\+Node} ()
+\begin{DoxyCompactList}\small\item\em Initializes the \hyperlink{classVisionNode}{Vision\+Node} with R\+O\+S2 subscriptions, publishers, and parameters. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classVisionNode_ab4d1d91b22f01874793337e9f3ae2083}\label{classVisionNode_ab4d1d91b22f01874793337e9f3ae2083}} 
+void {\bfseries init\+Publisher} ()
+\end{DoxyCompactItemize}
+\subsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \hyperlink{classVisionNode_aabbd33da50754623d30ba7c8c41dc2bc}{raw\+Image\+Callback} (sensor\+\_\+msgs\+::msg\+::\+Image\+::\+Shared\+Ptr img\+\_\+msg)
+\begin{DoxyCompactList}\small\item\em Callback for processing incoming camera images. \end{DoxyCompactList}\item 
+void \hyperlink{classVisionNode_ae2b6a2048ef69189b097ddc79b085603}{pre\+Process\+Image} (cv\+::cuda\+::\+Gpu\+Mat \&gpu\+\_\+img)
+\begin{DoxyCompactList}\small\item\em Applies G\+P\+U-\/accelerated preprocessing pipeline to an image. \end{DoxyCompactList}\item 
+void \hyperlink{classVisionNode_a234d00d510249ff752af20a64b8618bd}{apply\+Treshold} (cv\+::cuda\+::\+Gpu\+Mat \&gpu\+\_\+img, bool is\+\_\+white\+\_\+lane)
+\begin{DoxyCompactList}\small\item\em Applies white/yellow lane thresholding based on {\ttfamily is\+\_\+white\+\_\+lane} parameter. \end{DoxyCompactList}\item 
+void \hyperlink{classVisionNode_a6a6385ceaa4a9bb1e3d50dd2e55fb071}{apply\+Morpho\+Transfo} (cv\+::cuda\+::\+Gpu\+Mat \&gpu\+\_\+img)
+\begin{DoxyCompactList}\small\item\em Applies dilation + erosion (closing) to reduce noise in binary image. \end{DoxyCompactList}\item 
+void \hyperlink{classVisionNode_a7d60e45e5c445469ecb9f298c47bf5c8}{crop\+To\+R\+OI} (cv\+::cuda\+::\+Gpu\+Mat \&gpu\+\_\+img)
+\begin{DoxyCompactList}\small\item\em Crops image to R\+OI (hardcoded dimensions). \end{DoxyCompactList}\item 
+void \hyperlink{classVisionNode_ace70a008db68efbf89cc43e485e06744}{apply\+Canny\+Edge} (cv\+::cuda\+::\+Gpu\+Mat \&gpu\+\_\+img)
+\begin{DoxyCompactList}\small\item\em Runs G\+P\+U-\/accelerated Canny edge detection with parameterized thresholds. \end{DoxyCompactList}\item 
+std\+::vector$<$ cv\+::\+Vec4i $>$ \hyperlink{classVisionNode_adf0f075a5d4706a887ba3198799a836f}{get\+Lines} (cv\+::cuda\+::\+Gpu\+Mat \&gpu\+\_\+img)
+\begin{DoxyCompactList}\small\item\em Detects lines using G\+P\+U-\/accelerated Hough transform. \end{DoxyCompactList}\item 
+void \hyperlink{classVisionNode_a4d826b83d642f5033c796a8f89cd2b58}{publish\+Lane\+Positions} (std\+::vector$<$ cv\+::\+Vec4i $>$ \&lines, int img\+\_\+width, int img\+\_\+height)
+\begin{DoxyCompactList}\small\item\em Classifies lines as left/right lanes and publishes results. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classVisionNode_afa493f144507b0de569a5935a54661f1}\label{classVisionNode_afa493f144507b0de569a5935a54661f1}} 
+void {\bfseries publish\+Mask\+Img} (cv\+::cuda\+::\+Gpu\+Mat \&gpu\+\_\+img)
+\item 
+\mbox{\Hypertarget{classVisionNode_ac7f9f0b9c0c06f4446627de8d93dcd05}\label{classVisionNode_ac7f9f0b9c0c06f4446627de8d93dcd05}} 
+void {\bfseries publish\+Edge\+Image} (cv\+::cuda\+::\+Gpu\+Mat \&gpu\+\_\+img)
+\end{DoxyCompactItemize}
+\subsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classVisionNode_a7f2f6a8fc2898ec230d96a6df386f0ae}\label{classVisionNode_a7f2f6a8fc2898ec230d96a6df386f0ae}} 
+rclcpp\+::\+Subscription$<$ sensor\+\_\+msgs\+::msg\+::\+Image $>$\+::Shared\+Ptr {\bfseries raw\+\_\+img\+\_\+sub\+\_\+}
+\item 
+\mbox{\Hypertarget{classVisionNode_aa4563584d251d6a0d2a3442a083ba8f0}\label{classVisionNode_aa4563584d251d6a0d2a3442a083ba8f0}} 
+rclcpp\+::\+Publisher$<$ lane\+\_\+msgs\+::msg\+::\+Lane\+Positions $>$\+::Shared\+Ptr {\bfseries lane\+\_\+pos\+\_\+pub\+\_\+}
+\item 
+\mbox{\Hypertarget{classVisionNode_ab716281a28831e4e643d9ac14275a5d3}\label{classVisionNode_ab716281a28831e4e643d9ac14275a5d3}} 
+image\+\_\+transport\+::\+Publisher {\bfseries edge\+\_\+img\+\_\+pub\+\_\+}
+\item 
+\mbox{\Hypertarget{classVisionNode_a6ab1e698ad581462c57aa056ac3fd245}\label{classVisionNode_a6ab1e698ad581462c57aa056ac3fd245}} 
+image\+\_\+transport\+::\+Publisher {\bfseries mask\+\_\+pub\+\_\+}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Processes camera images to detect lane positions using G\+P\+U-\/accelerated Open\+CV. 
+
+Subscribes to raw camera images, applies thresholding, morphological operations, and Hough line detection to identify lane markings. Publishes detected lane positions as {\ttfamily lane\+\_\+msgs/msg/\+Lane\+Positions} and optional debug images (edges/mask). 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classVisionNode_ac084d7f3ca8b99239b9215eacae6a3b3}\label{classVisionNode_ac084d7f3ca8b99239b9215eacae6a3b3}} 
+\index{Vision\+Node@{Vision\+Node}!Vision\+Node@{Vision\+Node}}
+\index{Vision\+Node@{Vision\+Node}!Vision\+Node@{Vision\+Node}}
+\subsubsection{\texorpdfstring{Vision\+Node()}{VisionNode()}}
+{\footnotesize\ttfamily Vision\+Node\+::\+Vision\+Node (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Initializes the \hyperlink{classVisionNode}{Vision\+Node} with R\+O\+S2 subscriptions, publishers, and parameters. 
+
+$\ast$-\/ Subscribes to {\ttfamily image\+\_\+raw} (best-\/effort QoS).
+\begin{DoxyItemize}
+\item Publishes {\ttfamily lane\+\_\+position} (Lane\+Positions messages).
+\item Declares parameters for lane detection tuning\+:
+\begin{DoxyItemize}
+\item {\ttfamily max\+\_\+detected\+\_\+lines}, {\ttfamily low/high\+\_\+canny\+\_\+treshold}, {\ttfamily rho}
+\item {\ttfamily is\+\_\+white\+\_\+lane}, {\ttfamily treshold\+\_\+sensitivity} 
+\end{DoxyItemize}
+\end{DoxyItemize}
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classVisionNode_ace70a008db68efbf89cc43e485e06744}\label{classVisionNode_ace70a008db68efbf89cc43e485e06744}} 
+\index{Vision\+Node@{Vision\+Node}!apply\+Canny\+Edge@{apply\+Canny\+Edge}}
+\index{apply\+Canny\+Edge@{apply\+Canny\+Edge}!Vision\+Node@{Vision\+Node}}
+\subsubsection{\texorpdfstring{apply\+Canny\+Edge()}{applyCannyEdge()}}
+{\footnotesize\ttfamily void Vision\+Node\+::apply\+Canny\+Edge (\begin{DoxyParamCaption}\item[{cv\+::cuda\+::\+Gpu\+Mat \&}]{gpu\+\_\+img }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Runs G\+P\+U-\/accelerated Canny edge detection with parameterized thresholds. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em gpu\+\_\+img} & \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classVisionNode_a6a6385ceaa4a9bb1e3d50dd2e55fb071}\label{classVisionNode_a6a6385ceaa4a9bb1e3d50dd2e55fb071}} 
+\index{Vision\+Node@{Vision\+Node}!apply\+Morpho\+Transfo@{apply\+Morpho\+Transfo}}
+\index{apply\+Morpho\+Transfo@{apply\+Morpho\+Transfo}!Vision\+Node@{Vision\+Node}}
+\subsubsection{\texorpdfstring{apply\+Morpho\+Transfo()}{applyMorphoTransfo()}}
+{\footnotesize\ttfamily void Vision\+Node\+::apply\+Morpho\+Transfo (\begin{DoxyParamCaption}\item[{cv\+::cuda\+::\+Gpu\+Mat \&}]{gpu\+\_\+img }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Applies dilation + erosion (closing) to reduce noise in binary image. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em gpu\+\_\+img} & \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classVisionNode_a234d00d510249ff752af20a64b8618bd}\label{classVisionNode_a234d00d510249ff752af20a64b8618bd}} 
+\index{Vision\+Node@{Vision\+Node}!apply\+Treshold@{apply\+Treshold}}
+\index{apply\+Treshold@{apply\+Treshold}!Vision\+Node@{Vision\+Node}}
+\subsubsection{\texorpdfstring{apply\+Treshold()}{applyTreshold()}}
+{\footnotesize\ttfamily void Vision\+Node\+::apply\+Treshold (\begin{DoxyParamCaption}\item[{cv\+::cuda\+::\+Gpu\+Mat \&}]{gpu\+\_\+img,  }\item[{bool}]{is\+\_\+white\+\_\+lane }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Applies white/yellow lane thresholding based on {\ttfamily is\+\_\+white\+\_\+lane} parameter. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em gpu\+\_\+img} & \\
+\hline
+{\em is\+\_\+white\+\_\+lane} & \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classVisionNode_a7d60e45e5c445469ecb9f298c47bf5c8}\label{classVisionNode_a7d60e45e5c445469ecb9f298c47bf5c8}} 
+\index{Vision\+Node@{Vision\+Node}!crop\+To\+R\+OI@{crop\+To\+R\+OI}}
+\index{crop\+To\+R\+OI@{crop\+To\+R\+OI}!Vision\+Node@{Vision\+Node}}
+\subsubsection{\texorpdfstring{crop\+To\+R\+O\+I()}{cropToROI()}}
+{\footnotesize\ttfamily void Vision\+Node\+::crop\+To\+R\+OI (\begin{DoxyParamCaption}\item[{cv\+::cuda\+::\+Gpu\+Mat \&}]{gpu\+\_\+img }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Crops image to R\+OI (hardcoded dimensions). 
+
+
+\begin{DoxyParams}{Parameters}
+{\em gpu\+\_\+img} & \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classVisionNode_adf0f075a5d4706a887ba3198799a836f}\label{classVisionNode_adf0f075a5d4706a887ba3198799a836f}} 
+\index{Vision\+Node@{Vision\+Node}!get\+Lines@{get\+Lines}}
+\index{get\+Lines@{get\+Lines}!Vision\+Node@{Vision\+Node}}
+\subsubsection{\texorpdfstring{get\+Lines()}{getLines()}}
+{\footnotesize\ttfamily std\+::vector$<$ Vec4i $>$ Vision\+Node\+::get\+Lines (\begin{DoxyParamCaption}\item[{cv\+::cuda\+::\+Gpu\+Mat \&}]{gpu\+\_\+img }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Detects lines using G\+P\+U-\/accelerated Hough transform. 
+
+
+\begin{DoxyItemize}
+\item Configures Hough detector with {\ttfamily max\+\_\+detected\+\_\+lines} and {\ttfamily rho} parameters.
+\item Converts G\+PU results to C\+PU vector$<$\+Vec4i$>$.
+\end{DoxyItemize}
+
+
+\begin{DoxyParams}{Parameters}
+{\em gpu\+\_\+img} & Preprocessed edge image (G\+PU memory). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Vector of detected lines (each as Vec4i\+: x1, y1, x2, y2). 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classVisionNode_ae2b6a2048ef69189b097ddc79b085603}\label{classVisionNode_ae2b6a2048ef69189b097ddc79b085603}} 
+\index{Vision\+Node@{Vision\+Node}!pre\+Process\+Image@{pre\+Process\+Image}}
+\index{pre\+Process\+Image@{pre\+Process\+Image}!Vision\+Node@{Vision\+Node}}
+\subsubsection{\texorpdfstring{pre\+Process\+Image()}{preProcessImage()}}
+{\footnotesize\ttfamily void Vision\+Node\+::pre\+Process\+Image (\begin{DoxyParamCaption}\item[{cv\+::cuda\+::\+Gpu\+Mat \&}]{gpu\+\_\+img }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Applies G\+P\+U-\/accelerated preprocessing pipeline to an image. 
+
+Steps\+:
+\begin{DoxyEnumerate}
+\item Thresholding (adaptive based on {\ttfamily is\+\_\+white\+\_\+lane} parameter).
+\item Morphological transformations (dilation + erosion).
+\item R\+OI cropping (trapezoidal mask).
+\item Canny edge detection.
+\end{DoxyEnumerate}
+
+
+\begin{DoxyParams}{Parameters}
+{\em gpu\+\_\+img} & Input/\+Output image in G\+PU memory (cuda\+::\+Gpu\+Mat). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classVisionNode_a4d826b83d642f5033c796a8f89cd2b58}\label{classVisionNode_a4d826b83d642f5033c796a8f89cd2b58}} 
+\index{Vision\+Node@{Vision\+Node}!publish\+Lane\+Positions@{publish\+Lane\+Positions}}
+\index{publish\+Lane\+Positions@{publish\+Lane\+Positions}!Vision\+Node@{Vision\+Node}}
+\subsubsection{\texorpdfstring{publish\+Lane\+Positions()}{publishLanePositions()}}
+{\footnotesize\ttfamily void Vision\+Node\+::publish\+Lane\+Positions (\begin{DoxyParamCaption}\item[{std\+::vector$<$ cv\+::\+Vec4i $>$ \&}]{lines,  }\item[{int}]{img\+\_\+width,  }\item[{int}]{img\+\_\+height }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Classifies lines as left/right lanes and publishes results. 
+
+
+\begin{DoxyItemize}
+\item Filters horizontal lines (slope $<$ 0.\+3).
+\item Splits lines by slope and image position.
+\item Constructs Lane\+Positions message with\+:
+\begin{DoxyItemize}
+\item Left/right lane points (geometry\+\_\+msgs/\+Point32).
+\item Original image dimensions.
+\end{DoxyItemize}
+\end{DoxyItemize}
+
+
+\begin{DoxyParams}{Parameters}
+{\em lines} & Detected lines from Hough transform. \\
+\hline
+{\em img\+\_\+width,img\+\_\+height} & Source image dimensions. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classVisionNode_aabbd33da50754623d30ba7c8c41dc2bc}\label{classVisionNode_aabbd33da50754623d30ba7c8c41dc2bc}} 
+\index{Vision\+Node@{Vision\+Node}!raw\+Image\+Callback@{raw\+Image\+Callback}}
+\index{raw\+Image\+Callback@{raw\+Image\+Callback}!Vision\+Node@{Vision\+Node}}
+\subsubsection{\texorpdfstring{raw\+Image\+Callback()}{rawImageCallback()}}
+{\footnotesize\ttfamily void Vision\+Node\+::raw\+Image\+Callback (\begin{DoxyParamCaption}\item[{sensor\+\_\+msgs\+::msg\+::\+Image\+::\+Shared\+Ptr}]{img\+\_\+msg }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Callback for processing incoming camera images. 
+
+
+\begin{DoxyItemize}
+\item Converts R\+O\+S2 Image message to Open\+CV format (G\+P\+U-\/accelerated).
+\item Applies preprocessing, line detection, and lane position estimation.
+\item Handles empty images and Open\+CV exceptions gracefully.
+\end{DoxyItemize}
+
+
+\begin{DoxyParams}{Parameters}
+{\em img\+\_\+msg} & Shared pointer to the incoming sensor\+\_\+msgs/\+Image. \\
+\hline
+\end{DoxyParams}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+lane\+\_\+keeping\+\_\+ws/src/classic\+\_\+vision/includes/Vision\+Node.\+hpp\item 
+lane\+\_\+keeping\+\_\+ws/src/classic\+\_\+vision/src/Vision\+Node.\+cpp\end{DoxyCompactItemize}

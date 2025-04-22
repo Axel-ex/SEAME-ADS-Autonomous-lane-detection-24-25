@@ -1,0 +1,176 @@
+\hypertarget{classImageProcessor}{}\section{Image\+Processor Class Reference}
+\label{classImageProcessor}\index{Image\+Processor@{Image\+Processor}}
+
+
+Handles image preprocessing and feature extraction on the G\+PU using Open\+CV C\+U\+DA.  
+
+
+
+
+{\ttfamily \#include $<$Image\+Processor.\+hpp$>$}
+
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classImageProcessor_af52cf1abf1dacffda01cc55b6f5c8313}{Image\+Processor} (const cv\+::\+Size \&input\+\_\+size, const cv\+::\+Size \&output\+\_\+size)
+\begin{DoxyCompactList}\small\item\em Construct a new \hyperlink{classImageProcessor}{Image\+Processor} object. \end{DoxyCompactList}\item 
+std\+::vector$<$ float $>$ \hyperlink{classImageProcessor_a9e6ce929aa19b3dc53d855ce0f68a2f6}{flatten\+Image} (cv\+::\+Mat \&img) const
+\begin{DoxyCompactList}\small\item\em Resizes and normalizes a B\+GR image, flattening it into a float vector. \end{DoxyCompactList}\item 
+void \hyperlink{classImageProcessor_a6bce7d61162f71ae9bb322b40c9990ab}{apply\+Treshold} (cv\+::cuda\+::\+Gpu\+Mat \&gpu\+\_\+img, int treshold)
+\begin{DoxyCompactList}\small\item\em Applies a binary threshold on a G\+PU image. \end{DoxyCompactList}\item 
+void \hyperlink{classImageProcessor_a358c5380af94e810845282f05579265a}{apply\+Erosion\+Dilation} (cv\+::cuda\+::\+Gpu\+Mat \&gpu\+\_\+img)
+\begin{DoxyCompactList}\small\item\em Applies dilation followed by erosion (closing) to reduce noise. \end{DoxyCompactList}\item 
+void \hyperlink{classImageProcessor_a54826c571dfde1f85fec2ad86f21f69a}{apply\+Canny\+Edge} (cv\+::cuda\+::\+Gpu\+Mat \&gpu\+\_\+img)
+\begin{DoxyCompactList}\small\item\em Applies the Canny edge detector to a G\+PU image. \end{DoxyCompactList}\item 
+std\+::vector$<$ cv\+::\+Vec4i $>$ \hyperlink{classImageProcessor_aaceb6004986b3c9c61084531dbb12011}{get\+Lines} (cv\+::cuda\+::\+Gpu\+Mat \&gpu\+\_\+img)
+\begin{DoxyCompactList}\small\item\em Extracts lines from an edge-\/detected image using Hough Transform. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\subsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classImageProcessor_a964238c103b14e74afab0ebc9671bc88}\label{classImageProcessor_a964238c103b14e74afab0ebc9671bc88}} 
+cv\+::\+Size {\bfseries input\+\_\+size\+\_\+}
+\item 
+\mbox{\Hypertarget{classImageProcessor_a8686621bd8c62a575c221ae45f9e70b9}\label{classImageProcessor_a8686621bd8c62a575c221ae45f9e70b9}} 
+cv\+::\+Size {\bfseries output\+\_\+size\+\_\+}
+\item 
+\mbox{\Hypertarget{classImageProcessor_a873e79e99bc7c9f7602fde8d8e47aa76}\label{classImageProcessor_a873e79e99bc7c9f7602fde8d8e47aa76}} 
+cv\+::\+Ptr$<$ cv\+::cuda\+::\+Canny\+Edge\+Detector $>$ {\bfseries canny\+\_\+edge\+\_\+detector\+\_\+}
+\item 
+\mbox{\Hypertarget{classImageProcessor_a56f6caa5183f0f2000a094fcf2cdf1a5}\label{classImageProcessor_a56f6caa5183f0f2000a094fcf2cdf1a5}} 
+cv\+::\+Ptr$<$ cv\+::cuda\+::\+Hough\+Segment\+Detector $>$ {\bfseries line\+\_\+detector\+\_\+}
+\item 
+\mbox{\Hypertarget{classImageProcessor_a9e2ba2ac27b9c0d5b38e05ccc52d67ca}\label{classImageProcessor_a9e2ba2ac27b9c0d5b38e05ccc52d67ca}} 
+cv\+::\+Ptr$<$ cv\+::cuda\+::\+Filter $>$ {\bfseries erosion\+\_\+filter\+\_\+}
+\item 
+\mbox{\Hypertarget{classImageProcessor_a46acab87bda21888d9cec25857661aff}\label{classImageProcessor_a46acab87bda21888d9cec25857661aff}} 
+cv\+::\+Ptr$<$ cv\+::cuda\+::\+Filter $>$ {\bfseries dilation\+\_\+filter\+\_\+}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Handles image preprocessing and feature extraction on the G\+PU using Open\+CV C\+U\+DA. 
+
+This class provides functionality for preparing images for machine learning inference, including resizing, flattening, edge detection, thresholding, morphological operations, and line detection via Hough Transform. 
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classImageProcessor_af52cf1abf1dacffda01cc55b6f5c8313}\label{classImageProcessor_af52cf1abf1dacffda01cc55b6f5c8313}} 
+\index{Image\+Processor@{Image\+Processor}!Image\+Processor@{Image\+Processor}}
+\index{Image\+Processor@{Image\+Processor}!Image\+Processor@{Image\+Processor}}
+\subsubsection{\texorpdfstring{Image\+Processor()}{ImageProcessor()}}
+{\footnotesize\ttfamily Image\+Processor\+::\+Image\+Processor (\begin{DoxyParamCaption}\item[{const cv\+::\+Size \&}]{input\+\_\+size,  }\item[{const cv\+::\+Size \&}]{output\+\_\+size }\end{DoxyParamCaption})}
+
+
+
+Construct a new \hyperlink{classImageProcessor}{Image\+Processor} object. 
+
+Initializes all C\+U\+DA filters and detectors using the given input and output sizes.
+
+
+\begin{DoxyParams}{Parameters}
+{\em input\+\_\+size} & Expected input size for the ML model. \\
+\hline
+{\em output\+\_\+size} & Expected size for post-\/processed output (if needed). \\
+\hline
+\end{DoxyParams}
+
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classImageProcessor_a54826c571dfde1f85fec2ad86f21f69a}\label{classImageProcessor_a54826c571dfde1f85fec2ad86f21f69a}} 
+\index{Image\+Processor@{Image\+Processor}!apply\+Canny\+Edge@{apply\+Canny\+Edge}}
+\index{apply\+Canny\+Edge@{apply\+Canny\+Edge}!Image\+Processor@{Image\+Processor}}
+\subsubsection{\texorpdfstring{apply\+Canny\+Edge()}{applyCannyEdge()}}
+{\footnotesize\ttfamily void Image\+Processor\+::apply\+Canny\+Edge (\begin{DoxyParamCaption}\item[{cv\+::cuda\+::\+Gpu\+Mat \&}]{gpu\+\_\+img }\end{DoxyParamCaption})}
+
+
+
+Applies the Canny edge detector to a G\+PU image. 
+
+Detects edges in the image using C\+U\+D\+A-\/accelerated Canny filter.
+
+
+\begin{DoxyParams}{Parameters}
+{\em gpu\+\_\+img} & Image on which to apply edge detection (in-\/place). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classImageProcessor_a358c5380af94e810845282f05579265a}\label{classImageProcessor_a358c5380af94e810845282f05579265a}} 
+\index{Image\+Processor@{Image\+Processor}!apply\+Erosion\+Dilation@{apply\+Erosion\+Dilation}}
+\index{apply\+Erosion\+Dilation@{apply\+Erosion\+Dilation}!Image\+Processor@{Image\+Processor}}
+\subsubsection{\texorpdfstring{apply\+Erosion\+Dilation()}{applyErosionDilation()}}
+{\footnotesize\ttfamily void Image\+Processor\+::apply\+Erosion\+Dilation (\begin{DoxyParamCaption}\item[{cv\+::cuda\+::\+Gpu\+Mat \&}]{gpu\+\_\+img }\end{DoxyParamCaption})}
+
+
+
+Applies dilation followed by erosion (closing) to reduce noise. 
+
+This is useful for filling small gaps in detected edges or lines.
+
+
+\begin{DoxyParams}{Parameters}
+{\em gpu\+\_\+img} & Image on which to apply morphological operations (in-\/place). \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classImageProcessor_a6bce7d61162f71ae9bb322b40c9990ab}\label{classImageProcessor_a6bce7d61162f71ae9bb322b40c9990ab}} 
+\index{Image\+Processor@{Image\+Processor}!apply\+Treshold@{apply\+Treshold}}
+\index{apply\+Treshold@{apply\+Treshold}!Image\+Processor@{Image\+Processor}}
+\subsubsection{\texorpdfstring{apply\+Treshold()}{applyTreshold()}}
+{\footnotesize\ttfamily void Image\+Processor\+::apply\+Treshold (\begin{DoxyParamCaption}\item[{cv\+::cuda\+::\+Gpu\+Mat \&}]{gpu\+\_\+img,  }\item[{int}]{treshold }\end{DoxyParamCaption})}
+
+
+
+Applies a binary threshold on a G\+PU image. 
+
+All values above the threshold are set to 255; others are set to 0.
+
+
+\begin{DoxyParams}{Parameters}
+{\em gpu\+\_\+img} & Image on which to apply thresholding (in-\/place). \\
+\hline
+{\em treshold} & Threshold value. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classImageProcessor_a9e6ce929aa19b3dc53d855ce0f68a2f6}\label{classImageProcessor_a9e6ce929aa19b3dc53d855ce0f68a2f6}} 
+\index{Image\+Processor@{Image\+Processor}!flatten\+Image@{flatten\+Image}}
+\index{flatten\+Image@{flatten\+Image}!Image\+Processor@{Image\+Processor}}
+\subsubsection{\texorpdfstring{flatten\+Image()}{flattenImage()}}
+{\footnotesize\ttfamily std\+::vector$<$ float $>$ Image\+Processor\+::flatten\+Image (\begin{DoxyParamCaption}\item[{cv\+::\+Mat \&}]{img }\end{DoxyParamCaption}) const}
+
+
+
+Resizes and normalizes a B\+GR image, flattening it into a float vector. 
+
+The image is resized to the configured input size, and each channel is normalized to \mbox{[}0, 1\mbox{]}.
+
+
+\begin{DoxyParams}{Parameters}
+{\em img} & Reference to the input image (cv\+::\+Mat). \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+std\+::vector$<$float$>$ Flattened, normalized image data. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classImageProcessor_aaceb6004986b3c9c61084531dbb12011}\label{classImageProcessor_aaceb6004986b3c9c61084531dbb12011}} 
+\index{Image\+Processor@{Image\+Processor}!get\+Lines@{get\+Lines}}
+\index{get\+Lines@{get\+Lines}!Image\+Processor@{Image\+Processor}}
+\subsubsection{\texorpdfstring{get\+Lines()}{getLines()}}
+{\footnotesize\ttfamily std\+::vector$<$ cv\+::\+Vec4i $>$ Image\+Processor\+::get\+Lines (\begin{DoxyParamCaption}\item[{cv\+::cuda\+::\+Gpu\+Mat \&}]{gpu\+\_\+img }\end{DoxyParamCaption})}
+
+
+
+Extracts lines from an edge-\/detected image using Hough Transform. 
+
+Performs a probabilistic Hough line transform on the image.
+
+
+\begin{DoxyParams}{Parameters}
+{\em gpu\+\_\+img} & Edge-\/detected input image. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+std\+::vector$<$cv\+::\+Vec4i$>$ Vector of detected lines (x1, y1, x2, y2). 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+lane\+\_\+keeping\+\_\+ws/src/ml\+\_\+vision/includes/Image\+Processor.\+hpp\item 
+lane\+\_\+keeping\+\_\+ws/src/ml\+\_\+vision/src/Image\+Processor.\+cpp\end{DoxyCompactItemize}

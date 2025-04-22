@@ -1,0 +1,269 @@
+\hypertarget{classMotionControlNode}{}\section{Motion\+Control\+Node Class Reference}
+\label{classMotionControlNode}\index{Motion\+Control\+Node@{Motion\+Control\+Node}}
+
+
+Implements lane-\/keeping control using polynomial fitting and P\+ID control.  
+
+
+
+
+{\ttfamily \#include $<$Motion\+Control\+Node.\+hpp$>$}
+
+
+
+Inheritance diagram for Motion\+Control\+Node\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=181pt]{classMotionControlNode__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for Motion\+Control\+Node\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classMotionControlNode__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classMotionControlNode_a2d6c4f671ad827ffce0379d8c704ffb3}{Motion\+Control\+Node} ()
+\begin{DoxyCompactList}\small\item\em Initializes R\+O\+S2 subscriptions, publishers, and control parameters. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classMotionControlNode_ad1497ac89b446c40635e05da0313b922}\label{classMotionControlNode_ad1497ac89b446c40635e05da0313b922}} 
+void {\bfseries init\+P\+I\+D\+Controller} ()
+\end{DoxyCompactItemize}
+\subsection*{Private Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \hyperlink{classMotionControlNode_a282a762671c7b667f174717ff0dcea20}{lane\+Position\+Callback} (lane\+\_\+msgs\+::msg\+::\+Lane\+Positions\+::\+Shared\+Ptr lane\+\_\+msg)
+\begin{DoxyCompactList}\small\item\em Processes incoming lane positions and computes control commands. \end{DoxyCompactList}\item 
+void \hyperlink{classMotionControlNode_a67cc5bcda286ffbe809d0555bdaf6a8d}{separate\+And\+Order\+Coordinates} (const std\+::vector$<$ Point32 $>$ \&points, std\+::vector$<$ double $>$ \&x, std\+::vector$<$ double $>$ \&y)
+\begin{DoxyCompactList}\small\item\em Separates and sorts lane points by y-\/coordinate. \end{DoxyCompactList}\item 
+void \hyperlink{classMotionControlNode_acab5e28f36d5a16521c38073077e2b1d}{calculate\+Polyfit\+Coefs} (std\+::vector$<$ double $>$ \&left\+\_\+coefs, std\+::vector$<$ double $>$ \&right\+\_\+coefs, lane\+\_\+msgs\+::msg\+::\+Lane\+Positions\+::\+Shared\+Ptr lane\+\_\+msg)
+\begin{DoxyCompactList}\small\item\em Fits 2nd-\/degree polynomials to left/right lane points. \end{DoxyCompactList}\item 
+Point32 \hyperlink{classMotionControlNode_a2c48d9d1ef7222d03c69f8dc86cd1842}{find\+Lane\+Center} (const std\+::vector$<$ double $>$ \&left\+\_\+coef, const std\+::vector$<$ double $>$ \&right\+\_\+coef, int img\+\_\+height)
+\begin{DoxyCompactList}\small\item\em Computes lane center at a fixed lookahead distance. \end{DoxyCompactList}\item 
+Point32 \hyperlink{classMotionControlNode_a9a30201e0d7cb92779f222c38804ec03}{find\+Heading\+Point} (int img\+\_\+width, int img\+\_\+height)
+\begin{DoxyCompactList}\small\item\em Find where the car is heading using lookahead\+\_\+index parameter. \end{DoxyCompactList}\item 
+void \hyperlink{classMotionControlNode_abad42e896700d175ae870d3eed4a79ea}{calculate\+And\+Publish\+Controls} (Point32 \&lane\+\_\+center, Point32 \&heading\+\_\+point, int img\+\_\+width)
+\begin{DoxyCompactList}\small\item\em Computes steering command using P\+ID control. \end{DoxyCompactList}\item 
+void \hyperlink{classMotionControlNode_a2f890913a81fdb965348897dbd972a77}{publish\+Polyfit\+Coefficients} (const std\+::vector$<$ double $>$ \&left\+\_\+coefs, const std\+::vector$<$ double $>$ \&right\+\_\+coefs, Point32 \&lane\+\_\+center)
+\begin{DoxyCompactList}\small\item\em Publishes polynomial coefficients and lane center. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{classMotionControlNode_a9ab1d5f6c9141de3c04ce19bc29e14a6}\label{classMotionControlNode_a9ab1d5f6c9141de3c04ce19bc29e14a6}} 
+void {\bfseries stop\+Vehicle} ()
+\end{DoxyCompactItemize}
+\subsection*{Private Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classMotionControlNode_ab153e88844739c39e94bf0ba8540251e}\label{classMotionControlNode_ab153e88844739c39e94bf0ba8540251e}} 
+\hyperlink{classLaneBuffer}{Lane\+Buffer} {\bfseries lane\+\_\+buffer\+\_\+}
+\item 
+\mbox{\Hypertarget{classMotionControlNode_a9848ef14a93e7123e9ce374b422d7952}\label{classMotionControlNode_a9848ef14a93e7123e9ce374b422d7952}} 
+\hyperlink{classPIDController}{P\+I\+D\+Controller} {\bfseries pid\+\_\+controller\+\_\+}
+\item 
+\mbox{\Hypertarget{classMotionControlNode_a62db65bd876573bdd43ffe25bfb6e7c5}\label{classMotionControlNode_a62db65bd876573bdd43ffe25bfb6e7c5}} 
+\hyperlink{classKalmanFilter}{Kalman\+Filter} {\bfseries kalmman\+\_\+filter\+\_\+}
+\item 
+\mbox{\Hypertarget{classMotionControlNode_a6fa75a61f3fe7005de566cd309ae9c89}\label{classMotionControlNode_a6fa75a61f3fe7005de566cd309ae9c89}} 
+rclcpp\+::\+Subscription$<$ lane\+\_\+msgs\+::msg\+::\+Lane\+Positions $>$\+::Shared\+Ptr {\bfseries lane\+\_\+pos\+\_\+sub\+\_\+}
+\item 
+\mbox{\Hypertarget{classMotionControlNode_adc9d49fff416c5cb0876d0faca92b081}\label{classMotionControlNode_adc9d49fff416c5cb0876d0faca92b081}} 
+rclcpp\+::\+Publisher$<$ lane\+\_\+msgs\+::msg\+::\+Polyfit\+Coefs $>$\+::Shared\+Ptr {\bfseries polyfit\+\_\+coefs\+\_\+pub\+\_\+}
+\item 
+\mbox{\Hypertarget{classMotionControlNode_a372b6363a6aaa816636bb3dc9e371eb1}\label{classMotionControlNode_a372b6363a6aaa816636bb3dc9e371eb1}} 
+rclcpp\+::\+Publisher$<$ geometry\+\_\+msgs\+::msg\+::\+Twist $>$\+::Shared\+Ptr {\bfseries cmd\+\_\+vel\+\_\+pub\+\_\+}
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Implements lane-\/keeping control using polynomial fitting and P\+ID control. 
+
+\hyperlink{classMotionControlNode}{Motion\+Control\+Node}
+\begin{DoxyItemize}
+\item Subscribes to detected lane positions ({\ttfamily lane\+\_\+position} topic).
+\item Fits polynomials to left/right lane markings.
+\item Calculates steering commands using P\+ID control.
+\item Publishes {\ttfamily cmd\+\_\+vel} (Twist) and polynomial coefficients ({\ttfamily polyfit\+\_\+coefs}).
+\item Handles missing lanes via buffering and Kalman filtering. 
+\end{DoxyItemize}
+
+\subsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classMotionControlNode_a2d6c4f671ad827ffce0379d8c704ffb3}\label{classMotionControlNode_a2d6c4f671ad827ffce0379d8c704ffb3}} 
+\index{Motion\+Control\+Node@{Motion\+Control\+Node}!Motion\+Control\+Node@{Motion\+Control\+Node}}
+\index{Motion\+Control\+Node@{Motion\+Control\+Node}!Motion\+Control\+Node@{Motion\+Control\+Node}}
+\subsubsection{\texorpdfstring{Motion\+Control\+Node()}{MotionControlNode()}}
+{\footnotesize\ttfamily Motion\+Control\+Node\+::\+Motion\+Control\+Node (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Initializes R\+O\+S2 subscriptions, publishers, and control parameters. 
+
+Parameters\+:
+\begin{DoxyItemize}
+\item {\ttfamily kp}, {\ttfamily ki}, {\ttfamily kd}\+: P\+ID gains.
+\item {\ttfamily base\+\_\+speed}\+: Default forward velocity.
+\item {\ttfamily lookahead\+\_\+index}\+: Vertical pixel offset for lane center calculation. 
+\end{DoxyItemize}
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classMotionControlNode_abad42e896700d175ae870d3eed4a79ea}\label{classMotionControlNode_abad42e896700d175ae870d3eed4a79ea}} 
+\index{Motion\+Control\+Node@{Motion\+Control\+Node}!calculate\+And\+Publish\+Controls@{calculate\+And\+Publish\+Controls}}
+\index{calculate\+And\+Publish\+Controls@{calculate\+And\+Publish\+Controls}!Motion\+Control\+Node@{Motion\+Control\+Node}}
+\subsubsection{\texorpdfstring{calculate\+And\+Publish\+Controls()}{calculateAndPublishControls()}}
+{\footnotesize\ttfamily void Motion\+Control\+Node\+::calculate\+And\+Publish\+Controls (\begin{DoxyParamCaption}\item[{Point32 \&}]{lane\+\_\+center,  }\item[{Point32 \&}]{heading\+\_\+point,  }\item[{int}]{img\+\_\+width }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Computes steering command using P\+ID control. 
+
+
+\begin{DoxyItemize}
+\item Error\+: Normalized horizontal offset between lane center and image midpoint.
+\item Publishes Twist message with {\ttfamily base\+\_\+speed} and steering angle.
+\end{DoxyItemize}
+
+
+\begin{DoxyParams}{Parameters}
+{\em lane\+\_\+center} & Current lane center position. \\
+\hline
+{\em heading\+\_\+point} & Reference point (image center at lookahead distance). \\
+\hline
+{\em img\+\_\+width} & For error normalization. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classMotionControlNode_acab5e28f36d5a16521c38073077e2b1d}\label{classMotionControlNode_acab5e28f36d5a16521c38073077e2b1d}} 
+\index{Motion\+Control\+Node@{Motion\+Control\+Node}!calculate\+Polyfit\+Coefs@{calculate\+Polyfit\+Coefs}}
+\index{calculate\+Polyfit\+Coefs@{calculate\+Polyfit\+Coefs}!Motion\+Control\+Node@{Motion\+Control\+Node}}
+\subsubsection{\texorpdfstring{calculate\+Polyfit\+Coefs()}{calculatePolyfitCoefs()}}
+{\footnotesize\ttfamily void Motion\+Control\+Node\+::calculate\+Polyfit\+Coefs (\begin{DoxyParamCaption}\item[{std\+::vector$<$ double $>$ \&}]{left\+\_\+coefs,  }\item[{std\+::vector$<$ double $>$ \&}]{right\+\_\+coefs,  }\item[{lane\+\_\+msgs\+::msg\+::\+Lane\+Positions\+::\+Shared\+Ptr}]{lane\+\_\+msg }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Fits 2nd-\/degree polynomials to left/right lane points. 
+
+
+\begin{DoxyItemize}
+\item Separates and sorts lane coordinates by y-\/position.
+\item Uses buffered coefficients if current lane detection fails.
+\item Requires ≥3 points per lane for new fits.
+\end{DoxyItemize}
+
+
+\begin{DoxyParams}{Parameters}
+{\em left\+\_\+coefs} & Output vector for left lane coefficients \mbox{[}a, b, c\mbox{]} (ax²+bx+c). \\
+\hline
+{\em right\+\_\+coefs} & Output vector for right lane coefficients. \\
+\hline
+{\em lane\+\_\+msg} & Input lane positions message. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classMotionControlNode_a9a30201e0d7cb92779f222c38804ec03}\label{classMotionControlNode_a9a30201e0d7cb92779f222c38804ec03}} 
+\index{Motion\+Control\+Node@{Motion\+Control\+Node}!find\+Heading\+Point@{find\+Heading\+Point}}
+\index{find\+Heading\+Point@{find\+Heading\+Point}!Motion\+Control\+Node@{Motion\+Control\+Node}}
+\subsubsection{\texorpdfstring{find\+Heading\+Point()}{findHeadingPoint()}}
+{\footnotesize\ttfamily Point32 Motion\+Control\+Node\+::find\+Heading\+Point (\begin{DoxyParamCaption}\item[{int}]{img\+\_\+width,  }\item[{int}]{img\+\_\+height }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Find where the car is heading using lookahead\+\_\+index parameter. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em img\+\_\+width} & \\
+\hline
+{\em img\+\_\+height} & \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+
+\end{DoxyReturn}
+\mbox{\Hypertarget{classMotionControlNode_a2c48d9d1ef7222d03c69f8dc86cd1842}\label{classMotionControlNode_a2c48d9d1ef7222d03c69f8dc86cd1842}} 
+\index{Motion\+Control\+Node@{Motion\+Control\+Node}!find\+Lane\+Center@{find\+Lane\+Center}}
+\index{find\+Lane\+Center@{find\+Lane\+Center}!Motion\+Control\+Node@{Motion\+Control\+Node}}
+\subsubsection{\texorpdfstring{find\+Lane\+Center()}{findLaneCenter()}}
+{\footnotesize\ttfamily Point32 Motion\+Control\+Node\+::find\+Lane\+Center (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ double $>$ \&}]{left\+\_\+coefs,  }\item[{const std\+::vector$<$ double $>$ \&}]{right\+\_\+coefs,  }\item[{int}]{img\+\_\+height }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Computes lane center at a fixed lookahead distance. 
+
+
+\begin{DoxyItemize}
+\item Solves left/right lane polynomials at y = (image\+\_\+height -\/ lookahead\+\_\+index).
+\item Returns (0,0) if no valid lanes detected.
+\end{DoxyItemize}
+
+
+\begin{DoxyParams}{Parameters}
+{\em left\+\_\+coefs} & Left lane polynomial coefficients. \\
+\hline
+{\em right\+\_\+coefs} & Right lane polynomial coefficients. \\
+\hline
+{\em img\+\_\+height} & Image height for coordinate scaling. \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Lane center point (x,y) in image coordinates. 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classMotionControlNode_a282a762671c7b667f174717ff0dcea20}\label{classMotionControlNode_a282a762671c7b667f174717ff0dcea20}} 
+\index{Motion\+Control\+Node@{Motion\+Control\+Node}!lane\+Position\+Callback@{lane\+Position\+Callback}}
+\index{lane\+Position\+Callback@{lane\+Position\+Callback}!Motion\+Control\+Node@{Motion\+Control\+Node}}
+\subsubsection{\texorpdfstring{lane\+Position\+Callback()}{lanePositionCallback()}}
+{\footnotesize\ttfamily void Motion\+Control\+Node\+::lane\+Position\+Callback (\begin{DoxyParamCaption}\item[{lane\+\_\+msgs\+::msg\+::\+Lane\+Positions\+::\+Shared\+Ptr}]{lane\+\_\+msg }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Processes incoming lane positions and computes control commands. 
+
+
+\begin{DoxyItemize}
+\item Fits polynomials to lane markings (with buffer fallback for missing lanes).
+\item Computes lane center using lookahead distance.
+\item Applies Kalman filtering to lane center position.
+\item Calculates steering via P\+ID control.
+\end{DoxyItemize}
+
+
+\begin{DoxyParams}{Parameters}
+{\em lane\+\_\+msg} & Shared pointer to Lane\+Positions message. \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classMotionControlNode_a2f890913a81fdb965348897dbd972a77}\label{classMotionControlNode_a2f890913a81fdb965348897dbd972a77}} 
+\index{Motion\+Control\+Node@{Motion\+Control\+Node}!publish\+Polyfit\+Coefficients@{publish\+Polyfit\+Coefficients}}
+\index{publish\+Polyfit\+Coefficients@{publish\+Polyfit\+Coefficients}!Motion\+Control\+Node@{Motion\+Control\+Node}}
+\subsubsection{\texorpdfstring{publish\+Polyfit\+Coefficients()}{publishPolyfitCoefficients()}}
+{\footnotesize\ttfamily void Motion\+Control\+Node\+::publish\+Polyfit\+Coefficients (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ double $>$ \&}]{left\+\_\+coefs,  }\item[{const std\+::vector$<$ double $>$ \&}]{right\+\_\+coefs,  }\item[{Point32 \&}]{lane\+\_\+center }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Publishes polynomial coefficients and lane center. 
+
+
+\begin{DoxyItemize}
+\item Used for visualization and debugging.
+\item Converts coefficients to float for message compatibility. 
+\end{DoxyItemize}\mbox{\Hypertarget{classMotionControlNode_a67cc5bcda286ffbe809d0555bdaf6a8d}\label{classMotionControlNode_a67cc5bcda286ffbe809d0555bdaf6a8d}} 
+\index{Motion\+Control\+Node@{Motion\+Control\+Node}!separate\+And\+Order\+Coordinates@{separate\+And\+Order\+Coordinates}}
+\index{separate\+And\+Order\+Coordinates@{separate\+And\+Order\+Coordinates}!Motion\+Control\+Node@{Motion\+Control\+Node}}
+\subsubsection{\texorpdfstring{separate\+And\+Order\+Coordinates()}{separateAndOrderCoordinates()}}
+{\footnotesize\ttfamily void Motion\+Control\+Node\+::separate\+And\+Order\+Coordinates (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ Point32 $>$ \&}]{points,  }\item[{std\+::vector$<$ double $>$ \&}]{x,  }\item[{std\+::vector$<$ double $>$ \&}]{y }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [private]}}
+
+
+
+Separates and sorts lane points by y-\/coordinate. 
+
+
+\begin{DoxyItemize}
+\item Converts vector$<$\+Point32$>$ to sorted vectors of x/y coordinates.
+\item Ensures polynomial fitting follows lane direction. 
+\end{DoxyItemize}
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+lane\+\_\+keeping\+\_\+ws/src/motion\+\_\+control/includes/Motion\+Control\+Node.\+hpp\item 
+lane\+\_\+keeping\+\_\+ws/src/motion\+\_\+control/src/Motion\+Control\+Node.\+cpp\end{DoxyCompactItemize}
