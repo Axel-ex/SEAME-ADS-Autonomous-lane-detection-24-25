@@ -11,7 +11,7 @@ CameraNode::CameraNode() : Node("camera_node"), running_(true)
 {
     std::string pipeline =
         "nvarguscamerasrc ! video/x-raw(memory:NVMM), format=NV12, width=640, "
-        "height=480, framerate=15/1 ! nvvidconv ! video/x-raw, format=BGRx ! "
+        "height=480, framerate=30/1 ! nvvidconv ! video/x-raw, format=BGRx ! "
         "videoconvert ! video/x-raw, format=BGR ! appsink";
     cap_ = VideoCapture(pipeline, cv::CAP_GSTREAMER);
     if (!cap_.isOpened())
@@ -26,9 +26,10 @@ CameraNode::CameraNode() : Node("camera_node"), running_(true)
 CameraNode::~CameraNode()
 {
     running_ = false;
+    cap_.release();
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
     if (capture_thread_.joinable())
         capture_thread_.join();
-    cap_.release();
 }
 
 void CameraNode::initPublisherAndCapture()
@@ -43,10 +44,9 @@ void CameraNode::initPublisherAndCapture()
 void CameraNode::captureFrame()
 {
     Mat frame(Size(1280, 720), CV_8UC3);
-
     while (rclcpp::ok() && running_)
     {
-        if (cap_.read(frame)) // Non-blocking read
+        if (cap_.read(frame))
         {
             std_msgs::msg::Header hdr;
             sensor_msgs::msg::Image::SharedPtr msg;
