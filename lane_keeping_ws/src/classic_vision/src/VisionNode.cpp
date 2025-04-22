@@ -249,7 +249,6 @@ void VisionNode::applyMorphoTransfo(cuda::GpuMat& gpu_img)
     Mat elem = getStructuringElement(
         morph_element, Size(2 * morpho_size + 1, 2 * morpho_size + 1),
         Point(morpho_size, morpho_size));
-    cuda::GpuMat gpu_elem(elem);
 
     // Create the filters
     auto dilate_filter =
