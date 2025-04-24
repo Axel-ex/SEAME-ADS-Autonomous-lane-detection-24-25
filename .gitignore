@@ -6,5 +6,5 @@ bags/
 .vscode
 *.avi
 tests/
-*.engine
 .gitignore
+docs

@@ -23,6 +23,13 @@ CameraNode::CameraNode() : Node("camera_node"), running_(true)
     capture_thread_ = std::thread(&CameraNode::initPublisherAndCapture, this);
 }
 
+/**
+ * @brief Ensures safe shutdown of the CameraNode.
+ *
+ * - Signals the capture thread to stop (`running_ = false`).
+ * - Joins the thread if it's still running.
+ * - Releases the OpenCV camera resource.
+ */
 CameraNode::~CameraNode()
 {
     running_ = false;
@@ -32,6 +39,14 @@ CameraNode::~CameraNode()
         capture_thread_.join();
 }
 
+/**
+ * @brief Initializes the ROS2 image publisher and starts frame capture.
+ *
+ * - Creates an `image_transport::ImageTransport` for efficient image
+ * publishing.
+ * - Advertises the "image_raw" topic.
+ * - Calls `captureFrame()` to begin the capture loop.
+ */
 void CameraNode::initPublisherAndCapture()
 {
     image_transport::ImageTransport it(shared_from_this());
@@ -41,6 +56,14 @@ void CameraNode::initPublisherAndCapture()
     captureFrame();
 }
 
+/**
+ * @brief Continuously captures frames and publishes them to ROS2.
+ *
+ * - Reads frames from the camera in a loop (non-blocking).
+ * - Converts each OpenCV `Mat` frame to a ROS2 `sensor_msgs/Image`.
+ * - Publishes the image message on the "image_raw" topic.
+ * - Exits gracefully if ROS2 is shutdown (`rclcpp::ok()`) or an error occurs.
+ */
 void CameraNode::captureFrame()
 {
     Mat frame(Size(1280, 720), CV_8UC3);
