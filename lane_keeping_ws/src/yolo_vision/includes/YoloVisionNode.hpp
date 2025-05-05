@@ -49,7 +49,8 @@ class YoloVisionNode : public rclcpp::Node
         YoloVisionNode();
         ~YoloVisionNode() = default;
 
-        bool init();
+        bool init(std::unique_ptr<InferenceEngine> mock_engine = nullptr,
+                  std::unique_ptr<ImageProcessor> mock_image_proc = nullptr);
 
     private:
         // ROS

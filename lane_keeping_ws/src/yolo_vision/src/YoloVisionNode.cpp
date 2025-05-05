@@ -24,12 +24,22 @@ YoloVisionNode::YoloVisionNode() : rclcpp::Node("ml_vision_node")
  * @brief Initializes inference engine, image processor, and debug publishers.
  * @return True if successful.
  */
-bool YoloVisionNode::init()
+bool YoloVisionNode::init(std::unique_ptr<InferenceEngine> mock_engine,
+                          std::unique_ptr<ImageProcessor> mock_image_proc)
 {
-    inference_engine_ = std::make_unique<InferenceEngine>(shared_from_this());
+    if (!mock_engine)
+        inference_engine_ =
+            std::make_unique<InferenceEngine>(shared_from_this());
+    else
+        inference_engine_ = std::move(mock_engine);
+
     inference_engine_->init();
-    image_processor_ =
-        std::make_unique<ImageProcessor>(INPUT_IMG_SIZE, OUTPUT_IMG_SIZE);
+
+    if (!mock_image_proc)
+        image_processor_ =
+            std::make_unique<ImageProcessor>(INPUT_IMG_SIZE, OUTPUT_IMG_SIZE);
+    else
+        image_processor_ = std::move(mock_image_proc);
 
     // For debug purpose
     image_transport::ImageTransport it(shared_from_this());
