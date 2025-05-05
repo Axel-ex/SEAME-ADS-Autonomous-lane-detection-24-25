@@ -66,12 +66,16 @@ class YoloVisionNode : public rclcpp::Node
 
         // Private function member
         void rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg);
-        std::string mapIdtoString(int id);
         YoloResult extractResult();
         void publishResult(YoloResult& result);
+        void publishDebug(YoloResult& result, cv::Mat& og_img,
+                          std::string& encoding);
 
-        void publishLanePositions(std::vector<cv::Vec4i>& lines);
-        // Debug
+        // helpers
+        std::string mapIdtoString(int id);
         void publishDebug(cv::cuda::GpuMat& gpu_img,
                           image_transport::Publisher& publisher) const;
+
+        // needed?
+        void publishLanePositions(std::vector<cv::Vec4i>& lines);
 };

@@ -70,6 +70,7 @@ class InferenceEngine
         void checkEngineSpecs();
 
         float* getOutputDevicePtr() const;
+        std::vector<float> getOutputDeviceData() const;
         size_t getInputSize() const;
         size_t getOuputSize() const;
 

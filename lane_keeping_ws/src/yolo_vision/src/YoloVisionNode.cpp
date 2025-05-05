@@ -70,14 +70,13 @@ void YoloVisionNode::rawImageCallback(
     }
 
     YoloResult res = extractResult();
+    publishResult(res);
+    publishDebug(res, image, img_msg->encoding);
 }
 
 YoloResult YoloVisionNode::extractResult()
 {
-    std::vector<float> host_output(inference_engine_->getOuputSize() /
-                                   sizeof(float));
-    cudaMemcpy(host_output.data(), inference_engine_->getOutputDevicePtr(),
-               inference_engine_->getOuputSize(), cudaMemcpyDeviceToHost);
+    std::vector<float> host_output = inference_engine_->getOutputDeviceData();
 
     // Loop over the detections (Refer to check_bindings for this information)
     const int nb_elements = 25200;
@@ -164,6 +163,44 @@ void YoloVisionNode::publishResult(YoloResult& result)
         msg.confidences.push_back(result.confidences[i]);
     }
     yolo_result_pub_->publish(msg);
+}
+
+void YoloVisionNode::publishDebug(YoloResult& result, cv::Mat& og_img,
+                                  std::string& encoding)
+{
+    for (int i = 0; i < result.boxes.size(); i++)
+    {
+        auto box = result.boxes[i];
+        auto id = result.class_ids[i];
+        auto confidence = result.confidences[i];
+
+        cv::rectangle(og_img, box, cv::Scalar(255, 0, 0));
+
+        // Compose the label
+        std::string label = id;
+        label += " (" + cv::format("%.2f", confidence) + ")";
+
+        // Calculate label position
+        int baseline = 0;
+        cv::Size label_size =
+            cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseline);
+        int top = std::max(box.y, label_size.height);
+
+        // Draw the label with backgorund
+        cv::rectangle(og_img, cv::Point(box.x, top - label_size.height),
+                      cv::Point(box.x + label_size.width, top + baseline),
+                      cv::Scalar(255, 255, 255), cv::FILLED);
+        cv::putText(og_img, label, cv::Point(box.x, top),
+                    cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(255, 0, 0));
+    }
+
+    cv_bridge::CvImage msg;
+
+    msg.image = og_img;
+    msg.encoding = encoding;
+    msg.header = std_msgs::msg::Header();
+    msg.header.stamp = now();
+    processed_img_pub_.publish(msg.toImageMsg());
 }
 
 std::string YoloVisionNode::mapIdtoString(int id)

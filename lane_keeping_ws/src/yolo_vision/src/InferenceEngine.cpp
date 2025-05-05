@@ -162,6 +162,15 @@ float* InferenceEngine::getOutputDevicePtr() const
     return static_cast<float*>(d_output_.get());
 }
 
+std::vector<float> InferenceEngine::getOutputDeviceData() const
+{
+    std::vector<float> host_output(getOuputSize() / sizeof(float));
+    cudaMemcpy(host_output.data(), getOutputDevicePtr(), getOuputSize(),
+               cudaMemcpyDeviceToHost);
+
+    return host_output;
+}
+
 size_t InferenceEngine::getOuputSize() const { return output_size_; }
 
 size_t InferenceEngine::getInputSize() const { return input_size_; }
