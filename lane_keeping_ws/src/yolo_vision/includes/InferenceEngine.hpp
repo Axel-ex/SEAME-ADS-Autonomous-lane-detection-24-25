@@ -8,10 +8,9 @@
 
 using namespace nvinfer1;
 
-constexpr auto ENGINE_PATH =
-    "/home/axel/SEAME-ADS-Autonomous-lane-detection-24-25/model.engine";
-constexpr auto INPUT_LAYER_NAME = "input_1";
-constexpr auto OUTPUT_LAYER_NAME = "conv2d_14";
+constexpr auto ENGINE_PATH = "/home/axel/models/engines/yolov5n.engine";
+constexpr auto INPUT_LAYER_NAME = "images";
+constexpr auto OUTPUT_LAYER_NAME = "output0";
 
 /**
  * @brief custom deleter for TRT objects
@@ -63,12 +62,16 @@ template <typename T> using CudaUniquePtr = std::unique_ptr<T, cudaDeleter<T>>;
 class InferenceEngine
 {
     public:
-        InferenceEngine(std::shared_ptr<rclcpp::Node>);
-        ~InferenceEngine() = default;
+        InferenceEngine(std::shared_ptr<rclcpp::Node> node_ptr);
+        ~InferenceEngine();
 
         bool init();
         bool runInference(const std::vector<float>& flat_img) const;
+        void checkEngineSpecs();
+
         float* getOutputDevicePtr() const;
+        size_t getInputSize() const;
+        size_t getOuputSize() const;
 
     private:
         std::shared_ptr<rclcpp::Node> node_ptr_;
