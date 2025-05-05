@@ -24,6 +24,8 @@ find_package(geometry_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/LanePositions.msg"
   "msg/PolyfitCoefs.msg"
+  "msg/Rect.msg"
+  "msg/YoloResult.msg"
   DEPENDENCIES std_msgs geometry_msgs
 )
 

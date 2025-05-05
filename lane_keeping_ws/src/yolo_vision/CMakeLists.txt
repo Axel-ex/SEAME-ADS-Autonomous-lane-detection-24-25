@@ -15,13 +15,13 @@ set(TENSORRT_LIB_DIR "/usr/lib/aarch64-linux-gnu")
 include_directories(${TENSORRT_INCLUDE_DIRS})
 link_directories(${TENSORRT_LIB_DIR})
 
-find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui cudaimgproc cudawarping cudafilters)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui cudaimgproc cudawarping cudafilters dnn)
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
-find_package(lane_msgs REQUIRED)
+find_package(custom_msgs REQUIRED)
 find_package(image_transport REQUIRED)
 
 include_directories(includes)
@@ -45,7 +45,7 @@ ament_target_dependencies(${PROJECT_NAME}_node
   rclcpp
   sensor_msgs
   cv_bridge
-  lane_msgs
+  custom_msgs
   image_transport
 )
 

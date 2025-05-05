@@ -2,9 +2,9 @@
 
 #include <ImageProcessor.hpp>
 #include <InferenceEngine.hpp>
+#include <custom_msgs/msg/lane_positions.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
-#include <lane_msgs/msg/lane_positions.hpp>
 #include <opencv2/cudaarithm.hpp>
 #include <opencv2/cudafilters.hpp>
 #include <opencv2/cudaimgproc.hpp>
@@ -53,7 +53,7 @@ class YoloVisionNode : public rclcpp::Node
     private:
         // ROS
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_img_sub_;
-        rclcpp::Publisher<lane_msgs::msg::LanePositions>::SharedPtr
+        rclcpp::Publisher<custom_msgs::msg::LanePositions>::SharedPtr
             lane_pos_pub_; // TODO: custom message for object detection
         image_transport::Publisher processed_img_pub_;
 
@@ -63,11 +63,11 @@ class YoloVisionNode : public rclcpp::Node
 
         // Private function member
         void rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg);
-        YoloResult extractResult();
         std::string mapIdtoString(int id);
+        YoloResult extractResult();
+        void publishResult(YoloResult& result);
 
         void publishLanePositions(std::vector<cv::Vec4i>& lines);
-
         // Debug
         void publishDebug(cv::cuda::GpuMat& gpu_img,
                           image_transport::Publisher& publisher) const;
