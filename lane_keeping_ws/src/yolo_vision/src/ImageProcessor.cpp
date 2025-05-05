@@ -41,8 +41,8 @@ ImageProcessor::ImageProcessor(const cv::Size& input_size,
  */
 std::vector<float> ImageProcessor::flattenImage(cv::Mat& img) const
 {
-    std::vector<float> flatten_img(3 * INPUT_IMG_SIZE.height *
-                                   INPUT_IMG_SIZE.width);
+    cv::resize(img, img, input_size_);
+    std::vector<float> flatten_img(3 * input_size_.height * input_size_.width);
 
     for (int c = 0; c < 3; ++c)
     {

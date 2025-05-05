@@ -4,8 +4,8 @@
 #include <opencv2/cudaimgproc.hpp>
 #include <rclcpp/rclcpp.hpp>
 
-const cv::Size INPUT_IMG_SIZE(256, 256);
-const cv::Size OUTPUT_IMG_SIZE(256, 256);
+const cv::Size INPUT_IMG_SIZE(640, 640);
+const cv::Size OUTPUT_IMG_SIZE(640, 640);
 
 constexpr int LOW_CANNY = 50;
 constexpr int HIGH_CANNY = 80;
