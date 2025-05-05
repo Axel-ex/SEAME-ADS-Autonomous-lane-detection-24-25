@@ -35,7 +35,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(lane_msgs REQUIRED)
+find_package(custom_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
@@ -54,7 +54,7 @@ target_link_libraries(${exec_name}
   ${CUDA_LIBRARIES}
 )
 
-ament_target_dependencies(${exec_name} rclcpp std_msgs sensor_msgs lane_msgs visualization_msgs image_transport cv_bridge)
+ament_target_dependencies(${exec_name} rclcpp std_msgs sensor_msgs custom_msgs visualization_msgs image_transport cv_bridge)
 
 install(TARGETS ${exec_name} DESTINATION lib/${PROJECT_NAME})
 ament_package()

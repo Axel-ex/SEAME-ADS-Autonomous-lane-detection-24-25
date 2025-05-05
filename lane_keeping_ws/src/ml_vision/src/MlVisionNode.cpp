@@ -14,7 +14,7 @@ MlVisionNode::MlVisionNode() : rclcpp::Node("ml_vision_node")
         { rawImageCallback(img); });
 
     lane_pos_pub_ =
-        create_publisher<lane_msgs::msg::LanePositions>("lane_positions", 10);
+        create_publisher<custom_msgs::msg::LanePositions>("lane_positions", 10);
 }
 
 /**
@@ -88,7 +88,7 @@ void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
  */
 void MlVisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines)
 {
-    lane_msgs::msg::LanePositions msg;
+    custom_msgs::msg::LanePositions msg;
     msg.header.stamp = this->now();
 
     std::vector<cv::Vec4i> left_lines, right_lines;

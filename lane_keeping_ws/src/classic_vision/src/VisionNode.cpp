@@ -1,6 +1,5 @@
 #include "VisionNode.hpp"
 #include "cv_bridge/cv_bridge.h"
-#include <lane_msgs/msg/lane_positions.hpp>
 #include <opencv2/cudaarithm.hpp>
 #include <opencv2/cudafilters.hpp>
 #include <opencv2/cudaimgproc.hpp>
@@ -26,7 +25,7 @@ VisionNode::VisionNode() : Node("vision_node")
         "image_raw", qos,
         [this](sensor_msgs::msg::Image::SharedPtr img)
         { VisionNode::rawImageCallback(img); });
-    lane_pos_pub_ = this->create_publisher<lane_msgs::msg::LanePositions>(
+    lane_pos_pub_ = this->create_publisher<custom_msgs::msg::LanePositions>(
         "lane_position", 10);
 
     this->declare_parameter("max_detected_lines", 200);
@@ -159,7 +158,7 @@ std::vector<Vec4i> VisionNode::getLines(cuda::GpuMat& gpu_img)
 void VisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines,
                                       int img_width, int img_height)
 {
-    lane_msgs::msg::LanePositions msg;
+    custom_msgs::msg::LanePositions msg;
     msg.header.stamp = this->now();
 
     std::vector<cv::Vec4i> left_lines, right_lines;

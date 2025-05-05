@@ -1,8 +1,8 @@
 #pragma once
 
+#include <custom_msgs/msg/lane_positions.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
-#include <lane_msgs/msg/lane_positions.hpp>
 #include <opencv2/opencv.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
@@ -30,7 +30,7 @@ class VisionNode : public rclcpp::Node
 
     private:
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_img_sub_;
-        rclcpp::Publisher<lane_msgs::msg::LanePositions>::SharedPtr
+        rclcpp::Publisher<custom_msgs::msg::LanePositions>::SharedPtr
             lane_pos_pub_;
         image_transport::Publisher edge_img_pub_;
         image_transport::Publisher mask_pub_;

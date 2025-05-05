@@ -33,25 +33,27 @@ ImageProcessor::ImageProcessor(const cv::Size& input_size,
  * @brief Resizes and normalizes a BGR image, flattening it into a float vector.
  *
  * The image is resized to the configured input size, and each channel is
- * normalized to [0, 1].
+ * normalized to [0, 1]. The data is then stored in CHW (all red pixels,
+ * followed by all green pixels...)
  *
  * @param img Reference to the input image (cv::Mat).
  * @return std::vector<float> Flattened, normalized image data.
  */
-std::vector<float> ImageProcessor::flattenImage(cv::Mat& img) const
+std::vector<float> flattenImage(cv::Mat& img)
 {
-    cv::resize(img, img, input_size_);
-    std::vector<float> flatten_img(input_size_.height * input_size_.width * 3);
+    std::vector<float> flatten_img(3 * INPUT_IMG_SIZE.height *
+                                   INPUT_IMG_SIZE.width);
 
-    for (int y = 0; y < img.rows; y++)
+    for (int c = 0; c < 3; ++c)
     {
-        for (int x = 0; x < img.cols; x++)
+        for (int y = 0; y < img.rows; ++y)
         {
-            cv::Vec3b pixel = img.at<cv::Vec3b>(y, x);
-            size_t base = (y * img.cols + x) * 3;
-            flatten_img[base + 0] = static_cast<float>(pixel[2] / 255.0);
-            flatten_img[base + 1] = static_cast<float>(pixel[1] / 255.0);
-            flatten_img[base + 2] = static_cast<float>(pixel[0] / 255.0);
+            for (int x = 0; x < img.cols; ++x)
+            {
+                float val =
+                    static_cast<float>(img.at<cv::Vec3b>(y, x)[2 - c]) / 255.0f;
+                flatten_img[c * img.rows * img.cols + y * img.cols + x] = val;
+            }
         }
     }
     return flatten_img;

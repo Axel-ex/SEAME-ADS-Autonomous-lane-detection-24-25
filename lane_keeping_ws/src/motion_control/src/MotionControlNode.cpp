@@ -15,12 +15,12 @@ using namespace rclcpp;
 MotionControlNode::MotionControlNode()
     : Node("motion_control_node"), kalmman_filter_(0.1, 0.5), lane_buffer_(3)
 {
-    lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
+    lane_pos_sub_ = this->create_subscription<custom_msgs::msg::LanePositions>(
         "lane_position", 1,
-        [this](lane_msgs::msg::LanePositions::SharedPtr lane_msg)
+        [this](custom_msgs::msg::LanePositions::SharedPtr lane_msg)
         { MotionControlNode::lanePositionCallback(lane_msg); });
     polyfit_coefs_pub_ =
-        create_publisher<lane_msgs::msg::PolyfitCoefs>("polyfit_coefs", 1);
+        create_publisher<custom_msgs::msg::PolyfitCoefs>("polyfit_coefs", 1);
     cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 1);
 
     declare_parameter("kp", 1.0);
@@ -48,7 +48,7 @@ void MotionControlNode::initPIDController()
  * @param lane_msg Shared pointer to LanePositions message.
  */
 void MotionControlNode::lanePositionCallback(
-    lane_msgs::msg::LanePositions::SharedPtr lane_msg)
+    custom_msgs::msg::LanePositions::SharedPtr lane_msg)
 {
     std::vector<double> left_coefs, right_coefs;
 
@@ -91,7 +91,7 @@ void MotionControlNode::lanePositionCallback(
  */
 void MotionControlNode::calculatePolyfitCoefs(
     std::vector<double>& left_coefs, std::vector<double>& right_coefs,
-    lane_msgs::msg::LanePositions::SharedPtr lane_msg)
+    custom_msgs::msg::LanePositions::SharedPtr lane_msg)
 {
     std::vector<double> left_x, left_y, right_x, right_y;
     size_t degree = 2;
@@ -261,7 +261,7 @@ void MotionControlNode::publishPolyfitCoefficients(
     const std::vector<double>& left_coefs,
     const std::vector<double>& right_coefs, Point32& lane_center)
 {
-    lane_msgs::msg::PolyfitCoefs msg;
+    custom_msgs::msg::PolyfitCoefs msg;
 
     msg.header.stamp = now();
     for (const auto& coef : left_coefs)

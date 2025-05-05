@@ -11,14 +11,14 @@ LaneVisualizationNode::LaneVisualizationNode()
         { this->rawImageCallback(msg); });
 
     polyfit_coefs_sub_ =
-        this->create_subscription<lane_msgs::msg::PolyfitCoefs>(
+        this->create_subscription<custom_msgs::msg::PolyfitCoefs>(
             "polyfit_coefs", 1,
-            [this](const lane_msgs::msg::PolyfitCoefs::SharedPtr msg)
+            [this](const custom_msgs::msg::PolyfitCoefs::SharedPtr msg)
             { this->storeCoefs(msg); });
 
-    lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
+    lane_pos_sub_ = this->create_subscription<custom_msgs::msg::LanePositions>(
         "lane_position", 1,
-        [this](const lane_msgs::msg::LanePositions::SharedPtr msg)
+        [this](const custom_msgs::msg::LanePositions::SharedPtr msg)
         { this->storeLanePosition(msg); });
 
     RCLCPP_INFO(this->get_logger(), "starting LaneVisualisationNode");
@@ -31,7 +31,7 @@ void LaneVisualizationNode::initPublishers()
 }
 
 void LaneVisualizationNode::storeLanePosition(
-    const lane_msgs::msg::LanePositions::SharedPtr msg)
+    const custom_msgs::msg::LanePositions::SharedPtr msg)
 {
     left_lane_pos_.clear();
     right_lane_pos_.clear();
@@ -43,7 +43,7 @@ void LaneVisualizationNode::storeLanePosition(
 }
 
 void LaneVisualizationNode::storeCoefs(
-    const lane_msgs::msg::PolyfitCoefs::SharedPtr msg)
+    const custom_msgs::msg::PolyfitCoefs::SharedPtr msg)
 {
     left_coefs_.clear();
     right_coefs_.clear();

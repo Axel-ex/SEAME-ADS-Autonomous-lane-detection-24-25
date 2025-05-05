@@ -1,10 +1,10 @@
 #pragma once
 
+#include <custom_msgs/msg/lane_positions.hpp>
+#include <custom_msgs/msg/polyfit_coefs.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <image_transport/image_transport.h>
-#include <lane_msgs/msg/lane_positions.hpp>
-#include <lane_msgs/msg/polyfit_coefs.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/msg/point_cloud.hpp>
@@ -40,14 +40,14 @@ class LaneVisualizationNode : public rclcpp::Node
         Point32 lane_center_;
 
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_img_sub_;
-        rclcpp::Subscription<lane_msgs::msg::LanePositions>::SharedPtr
+        rclcpp::Subscription<custom_msgs::msg::LanePositions>::SharedPtr
             lane_pos_sub_;
-        rclcpp::Subscription<lane_msgs::msg::PolyfitCoefs>::SharedPtr
+        rclcpp::Subscription<custom_msgs::msg::PolyfitCoefs>::SharedPtr
             polyfit_coefs_sub_;
         image_transport::Publisher processed_img_pub_;
 
         void rawImageCallback(const sensor_msgs::msg::Image::SharedPtr msg);
         void
-        storeLanePosition(const lane_msgs::msg::LanePositions::SharedPtr msg);
-        void storeCoefs(const lane_msgs::msg::PolyfitCoefs::SharedPtr msg);
+        storeLanePosition(const custom_msgs::msg::LanePositions::SharedPtr msg);
+        void storeCoefs(const custom_msgs::msg::PolyfitCoefs::SharedPtr msg);
 };
