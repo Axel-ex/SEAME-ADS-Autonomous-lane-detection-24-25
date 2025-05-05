@@ -15,6 +15,9 @@ YoloVisionNode::YoloVisionNode() : rclcpp::Node("ml_vision_node")
 
     lane_pos_pub_ =
         create_publisher<custom_msgs::msg::LanePositions>("lane_positions", 10);
+
+    yolo_result_pub_ =
+        create_publisher<custom_msgs::msg::YoloResult>("yolo_result", 10);
 }
 
 /**
@@ -144,7 +147,24 @@ YoloResult YoloVisionNode::extractResult()
     return result;
 }
 
-void YoloVisionNode::publishResult(YoloResult& result) {}
+void YoloVisionNode::publishResult(YoloResult& result)
+{
+    custom_msgs::msg::YoloResult msg;
+
+    for (int i = 0; i < result.boxes.size(); i++)
+    {
+        custom_msgs::msg::Rect box;
+        box.x = result.boxes[i].x;
+        box.y = result.boxes[i].y;
+        box.height = result.boxes[i].height;
+        box.width = result.boxes[i].width;
+
+        msg.boxes.push_back(box);
+        msg.class_ids.push_back(result.class_ids[i]);
+        msg.confidences.push_back(result.confidences[i]);
+    }
+    yolo_result_pub_->publish(msg);
+}
 
 std::string YoloVisionNode::mapIdtoString(int id)
 {

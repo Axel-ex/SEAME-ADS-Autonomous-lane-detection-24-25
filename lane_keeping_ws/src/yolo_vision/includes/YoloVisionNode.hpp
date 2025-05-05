@@ -3,6 +3,7 @@
 #include <ImageProcessor.hpp>
 #include <InferenceEngine.hpp>
 #include <custom_msgs/msg/lane_positions.hpp>
+#include <custom_msgs/msg/yolo_result.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <image_transport/image_transport.h>
 #include <opencv2/cudaarithm.hpp>
@@ -55,6 +56,8 @@ class YoloVisionNode : public rclcpp::Node
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_img_sub_;
         rclcpp::Publisher<custom_msgs::msg::LanePositions>::SharedPtr
             lane_pos_pub_; // TODO: custom message for object detection
+        rclcpp::Publisher<custom_msgs::msg::YoloResult>::SharedPtr
+            yolo_result_pub_;
         image_transport::Publisher processed_img_pub_;
 
         // ML and CV
