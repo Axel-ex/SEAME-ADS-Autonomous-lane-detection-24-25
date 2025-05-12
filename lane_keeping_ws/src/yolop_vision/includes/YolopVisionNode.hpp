@@ -14,7 +14,6 @@
 
 constexpr int LOG_FREQ = 5000;
 const std::vector<std::string> YOLOP_CLASSES = {"car"};
-constexpr int NB_CLASSES = 1;
 
 struct YoloResult
 {
@@ -47,7 +46,7 @@ class YolopVisionNode : public rclcpp::Node
 
         // Private function member
         void rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg);
-        YoloResult extractResult();
+        YoloResult extractObjectDetectionResult();
         void publishResult(YoloResult& result);
         void publishDebug(YoloResult& result, cv::Mat& og_img,
                           std::string& encoding);

@@ -60,6 +60,7 @@ class MotionControlNode : public rclcpp::Node
                                          Point32& heading_point, int img_width);
         void publishPolyfitCoefficients(const std::vector<double>& left_coefs,
                                         const std::vector<double>& right_coefs,
-                                        Point32& lane_center);
+                                        Point32& lane_center,
+                                        Point32& heading_point);
         void stopVehicle();
 };

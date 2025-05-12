@@ -79,82 +79,84 @@ void YolopVisionNode::rawImageCallback(
         return;
     }
 
-    // YoloResult res = extractResult();
-    // publishResult(res);
-    // publishDebug(res, image, img_msg->encoding);
+    YoloResult res = extractObjectDetectionResult();
+    publishResult(res);
+    publishDebug(res, image, img_msg->encoding);
 }
-//
-// YoloResult YolopVisionNode::extractResult()
-// {
-//     std::vector<float> host_output =
-//     inference_engine_->getOutputDeviceData();
-//
-//     // Loop over the detections (Refer to check_bindings for this
-//     information) const int nb_elements = 25200; const int num_classes = 80;
-//     const int element_size = 5 + num_classes;
-//
-//     float conf_threshold = 0.2;
-//     std::vector<cv::Rect> boxes;
-//     std::vector<float> confidences;
-//     std::vector<int> class_ids;
-//
-//     for (int i = 0; i < nb_elements; i++)
-//     {
-//         const float* element = &host_output[i * element_size];
-//         float elem_conf = element[4];
-//
-//         if (elem_conf < conf_threshold)
-//             continue;
-//
-//         // Find class with max score
-//         float max_class_prob = 0.0f;
-//         int class_id = -1;
-//         for (int c = 0; c < num_classes; ++c)
-//         {
-//             if (element[5 + c] > max_class_prob)
-//             {
-//                 max_class_prob = element[5 + c];
-//                 class_id = c;
-//             }
-//         }
-//
-//         float final_conf = elem_conf * max_class_prob;
-//         if (final_conf < conf_threshold)
-//             continue;
-//
-//         // YOLO box format is center_x, center_y, width, height
-//         float cx = element[0];
-//         float cy = element[1];
-//         float w = element[2];
-//         float h = element[3];
-//
-//         int left = static_cast<int>(cx - w / 2.0f);
-//         int top = static_cast<int>(cy - h / 2.0f);
-//         int width = static_cast<int>(w);
-//         int height = static_cast<int>(h);
-//
-//         boxes.emplace_back(left, top, width, height);
-//         confidences.push_back(final_conf);
-//         class_ids.push_back(class_id);
-//     }
-//
-//     // Filter with non maximum suppression (NMS)
-//     std::vector<int> indices;
-//     float nms_treshold = 0.45f;
-//     cv::dnn::NMSBoxes(boxes, confidences, conf_threshold, nms_treshold,
-//                       indices);
-//
-//     YoloResult result;
-//
-//     for (int idx : indices)
-//     {
-//         result.boxes.push_back(boxes[idx]);
-//         result.confidences.push_back(confidences[idx]);
-//         result.class_ids.push_back(mapIdtoString(class_ids[idx]));
-//     }
-//
-//     return result;
-// }
+
+YoloResult YolopVisionNode::extractObjectDetectionResult()
+{
+    std::vector<float> host_output(inference_engine_->getOuputSizes()[0] /
+                                   sizeof(float));
+    cudaMemcpy(host_output.data(), inference_engine_->getOutputDevicePtrs()[0],
+               inference_engine_->getOuputSizes()[0], cudaMemcpyDeviceToHost);
+
+    // Loop over the detections (Refer to check_bindings for this information)
+    const int nb_elements = 25200;
+    const int element_size = 5 + YOLOP_CLASSES.size();
+
+    float conf_threshold = 0.2;
+    std::vector<cv::Rect> boxes;
+    std::vector<float> confidences;
+    std::vector<int> class_ids;
+
+    for (int i = 0; i < nb_elements; i++)
+    {
+        const float* element = &host_output[i * element_size];
+        float elem_conf = element[4];
+
+        if (elem_conf < conf_threshold)
+            continue;
+
+        // Find class with max score
+        float max_class_prob = 0.0f;
+        int class_id = -1;
+        for (int c = 0; c < YOLOP_CLASSES.size(); ++c)
+        {
+            if (element[5 + c] > max_class_prob)
+            {
+                max_class_prob = element[5 + c];
+                class_id = c;
+            }
+        }
+
+        float final_conf = elem_conf * max_class_prob;
+        if (final_conf < conf_threshold)
+            continue;
+
+        // YOLO box format is center_x, center_y, width, height
+        float cx = element[0];
+        float cy = element[1];
+        float w = element[2];
+        float h = element[3];
+
+        int left = static_cast<int>(cx - w / 2.0f);
+        int top = static_cast<int>(cy - h / 2.0f);
+        int width = static_cast<int>(w);
+        int height = static_cast<int>(h);
+
+        boxes.emplace_back(left, top, width, height);
+        confidences.push_back(final_conf);
+        class_ids.push_back(class_id);
+    }
+
+    // Filter with non maximum suppression (NMS)
+    std::vector<int> indices;
+    float nms_treshold = 0.45f;
+    cv::dnn::NMSBoxes(boxes, confidences, conf_threshold, nms_treshold,
+                      indices);
+
+    YoloResult result;
+
+    for (int idx : indices)
+    {
+        result.boxes.push_back(boxes[idx]);
+        result.confidences.push_back(confidences[idx]);
+        result.class_ids.push_back(mapIdtoString(class_ids[idx]));
+    }
+
+    return result;
+}
 
 void YolopVisionNode::publishResult(YoloResult& result)
 {
@@ -215,7 +217,7 @@ void YolopVisionNode::publishDebug(YoloResult& result, cv::Mat& og_img,
 
 std::string YolopVisionNode::mapIdtoString(int id)
 {
-    if (id >= NB_CLASSES)
+    if (id >= YOLOP_CLASSES.size())
         return "Invalid id";
     return YOLOP_CLASSES[id];
 }

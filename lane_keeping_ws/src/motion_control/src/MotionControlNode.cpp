@@ -70,7 +70,8 @@ void MotionControlNode::lanePositionCallback(
                                           lane_msg->image_height.data);
     calculateAndPublishControls(lane_center, heading_point,
                                 lane_msg->image_width.data);
-    publishPolyfitCoefficients(left_coefs, right_coefs, lane_center);
+    publishPolyfitCoefficients(left_coefs, right_coefs, lane_center,
+                               heading_point);
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                          "right: %.4f; %.2f; %.2f, left: %.4f; %.2f; %.2f\n",
                          right_coefs[2], right_coefs[1], right_coefs[0],
@@ -259,7 +260,8 @@ void MotionControlNode::stopVehicle()
  */
 void MotionControlNode::publishPolyfitCoefficients(
     const std::vector<double>& left_coefs,
-    const std::vector<double>& right_coefs, Point32& lane_center)
+    const std::vector<double>& right_coefs, Point32& lane_center,
+    Point32& heading_point)
 {
     custom_msgs::msg::PolyfitCoefs msg;
 
@@ -269,5 +271,6 @@ void MotionControlNode::publishPolyfitCoefficients(
     for (const auto& coef : right_coefs)
         msg.right_coefs.push_back(static_cast<float>(coef));
     msg.lane_center = lane_center;
+    msg.heading_point = heading_point;
     polyfit_coefs_pub_->publish(msg);
 }
