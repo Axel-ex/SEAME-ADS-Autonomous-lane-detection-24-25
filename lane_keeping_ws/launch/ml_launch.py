@@ -11,24 +11,24 @@ def generate_launch_description():
             description="Logging level",
         ),
         Node(
-            package='ml_vision',
-            node_executable='ml_vision_node',
-            node_name='ml_vision',
+            package='unet_vision',
+            node_executable='unet_vision_node',
+            node_name='unet_vision_node',
         ),
         # Node(
         #     package='motion_control',
         #     node_executable='motion_control_node',  
         #     node_name='motion_control',  
         # ),
-        # Node(
-        #     package='lane_visualization',
-        #     node_executable='lane_visualization_node',  
-        #     node_name='lane_visualization',  
-        # ),
-        # Node(
-        #     package='camera',
-        #     node_executable='camera_node',  
-        #     node_name='camera_node',  
-        #     arguments=['--ros-args', '--log-level', 'debug'],
-        # )
+        Node(
+            package='lane_visualization',
+            node_executable='lane_visualization_node',  
+            node_name='lane_visualization',  
+        ),
+        Node(
+            package='camera',
+            node_executable='camera_node',  
+            node_name='camera_node',  
+            arguments=['--ros-args', '--log-level', 'debug'],
+        )
     ])

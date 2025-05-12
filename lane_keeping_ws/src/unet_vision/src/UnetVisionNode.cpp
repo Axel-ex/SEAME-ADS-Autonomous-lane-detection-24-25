@@ -14,7 +14,7 @@ UnetVisionNode::UnetVisionNode() : rclcpp::Node("ml_vision_node")
         { rawImageCallback(img); });
 
     lane_pos_pub_ =
-        create_publisher<custom_msgs::msg::LanePositions>("lane_positions", 10);
+        create_publisher<custom_msgs::msg::LanePositions>("lane_position", 10);
 }
 
 /**

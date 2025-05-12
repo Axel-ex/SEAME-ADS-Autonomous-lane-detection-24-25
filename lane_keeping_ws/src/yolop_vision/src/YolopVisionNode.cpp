@@ -81,16 +81,14 @@ void YolopVisionNode::rawImageCallback(
 
     YoloResult res = extractObjectDetectionResult();
     auto lane_mask = extractLaneMask();
-    // TODO: Publish lane mask
-    // TODO: extract lines from lane_mask
-    // TODO: publish lane positions
-    publishYoloResult(res);
     image_processor_->applyCannyEdge(lane_mask);
 
     auto lines = image_processor_->getLines(lane_mask);
-    publishLanePositions(lines);
     cv::Mat cpu_lane_mask;
     lane_mask.download(cpu_lane_mask);
+
+    publishYoloResult(res);
+    publishLanePositions(lines);
     publishDebug(res, image, cpu_lane_mask, img_msg->encoding);
 }
 
