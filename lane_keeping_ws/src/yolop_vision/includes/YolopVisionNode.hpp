@@ -48,14 +48,12 @@ class YolopVisionNode : public rclcpp::Node
         void rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg);
         YoloResult extractObjectDetectionResult();
         cv::Mat extractLaneMask();
-        void publishResult(YoloResult& result);
+        void publishYoloResult(YoloResult& result);
         void publishDebug(YoloResult& result, cv::Mat& og_img,
                           cv::Mat& lane_mask, std::string& encoding);
 
         // helpers
         std::string mapIdtoString(int id);
-        void publishDebug(cv::cuda::GpuMat& gpu_img,
-                          image_transport::Publisher& publisher) const;
 
         // needed?
         void publishLanePositions(std::vector<cv::Vec4i>& lines);

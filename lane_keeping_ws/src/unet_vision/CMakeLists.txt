@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(ml_vision)
+project(unet_vision)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -29,7 +29,7 @@ include_directories(includes)
 
 add_executable(${PROJECT_NAME}_node
   src/main.cpp
-  src/MlVisionNode.cpp
+  src/UnetVisionNode.cpp
   src/InferenceEngine.cpp
   src/ImageProcessor.cpp
   src/Logger.cpp

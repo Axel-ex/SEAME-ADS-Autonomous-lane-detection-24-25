@@ -1,12 +1,12 @@
 #include <Logger.hpp>
-#include <MlVisionNode.hpp>
+#include <UnetVisionNode.hpp>
 #include <cv_bridge/cv_bridge.h>
 
 /**
  * @brief Initialize ROS subscriber and publisher as well as OpenCV objects used
  * for post processing of inference output
  */
-MlVisionNode::MlVisionNode() : rclcpp::Node("ml_vision_node")
+UnetVisionNode::UnetVisionNode() : rclcpp::Node("ml_vision_node")
 {
     raw_img_sub_ = create_subscription<sensor_msgs::msg::Image>(
         "image_raw", 1,
@@ -21,7 +21,7 @@ MlVisionNode::MlVisionNode() : rclcpp::Node("ml_vision_node")
  * @brief Initializes inference engine, image processor, and debug publishers.
  * @return True if successful.
  */
-bool MlVisionNode::init()
+bool UnetVisionNode::init()
 {
     inference_engine_ = std::make_unique<InferenceEngine>(shared_from_this());
     inference_engine_->init();
@@ -46,7 +46,8 @@ bool MlVisionNode::init()
  *
  * @param img_msg The incoming image message.
  */
-void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
+void UnetVisionNode::rawImageCallback(
+    sensor_msgs::msg::Image::SharedPtr img_msg)
 {
     auto converted = cv_bridge::toCvShare(img_msg, img_msg->encoding);
     auto image = converted->image;
@@ -86,7 +87,7 @@ void MlVisionNode::rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg)
  *
  * @param lines Vector of detected lines (Vec4i format).
  */
-void MlVisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines)
+void UnetVisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines)
 {
     custom_msgs::msg::LanePositions msg;
     msg.header.stamp = this->now();
@@ -144,8 +145,8 @@ void MlVisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines)
  * @param gpu_img The image to publish.
  * @param publisher The publisher associated with the debug topic.
  */
-void MlVisionNode::publishDebug(cv::cuda::GpuMat& gpu_img,
-                                image_transport::Publisher& publisher) const
+void UnetVisionNode::publishDebug(cv::cuda::GpuMat& gpu_img,
+                                  image_transport::Publisher& publisher) const
 {
     std_msgs::msg::Header header;
     cv::Mat cpu_img;

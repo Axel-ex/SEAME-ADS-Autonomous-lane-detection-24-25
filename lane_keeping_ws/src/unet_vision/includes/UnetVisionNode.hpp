@@ -28,11 +28,11 @@ const cv::Size OUTPUT_IMG_SIZE(256, 256);
  * - Extracts lane lines from model output via Hough Transform.
  * - Publishes lane lines and debug visualizations.
  */
-class MlVisionNode : public rclcpp::Node
+class UnetVisionNode : public rclcpp::Node
 {
     public:
-        MlVisionNode();
-        ~MlVisionNode() = default;
+        UnetVisionNode();
+        ~UnetVisionNode() = default;
 
         bool init();
 

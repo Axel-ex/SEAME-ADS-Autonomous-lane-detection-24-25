@@ -81,7 +81,10 @@ void YolopVisionNode::rawImageCallback(
 
     YoloResult res = extractObjectDetectionResult();
     cv::Mat lane_mask = extractLaneMask();
-    publishResult(res);
+    // TODO: Publish lane mask
+    // TODO: extract lines from lane_mask
+    // TODO: publish lane positions
+    publishYoloResult(res);
     publishDebug(res, image, lane_mask, img_msg->encoding);
 }
 
@@ -167,7 +170,7 @@ cv::Mat YolopVisionNode::extractLaneMask()
     // Output size = 2 x 640 x 640 floats (2 channels)
     std::vector<float> lane_mask_data(output_size / sizeof(float));
     cudaMemcpy(lane_mask_data.data(), output_ptr, output_size,
-               cudaMemcpyDeviceToHost);
+               cudaMemcpyDeviceToHost); // WARN: handle memcpy failure
 
     const int height = INPUT_IMG_SIZE.height;
     const int width = INPUT_IMG_SIZE.width;
@@ -190,7 +193,7 @@ cv::Mat YolopVisionNode::extractLaneMask()
     return lane_mask;
 }
 
-void YolopVisionNode::publishResult(YoloResult& result)
+void YolopVisionNode::publishYoloResult(YoloResult& result)
 {
     custom_msgs::msg::YoloResult msg;
 
@@ -312,21 +315,4 @@ void YolopVisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines)
     msg.image_height.data = OUTPUT_IMG_SIZE.height;
 
     lane_pos_pub_->publish(msg);
-}
-
-/**
- * @brief Publishes debug image to the topic associated with the publisher
- * passed in argument.
- *
- * @param gpu_img The image to publish.
- * @param publisher The publisher associated with the debug topic.
- */
-void YolopVisionNode::publishDebug(cv::cuda::GpuMat& gpu_img,
-                                   image_transport::Publisher& publisher) const
-{
-    std_msgs::msg::Header header;
-    cv::Mat cpu_img;
-    gpu_img.download(cpu_img);
-    auto msg = cv_bridge::CvImage(header, "mono8", cpu_img);
-    publisher.publish(msg.toImageMsg());
 }
