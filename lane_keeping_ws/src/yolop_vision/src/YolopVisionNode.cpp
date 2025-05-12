@@ -80,12 +80,18 @@ void YolopVisionNode::rawImageCallback(
     }
 
     YoloResult res = extractObjectDetectionResult();
-    cv::Mat lane_mask = extractLaneMask();
+    auto lane_mask = extractLaneMask();
     // TODO: Publish lane mask
     // TODO: extract lines from lane_mask
     // TODO: publish lane positions
     publishYoloResult(res);
-    publishDebug(res, image, lane_mask, img_msg->encoding);
+    image_processor_->applyCannyEdge(lane_mask);
+
+    auto lines = image_processor_->getLines(lane_mask);
+    publishLanePositions(lines);
+    cv::Mat cpu_lane_mask;
+    lane_mask.download(cpu_lane_mask);
+    publishDebug(res, image, cpu_lane_mask, img_msg->encoding);
 }
 
 YoloResult YolopVisionNode::extractObjectDetectionResult()
@@ -162,35 +168,29 @@ YoloResult YolopVisionNode::extractObjectDetectionResult()
     return result;
 }
 
-cv::Mat YolopVisionNode::extractLaneMask()
+cv::cuda::GpuMat YolopVisionNode::extractLaneMask()
 {
     float* output_ptr = inference_engine_->getOutputDevicePtrs()[2];
-    size_t output_size = inference_engine_->getOuputSizes()[2];
-
-    // Output size = 2 x 640 x 640 floats (2 channels)
-    std::vector<float> lane_mask_data(output_size / sizeof(float));
-    cudaMemcpy(lane_mask_data.data(), output_ptr, output_size,
-               cudaMemcpyDeviceToHost); // WARN: handle memcpy failure
 
     const int height = INPUT_IMG_SIZE.height;
     const int width = INPUT_IMG_SIZE.width;
-    const int channels = 2;
 
-    // Argmax to get binary mask
-    cv::Mat lane_mask(height, width, CV_8UC1);
+    // Create two separate 1-channel GpuMat headers using pointer arithmetic
+    size_t plane_size = height * width * sizeof(float);
 
-    for (int y = 0; y < height; ++y)
-    {
-        for (int x = 0; x < width; ++x)
-        {
-            float val0 = lane_mask_data[0 * height * width + y * width + x];
-            float val1 = lane_mask_data[1 * height * width + y * width + x];
-            lane_mask.at<uchar>(y, x) =
-                (val1 > val0) ? 255 : 0; // 255 = lane, 0 = background
-        }
-    }
+    cv::cuda::GpuMat logits_channel_0(height, width, CV_32FC1, output_ptr);
+    cv::cuda::GpuMat logits_channel_1(height, width, CV_32FC1,
+                                      output_ptr + height * width);
 
-    return lane_mask;
+    // Compare the two channels directly on GPU
+    cv::cuda::GpuMat lane_mask_gpu;
+    cv::cuda::compare(logits_channel_1, logits_channel_0, lane_mask_gpu,
+                      cv::CMP_GT);
+
+    // Ensure correct output type
+    lane_mask_gpu.convertTo(lane_mask_gpu, CV_8UC1);
+
+    return lane_mask_gpu;
 }
 
 void YolopVisionNode::publishYoloResult(YoloResult& result)
