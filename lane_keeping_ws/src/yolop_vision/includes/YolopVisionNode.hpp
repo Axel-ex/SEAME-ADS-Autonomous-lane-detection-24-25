@@ -47,9 +47,10 @@ class YolopVisionNode : public rclcpp::Node
         // Private function member
         void rawImageCallback(sensor_msgs::msg::Image::SharedPtr img_msg);
         YoloResult extractObjectDetectionResult();
+        cv::Mat extractLaneMask();
         void publishResult(YoloResult& result);
         void publishDebug(YoloResult& result, cv::Mat& og_img,
-                          std::string& encoding);
+                          cv::Mat& lane_mask, std::string& encoding);
 
         // helpers
         std::string mapIdtoString(int id);

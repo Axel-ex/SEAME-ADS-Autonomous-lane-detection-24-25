@@ -80,8 +80,9 @@ void YolopVisionNode::rawImageCallback(
     }
 
     YoloResult res = extractObjectDetectionResult();
+    cv::Mat lane_mask = extractLaneMask();
     publishResult(res);
-    publishDebug(res, image, img_msg->encoding);
+    publishDebug(res, image, lane_mask, img_msg->encoding);
 }
 
 YoloResult YolopVisionNode::extractObjectDetectionResult()
@@ -158,6 +159,37 @@ YoloResult YolopVisionNode::extractObjectDetectionResult()
     return result;
 }
 
+cv::Mat YolopVisionNode::extractLaneMask()
+{
+    float* output_ptr = inference_engine_->getOutputDevicePtrs()[2];
+    size_t output_size = inference_engine_->getOuputSizes()[2];
+
+    // Output size = 2 x 640 x 640 floats (2 channels)
+    std::vector<float> lane_mask_data(output_size / sizeof(float));
+    cudaMemcpy(lane_mask_data.data(), output_ptr, output_size,
+               cudaMemcpyDeviceToHost);
+
+    const int height = INPUT_IMG_SIZE.height;
+    const int width = INPUT_IMG_SIZE.width;
+    const int channels = 2;
+
+    // Argmax to get binary mask
+    cv::Mat lane_mask(height, width, CV_8UC1);
+
+    for (int y = 0; y < height; ++y)
+    {
+        for (int x = 0; x < width; ++x)
+        {
+            float val0 = lane_mask_data[0 * height * width + y * width + x];
+            float val1 = lane_mask_data[1 * height * width + y * width + x];
+            lane_mask.at<uchar>(y, x) =
+                (val1 > val0) ? 255 : 0; // 255 = lane, 0 = background
+        }
+    }
+
+    return lane_mask;
+}
+
 void YolopVisionNode::publishResult(YoloResult& result)
 {
     custom_msgs::msg::YoloResult msg;
@@ -178,7 +210,7 @@ void YolopVisionNode::publishResult(YoloResult& result)
 }
 
 void YolopVisionNode::publishDebug(YoloResult& result, cv::Mat& og_img,
-                                   std::string& encoding)
+                                   cv::Mat& lane_mask, std::string& encoding)
 {
     for (int i = 0; i < result.boxes.size(); i++)
     {
@@ -206,8 +238,11 @@ void YolopVisionNode::publishDebug(YoloResult& result, cv::Mat& og_img,
                     cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(255, 0, 0));
     }
 
-    cv_bridge::CvImage msg;
+    cv::Mat colored;
+    cv::applyColorMap(lane_mask, colored, cv::COLORMAP_JET);
+    cv::addWeighted(og_img, 0.7, colored, 0.3, 0, og_img);
 
+    cv_bridge::CvImage msg;
     msg.image = og_img;
     msg.encoding = encoding;
     msg.header = std_msgs::msg::Header();
