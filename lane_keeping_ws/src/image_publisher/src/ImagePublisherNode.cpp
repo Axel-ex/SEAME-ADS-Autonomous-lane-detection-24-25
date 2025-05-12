@@ -31,7 +31,7 @@ void ImagePublisherNode::publishImage()
                      full_name.c_str());
         return;
     }
-    cv::resize(img, img, cv::Size(), 0.5, 0.5, cv::INTER_LINEAR);
+    // cv::resize(img, img, cv::Size(), 0.5, 0.5, cv::INTER_LINEAR);
 
     std_msgs::msg::Header header;
     header.stamp = this->now();
