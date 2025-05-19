@@ -1,0 +1,316 @@
+#include <Logger.hpp>
+#include <YolopVisionNode.hpp>
+#include <cv_bridge/cv_bridge.h>
+
+/**
+ * @brief Initialize ROS subscriber and publisher as well as OpenCV objects used
+ * for post processing of inference output
+ */
+YolopVisionNode::YolopVisionNode() : rclcpp::Node("ml_vision_node")
+{
+    raw_img_sub_ = create_subscription<sensor_msgs::msg::Image>(
+        "image_raw", 1,
+        [this](sensor_msgs::msg::Image::SharedPtr img)
+        { rawImageCallback(img); });
+
+    lane_pos_pub_ =
+        create_publisher<custom_msgs::msg::LanePositions>("lane_positions", 10);
+
+    yolo_result_pub_ =
+        create_publisher<custom_msgs::msg::YoloResult>("yolo_result", 10);
+}
+
+/**
+ * @brief Initializes inference engine, image processor, and debug publishers.
+ * @return True if successful.
+ */
+bool YolopVisionNode::init(std::unique_ptr<InferenceEngine> mock_engine,
+                           std::unique_ptr<ImageProcessor> mock_image_proc)
+{
+    if (!mock_engine)
+        inference_engine_ =
+            std::make_unique<InferenceEngine>(shared_from_this());
+    else
+        inference_engine_ = std::move(mock_engine);
+
+    inference_engine_->init();
+
+    if (!mock_image_proc)
+        image_processor_ =
+            std::make_unique<ImageProcessor>(INPUT_IMG_SIZE, OUTPUT_IMG_SIZE);
+    else
+        image_processor_ = std::move(mock_image_proc);
+
+    // For debug purpose
+    image_transport::ImageTransport it(shared_from_this());
+    processed_img_pub_ = it.advertise("processed_img", 1);
+
+    RCLCPP_INFO(get_logger(), "YoloVisionNode initiated.");
+
+    return true;
+}
+
+/**
+ * @brief Callback for raw camera image subscription.
+ *
+ * Handles image conversion, inference, and postprocessing.
+ *
+ * @param img_msg The incoming image message.
+ */
+void YolopVisionNode::rawImageCallback(
+    sensor_msgs::msg::Image::SharedPtr img_msg)
+{
+    auto converted = cv_bridge::toCvShare(img_msg, img_msg->encoding);
+    auto image = converted->image;
+    if (image.empty())
+    {
+        RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), LOG_FREQ,
+                              "Error: received image is empty");
+        return;
+    }
+
+    std::vector<float> input = image_processor_->flattenImage(image);
+
+    bool status = inference_engine_->runInference(input);
+    if (!status)
+    {
+        RCLCPP_ERROR_THROTTLE(get_logger(), *get_clock(), LOG_FREQ,
+                              "Fail running inference");
+        return;
+    }
+
+    YoloResult res = extractObjectDetectionResult();
+    auto lane_mask = extractLaneMask();
+    image_processor_->applyCannyEdge(lane_mask);
+
+    auto lines = image_processor_->getLines(lane_mask);
+    cv::Mat cpu_lane_mask;
+    lane_mask.download(cpu_lane_mask);
+
+    publishYoloResult(res);
+    publishLanePositions(lines);
+    publishDebug(res, image, cpu_lane_mask, img_msg->encoding);
+}
+
+YoloResult YolopVisionNode::extractObjectDetectionResult()
+{
+    std::vector<float> host_output(inference_engine_->getOuputSizes()[0] /
+                                   sizeof(float));
+    cudaMemcpy(host_output.data(), inference_engine_->getOutputDevicePtrs()[0],
+               inference_engine_->getOuputSizes()[0], cudaMemcpyDeviceToHost);
+
+    // Loop over the detections (Refer to check_bindings for this information)
+    const int nb_elements = 25200;
+    const int element_size = 5 + YOLOP_CLASSES.size();
+
+    float conf_threshold = 0.2;
+    std::vector<cv::Rect> boxes;
+    std::vector<float> confidences;
+    std::vector<int> class_ids;
+
+    for (int i = 0; i < nb_elements; i++)
+    {
+        const float* element = &host_output[i * element_size];
+        float elem_conf = element[4];
+
+        if (elem_conf < conf_threshold)
+            continue;
+
+        // Find class with max score
+        float max_class_prob = 0.0f;
+        int class_id = -1;
+        for (int c = 0; c < YOLOP_CLASSES.size(); ++c)
+        {
+            if (element[5 + c] > max_class_prob)
+            {
+                max_class_prob = element[5 + c];
+                class_id = c;
+            }
+        }
+
+        float final_conf = elem_conf * max_class_prob;
+        if (final_conf < conf_threshold)
+            continue;
+
+        // YOLO box format is center_x, center_y, width, height
+        float cx = element[0];
+        float cy = element[1];
+        float w = element[2];
+        float h = element[3];
+
+        int left = static_cast<int>(cx - w / 2.0f);
+        int top = static_cast<int>(cy - h / 2.0f);
+        int width = static_cast<int>(w);
+        int height = static_cast<int>(h);
+
+        boxes.emplace_back(left, top, width, height);
+        confidences.push_back(final_conf);
+        class_ids.push_back(class_id);
+    }
+
+    // Filter with non maximum suppression (NMS)
+    std::vector<int> indices;
+    float nms_treshold = 0.45f;
+    cv::dnn::NMSBoxes(boxes, confidences, conf_threshold, nms_treshold,
+                      indices);
+
+    YoloResult result;
+
+    for (int idx : indices)
+    {
+        result.boxes.push_back(boxes[idx]);
+        result.confidences.push_back(confidences[idx]);
+        result.class_ids.push_back(mapIdtoString(class_ids[idx]));
+    }
+
+    return result;
+}
+
+cv::cuda::GpuMat YolopVisionNode::extractLaneMask()
+{
+    float* output_ptr = inference_engine_->getOutputDevicePtrs()[2];
+
+    const int height = INPUT_IMG_SIZE.height;
+    const int width = INPUT_IMG_SIZE.width;
+
+    // Create two separate 1-channel GpuMat headers using pointer arithmetic
+    size_t plane_size = height * width * sizeof(float);
+
+    cv::cuda::GpuMat logits_channel_0(height, width, CV_32FC1, output_ptr);
+    cv::cuda::GpuMat logits_channel_1(height, width, CV_32FC1,
+                                      output_ptr + height * width);
+
+    // Compare the two channels directly on GPU
+    cv::cuda::GpuMat lane_mask_gpu;
+    cv::cuda::compare(logits_channel_1, logits_channel_0, lane_mask_gpu,
+                      cv::CMP_GT);
+
+    // Ensure correct output type
+    lane_mask_gpu.convertTo(lane_mask_gpu, CV_8UC1);
+
+    return lane_mask_gpu;
+}
+
+void YolopVisionNode::publishYoloResult(YoloResult& result)
+{
+    custom_msgs::msg::YoloResult msg;
+
+    for (int i = 0; i < result.boxes.size(); i++)
+    {
+        custom_msgs::msg::Rect box;
+        box.x = result.boxes[i].x;
+        box.y = result.boxes[i].y;
+        box.height = result.boxes[i].height;
+        box.width = result.boxes[i].width;
+
+        msg.boxes.push_back(box);
+        msg.class_ids.push_back(result.class_ids[i]);
+        msg.confidences.push_back(result.confidences[i]);
+    }
+    yolo_result_pub_->publish(msg);
+}
+
+void YolopVisionNode::publishDebug(YoloResult& result, cv::Mat& og_img,
+                                   cv::Mat& lane_mask, std::string& encoding)
+{
+    for (int i = 0; i < result.boxes.size(); i++)
+    {
+        auto box = result.boxes[i];
+        auto id = result.class_ids[i];
+        auto confidence = result.confidences[i];
+
+        cv::rectangle(og_img, box, cv::Scalar(255, 0, 0));
+
+        // Compose the label
+        std::string label = id;
+        label += " (" + cv::format("%.2f", confidence) + ")";
+
+        // Calculate label position
+        int baseline = 0;
+        cv::Size label_size =
+            cv::getTextSize(label, cv::FONT_HERSHEY_SIMPLEX, 0.5, 1, &baseline);
+        int top = std::max(box.y, label_size.height);
+
+        // Draw the label with backgorund
+        cv::rectangle(og_img, cv::Point(box.x, top - label_size.height),
+                      cv::Point(box.x + label_size.width, top + baseline),
+                      cv::Scalar(255, 255, 255), cv::FILLED);
+        cv::putText(og_img, label, cv::Point(box.x, top),
+                    cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(255, 0, 0));
+    }
+
+    cv::Mat colored;
+    cv::applyColorMap(lane_mask, colored, cv::COLORMAP_JET);
+    cv::addWeighted(og_img, 0.7, colored, 0.3, 0, og_img);
+
+    cv_bridge::CvImage msg;
+    msg.image = og_img;
+    msg.encoding = encoding;
+    msg.header = std_msgs::msg::Header();
+    msg.header.stamp = now();
+    processed_img_pub_.publish(msg.toImageMsg());
+}
+
+std::string YolopVisionNode::mapIdtoString(int id)
+{
+    if (id >= YOLOP_CLASSES.size())
+        return "Invalid id";
+    return YOLOP_CLASSES[id];
+}
+
+//========================================================================================
+/**
+ * @brief Publishes detected lane line segments as ROS message.
+ *
+ * @param lines Vector of detected lines (Vec4i format).
+ */
+void YolopVisionNode::publishLanePositions(std::vector<cv::Vec4i>& lines)
+{
+    custom_msgs::msg::LanePositions msg;
+    msg.header.stamp = this->now();
+
+    std::vector<cv::Vec4i> left_lines, right_lines;
+
+    for (const auto& line : lines)
+    {
+        int x1 = line[0], y1 = line[1], x2 = line[2], y2 = line[3];
+        double slope = static_cast<double>(y2 - y1) / (x2 - x1);
+
+        // remove horizontal lines
+        if (std::abs(slope) < 0.3)
+            continue;
+
+        // Classify lines based on slope and position
+        if (slope < 0 && x1 < (OUTPUT_IMG_SIZE.width / 2))
+            left_lines.push_back(line);
+        else if (slope > 0 && x1 > (OUTPUT_IMG_SIZE.width / 2))
+            right_lines.push_back(line);
+    }
+
+    // Add left lane lines to the message
+    for (auto& line : left_lines)
+    {
+        geometry_msgs::msg::Point32 p1, p2;
+        p1.x = line[0];
+        p1.y = line[1];
+        p2.x = line[2];
+        p2.y = line[3];
+        msg.left_lane.insert(msg.left_lane.end(), {p1, p2});
+    }
+
+    // Add right lane lines to the message
+    for (auto& line : right_lines)
+    {
+        geometry_msgs::msg::Point32 p1, p2;
+        p1.x = line[0];
+        p1.y = line[1];
+        p2.x = line[2];
+        p2.y = line[3];
+        msg.right_lane.insert(msg.right_lane.end(), {p1, p2});
+    }
+
+    msg.image_width.data = OUTPUT_IMG_SIZE.width;
+    msg.image_height.data = OUTPUT_IMG_SIZE.height;
+
+    lane_pos_pub_->publish(msg);
+}

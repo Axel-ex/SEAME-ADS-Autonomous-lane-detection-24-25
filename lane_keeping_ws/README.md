@@ -20,7 +20,7 @@ This ROS2-based system runs on a Jetson Nano and processes camera input to detec
 - **Publishes**:
   - `/image_raw` (sensor_msgs::Image)
 
-### 2. Classic Vision Node (`classic_vision`)
+### 2. OpenCV Vision Node (`opencv_vision`)
 **Function**: Processes raw images to detect lane markings using OpenCV.
 - **Subscribes**:
   - `/image_raw` (sensor_msgs::Image)
@@ -34,7 +34,7 @@ This ROS2-based system runs on a Jetson Nano and processes camera input to detec
 	- `mine_line_length`
 	- `rho`
 
-### 3. Classic Vision Node (`classic_vision`)
+### 3. Machine learning Vision Nodes (`unet_vision`, `yolo_vision`, `yolop_vision`)
 **Function**: Processes raw images to detect lane markings using TensorRT.
 - **Subscribes**:
   - `/image_raw` (sensor_msgs::Image)

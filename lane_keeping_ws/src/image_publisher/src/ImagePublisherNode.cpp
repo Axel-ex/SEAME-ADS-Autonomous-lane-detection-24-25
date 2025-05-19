@@ -13,7 +13,7 @@ ImagePublisherNode::ImagePublisherNode() : Node("image_publisher_node")
         this->create_publisher<sensor_msgs::msg::Image>("image_raw", 10);
     timer_ = this->create_wall_timer(std::chrono::milliseconds(5000),
                                      [this]() { publishImage(); });
-    this->declare_parameter("image_name", "problematic_frame.png");
+    this->declare_parameter("image_name", "motorway_driving_cam.jpg");
     RCLCPP_INFO(this->get_logger(), "%s initialized", this->get_name());
 }
 
@@ -31,7 +31,7 @@ void ImagePublisherNode::publishImage()
                      full_name.c_str());
         return;
     }
-    cv::resize(img, img, cv::Size(), 0.5, 0.5, cv::INTER_LINEAR);
+    // cv::resize(img, img, cv::Size(), 0.5, 0.5, cv::INTER_LINEAR);
 
     std_msgs::msg::Header header;
     header.stamp = this->now();

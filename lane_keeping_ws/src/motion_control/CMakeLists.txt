@@ -32,7 +32,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(lane_msgs REQUIRED)
+find_package(custom_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 
 # Gtest
@@ -54,7 +54,7 @@ if(BUILD_TESTING)
   # Add dependencies to the test target
   ament_target_dependencies(${PROJECT_NAME}_test 
     rclcpp
-	lane_msgs
+	custom_msgs
   )
 endif()
 
@@ -63,7 +63,7 @@ add_executable(${exec_name} ${srcs})
 target_link_libraries(${exec_name}
   ${OpenCV_LIBS}
 )
-ament_target_dependencies(${exec_name} rclcpp std_msgs sensor_msgs lane_msgs visualization_msgs)
+ament_target_dependencies(${exec_name} rclcpp std_msgs sensor_msgs custom_msgs visualization_msgs)
 
 install(TARGETS ${exec_name} DESTINATION lib/${PROJECT_NAME})
 ament_package()

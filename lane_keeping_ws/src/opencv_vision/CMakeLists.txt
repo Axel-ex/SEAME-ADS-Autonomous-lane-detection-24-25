@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(lane_visualization)
+project(opencv_vision)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -23,22 +23,21 @@ endif()
 set(exec_name ${PROJECT_NAME}_node)
 set(src_dir src/)
 set(srcs
-    ${src_dir}main.cpp
-	${src_dir}LaneVisualizationNode.cpp
-)
+        ${src_dir}main.cpp
+        ${src_dir}VisionNode.cpp)
+
 
 # Include directories
-include_directories(includes)
+include_directories(${OpenCV_INCLUDE_DIRS} includes)
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(custom_msgs REQUIRED)
-find_package(visualization_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
+find_package(custom_msgs REQUIRED)
 
 if(BUILD_TESTING)
   # find_package(ament_lint_auto REQUIRED)
@@ -49,12 +48,13 @@ endif()
 
 add_executable(${exec_name} ${srcs})
 
+# Link against OpenCV and other libraries
 target_link_libraries(${exec_name}
   ${OpenCV_LIBS}
   ${CUDA_LIBRARIES}
 )
 
-ament_target_dependencies(${exec_name} rclcpp std_msgs sensor_msgs custom_msgs visualization_msgs image_transport cv_bridge)
+ament_target_dependencies(${exec_name} rclcpp std_msgs sensor_msgs cv_bridge image_transport custom_msgs)
 
 install(TARGETS ${exec_name} DESTINATION lib/${PROJECT_NAME})
 ament_package()

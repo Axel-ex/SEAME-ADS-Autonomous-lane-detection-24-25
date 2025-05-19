@@ -15,19 +15,20 @@ using namespace rclcpp;
 MotionControlNode::MotionControlNode()
     : Node("motion_control_node"), kalmman_filter_(0.1, 0.5), lane_buffer_(3)
 {
-    lane_pos_sub_ = this->create_subscription<lane_msgs::msg::LanePositions>(
+    lane_pos_sub_ = this->create_subscription<custom_msgs::msg::LanePositions>(
         "lane_position", 1,
-        [this](lane_msgs::msg::LanePositions::SharedPtr lane_msg)
+        [this](custom_msgs::msg::LanePositions::SharedPtr lane_msg)
         { MotionControlNode::lanePositionCallback(lane_msg); });
     polyfit_coefs_pub_ =
-        create_publisher<lane_msgs::msg::PolyfitCoefs>("polyfit_coefs", 1);
+        create_publisher<custom_msgs::msg::PolyfitCoefs>("polyfit_coefs", 1);
     cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 1);
 
     declare_parameter("kp", 1.0);
     declare_parameter("ki", 0.0);
     declare_parameter("kd", 0.0);
-    declare_parameter("base_speed", 0.5);
+    declare_parameter("base_speed", 0.2);
     declare_parameter("lookahead_index", 130);
+    RCLCPP_INFO(get_logger(), "Motion control started.");
 }
 
 MotionControlNode::~MotionControlNode() { stopVehicle(); }
@@ -48,7 +49,7 @@ void MotionControlNode::initPIDController()
  * @param lane_msg Shared pointer to LanePositions message.
  */
 void MotionControlNode::lanePositionCallback(
-    lane_msgs::msg::LanePositions::SharedPtr lane_msg)
+    custom_msgs::msg::LanePositions::SharedPtr lane_msg)
 {
     std::vector<double> left_coefs, right_coefs;
 
@@ -70,7 +71,8 @@ void MotionControlNode::lanePositionCallback(
                                           lane_msg->image_height.data);
     calculateAndPublishControls(lane_center, heading_point,
                                 lane_msg->image_width.data);
-    publishPolyfitCoefficients(left_coefs, right_coefs, lane_center);
+    publishPolyfitCoefficients(left_coefs, right_coefs, lane_center,
+                               heading_point);
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                          "right: %.4f; %.2f; %.2f, left: %.4f; %.2f; %.2f\n",
                          right_coefs[2], right_coefs[1], right_coefs[0],
@@ -91,7 +93,7 @@ void MotionControlNode::lanePositionCallback(
  */
 void MotionControlNode::calculatePolyfitCoefs(
     std::vector<double>& left_coefs, std::vector<double>& right_coefs,
-    lane_msgs::msg::LanePositions::SharedPtr lane_msg)
+    custom_msgs::msg::LanePositions::SharedPtr lane_msg)
 {
     std::vector<double> left_x, left_y, right_x, right_y;
     size_t degree = 2;
@@ -259,9 +261,10 @@ void MotionControlNode::stopVehicle()
  */
 void MotionControlNode::publishPolyfitCoefficients(
     const std::vector<double>& left_coefs,
-    const std::vector<double>& right_coefs, Point32& lane_center)
+    const std::vector<double>& right_coefs, Point32& lane_center,
+    Point32& heading_point)
 {
-    lane_msgs::msg::PolyfitCoefs msg;
+    custom_msgs::msg::PolyfitCoefs msg;
 
     msg.header.stamp = now();
     for (const auto& coef : left_coefs)
@@ -269,5 +272,6 @@ void MotionControlNode::publishPolyfitCoefficients(
     for (const auto& coef : right_coefs)
         msg.right_coefs.push_back(static_cast<float>(coef));
     msg.lane_center = lane_center;
+    msg.heading_point = heading_point;
     polyfit_coefs_pub_->publish(msg);
 }
