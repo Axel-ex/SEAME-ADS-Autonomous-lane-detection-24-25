@@ -36,6 +36,8 @@ class ImageProcessor
     private:
         cv::Size input_size_;
         cv::Size output_size_;
+
+        // POSTPROCESSING
         cv::Ptr<cv::cuda::CannyEdgeDetector> canny_edge_detector_;
         cv::Ptr<cv::cuda::HoughSegmentDetector> line_detector_;
         cv::Ptr<cv::cuda::Filter> erosion_filter_;

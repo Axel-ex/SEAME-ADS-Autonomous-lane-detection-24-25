@@ -1,3 +1,4 @@
+#include "Config.hpp"
 #include <ImageProcessor.hpp>
 #include <opencv2/opencv.hpp>
 

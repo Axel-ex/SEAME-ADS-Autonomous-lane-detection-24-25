@@ -75,10 +75,10 @@ void LaneVisualizationNode::rawImageCallback(
         return;
     }
 
-    RCLCPP_INFO(this->get_logger(), "starting analysis");
     auto converted = cv_bridge::toCvShare(msg, msg->encoding);
     cv::Mat img = converted->image;
 
+    cv::resize(img, img, cv::Size(256, 256));
     // Generate points from equations
     std::vector<cv::Point> left_poly, right_poly;
     for (int x = 0; x < img.cols; x++)

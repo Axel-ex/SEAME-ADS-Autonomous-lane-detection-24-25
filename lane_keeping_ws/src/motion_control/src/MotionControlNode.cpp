@@ -26,7 +26,7 @@ MotionControlNode::MotionControlNode()
     declare_parameter("kp", 1.0);
     declare_parameter("ki", 0.0);
     declare_parameter("kd", 0.0);
-    declare_parameter("base_speed", 0.2);
+    declare_parameter("base_speed", 0.4);
     declare_parameter("lookahead_index", 130);
     RCLCPP_INFO(get_logger(), "Motion control started.");
 }
@@ -108,7 +108,8 @@ void MotionControlNode::calculatePolyfitCoefs(
         right_coefs =
             calculate(right_x.data(), right_y.data(), degree, right_x.size());
     }
-    else if (left_x.size() < 3 && lane_buffer_.hasLeftLane())
+    else if (left_x.size() < 3 && lane_buffer_.hasLeftLane() &&
+             right_x.size() >= 3)
     {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                              "Left lane missing → using buffered left lane");
@@ -116,7 +117,8 @@ void MotionControlNode::calculatePolyfitCoefs(
         right_coefs =
             calculate(right_x.data(), right_y.data(), degree, right_x.size());
     }
-    else if (right_x.size() < 3 && lane_buffer_.hasRightLane())
+    else if (right_x.size() < 3 && lane_buffer_.hasRightLane() &&
+             left_x.size() >= 3)
     {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                              "Right lane missing → using buffered right lane");

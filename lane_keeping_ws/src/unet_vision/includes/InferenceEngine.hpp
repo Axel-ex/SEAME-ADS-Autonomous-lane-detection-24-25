@@ -8,10 +8,6 @@
 
 using namespace nvinfer1;
 
-constexpr auto ENGINE_PATH = "/home/axel/models/engines/unet_optimized.engine";
-constexpr auto INPUT_LAYER_NAME = "input_1";
-constexpr auto OUTPUT_LAYER_NAME = "conv2d_14";
-
 /**
  * @brief custom deleter for TRT objects
  *

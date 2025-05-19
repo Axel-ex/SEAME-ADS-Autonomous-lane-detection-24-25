@@ -1,3 +1,4 @@
+#include "Config.hpp"
 #include <InferenceEngine.hpp>
 #include <Logger.hpp>
 #include <fstream>
