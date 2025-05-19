@@ -4,14 +4,6 @@
 #include <opencv2/cudaimgproc.hpp>
 #include <rclcpp/rclcpp.hpp>
 
-constexpr int LOW_CANNY = 50;
-constexpr int HIGH_CANNY = 80;
-constexpr float TRESHOLD = 190;
-constexpr int MIN_LINE_LENGTH = 20;
-constexpr int MAX_LINE_GAP = 20;
-constexpr int MAX_DETECTED_LINE = 300;
-constexpr int KERNEL_SIZE = 3;
-
 /**
  * @class ImageProcessor
  * @brief Handles image preprocessing and feature extraction on the GPU using
