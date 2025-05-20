@@ -5,16 +5,11 @@
 LaneVisualizationNode::LaneVisualizationNode()
     : rclcpp::Node("lane_visualization_node")
 {
-    // raw_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-    //     "image_raw", 1,
-    //     [this](const sensor_msgs::msg::Image::SharedPtr msg)
-    //     { this->rawImageCallback(msg); });
-
     polyfit_coefs_sub_ =
         this->create_subscription<custom_msgs::msg::PolyfitCoefs>(
             "polyfit_coefs", 1,
             [this](const custom_msgs::msg::PolyfitCoefs::SharedPtr msg)
-            { this->storeCoefs(msg); });
+            { this->polyCoefsCallback(msg); });
 
     lane_pos_sub_ = this->create_subscription<custom_msgs::msg::LanePositions>(
         "lane_position", 1,
@@ -42,7 +37,17 @@ void LaneVisualizationNode::storeLanePosition(
         right_lane_pos_.push_back(point);
 }
 
-void LaneVisualizationNode::storeCoefs(
+/**
+ * @brief callback for raw image subscriber.
+ *
+ * Called upon receiving a new image. responsible for drawing all the features
+ * extracted by our algorithms (lane points, polylines...) onto the original
+ * image. publishes the result processed_img.
+ *
+ * @param msg
+ */
+
+void LaneVisualizationNode::polyCoefsCallback(
     const custom_msgs::msg::PolyfitCoefs::SharedPtr msg)
 {
     left_coefs_.clear();
@@ -62,19 +67,18 @@ void LaneVisualizationNode::storeCoefs(
                    cv::Scalar(0, 0, 0)); // black canvas
 
     std::vector<cv::Point> left_poly, right_poly;
-    for (int x = 0; x < canvas.cols; x++)
+    for (int y = 0; y < canvas.rows; y++)
     {
-        int y_left = ((left_coefs_[2] * std::pow(x, 2)) + (left_coefs_[1] * x) +
-                      left_coefs_[0]);
-        int y_right = ((right_coefs_[2] * std::pow(x, 2)) +
-                       (right_coefs_[1] * x) + right_coefs_[0]);
+        int x_left = static_cast<int>(left_coefs_[2] * std::pow(y, 2) +
+                                      left_coefs_[1] * y + left_coefs_[0]);
+        int x_right = static_cast<int>(right_coefs_[2] * std::pow(y, 2) +
+                                       right_coefs_[1] * y + right_coefs_[0]);
 
-        if (y_left >= 0 && y_left < canvas.rows)
-            left_poly.emplace_back(x, y_left);
-        if (y_right >= 0 && y_right < canvas.rows)
-            right_poly.emplace_back(x, y_right);
+        if (x_left >= 0 && x_left < canvas.cols)
+            left_poly.emplace_back(x_left, y);
+        if (x_right >= 0 && x_right < canvas.cols)
+            right_poly.emplace_back(x_right, y);
     }
-
     // Draw lanes
     cv::polylines(canvas, left_poly, false, cv::Scalar(0, 255, 255), 2);
     cv::polylines(canvas, right_poly, false, cv::Scalar(0, 0, 255), 2);
@@ -99,80 +103,5 @@ void LaneVisualizationNode::storeCoefs(
     out_msg.header.stamp = now();
     out_msg.encoding = "bgr8";
     out_msg.image = canvas;
-    processed_img_pub_.publish(out_msg.toImageMsg());
-}
-
-/**
- * @brief callback for raw image subscriber.
- *
- * Called upon receiving a new image. responsible for drawing all the features
- * extracted by our algorithms (lane points, polylines...) onto the original
- * image. publishes the result processed_img.
- *
- * @param msg
- */
-void LaneVisualizationNode::rawImageCallback(
-    const sensor_msgs::msg::Image::SharedPtr msg)
-{
-    if (left_coefs_.empty() || right_coefs_.empty())
-    {
-        RCLCPP_WARN_THROTTLE(this->get_logger(), *get_clock(), 5000,
-                             "empty polyfit coefs");
-        return;
-    }
-
-    auto converted = cv_bridge::toCvShare(msg, msg->encoding);
-    cv::Mat img = converted->image;
-
-    cv::resize(img, img, cv::Size(256, 256));
-    // Generate points from equations
-    std::vector<cv::Point> left_poly, right_poly;
-    for (int x = 0; x < img.cols; x++)
-    {
-        int y_left = ((left_coefs_[2] * std::pow(x, 2)) + (left_coefs_[1] * x) +
-                      left_coefs_[0]);
-        int y_right = ((right_coefs_[2] * std::pow(x, 2)) +
-                       (right_coefs_[1] * x) + right_coefs_[0]);
-
-        left_poly.emplace_back(x, y_left);
-        right_poly.emplace_back(x, y_right);
-    }
-
-    auto filterCondition = [img](const cv::Point& p)
-    { return p.y < (img.rows * (1.0 / 3.0)); };
-
-    // filter for point < 1/3 of the screen (cleaner representation)
-    left_poly.erase(
-        std::remove_if(left_poly.begin(), left_poly.end(), filterCondition),
-        left_poly.end());
-    right_poly.erase(
-        std::remove_if(right_poly.begin(), right_poly.end(), filterCondition),
-        right_poly.end());
-
-    // Draw the polyfits
-    cv::polylines(img, left_poly, false, cv::Scalar(0, 255, 255), 1);
-    cv::polylines(img, right_poly, false, cv::Scalar(0, 0, 255), 1);
-
-    // Draw lane points
-    for (auto& point : left_lane_pos_)
-        cv::circle(img, cv::Point(point.x, point.y), 1, cv::Scalar(0, 255, 255),
-                   1);
-    for (auto& point : right_lane_pos_)
-        cv::circle(img, cv::Point(point.x, point.y), 1, cv::Scalar(0, 0, 255),
-                   1);
-
-    // Draw lane_center
-    cv::circle(img, cv::Point(lane_center_.x, lane_center_.y), 1,
-               cv::Scalar(0, 255, 0), 2);
-
-    // Draw target point
-    cv::circle(img, cv::Point(img.cols / 2, lane_center_.y), 1,
-               cv::Scalar(255, 0, 0), 2);
-
-    // publish the result
-    cv_bridge::CvImage out_msg;
-    out_msg.header = msg->header;
-    out_msg.encoding = msg->encoding;
-    out_msg.image = img;
     processed_img_pub_.publish(out_msg.toImageMsg());
 }
