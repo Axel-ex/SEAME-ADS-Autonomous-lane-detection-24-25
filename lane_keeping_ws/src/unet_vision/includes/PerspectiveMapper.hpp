@@ -5,10 +5,11 @@
 class PerspectiveMapper
 {
     public:
-        PerspectiveMapper(cv::Size& input_size, cv::Size& output_size);
-        ~PerspectiveMapper();
+        PerspectiveMapper(const cv::Size& input_size,
+                          const cv::Size& output_size);
+        ~PerspectiveMapper() = default;
 
-        void transformPerspective(cv::Mat& input);
+        cv::cuda::GpuMat applyPerspectiveTransform(cv::cuda::GpuMat& input);
 
     private:
         cv::Size input_size_;

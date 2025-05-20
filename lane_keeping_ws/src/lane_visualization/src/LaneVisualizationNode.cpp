@@ -5,10 +5,10 @@
 LaneVisualizationNode::LaneVisualizationNode()
     : rclcpp::Node("lane_visualization_node")
 {
-    raw_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-        "image_raw", 1,
-        [this](const sensor_msgs::msg::Image::SharedPtr msg)
-        { this->rawImageCallback(msg); });
+    // raw_img_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+    //     "image_raw", 1,
+    //     [this](const sensor_msgs::msg::Image::SharedPtr msg)
+    //     { this->rawImageCallback(msg); });
 
     polyfit_coefs_sub_ =
         this->create_subscription<custom_msgs::msg::PolyfitCoefs>(
@@ -54,6 +54,52 @@ void LaneVisualizationNode::storeCoefs(
         right_coefs_.push_back(coef);
     lane_center_.x = msg->lane_center.x;
     lane_center_.y = msg->lane_center.y;
+
+    if (left_coefs_.empty() || right_coefs_.empty())
+        return;
+
+    cv::Mat canvas(cv::Size(256, 256), CV_8UC3,
+                   cv::Scalar(0, 0, 0)); // black canvas
+
+    std::vector<cv::Point> left_poly, right_poly;
+    for (int x = 0; x < canvas.cols; x++)
+    {
+        int y_left = ((left_coefs_[2] * std::pow(x, 2)) + (left_coefs_[1] * x) +
+                      left_coefs_[0]);
+        int y_right = ((right_coefs_[2] * std::pow(x, 2)) +
+                       (right_coefs_[1] * x) + right_coefs_[0]);
+
+        if (y_left >= 0 && y_left < canvas.rows)
+            left_poly.emplace_back(x, y_left);
+        if (y_right >= 0 && y_right < canvas.rows)
+            right_poly.emplace_back(x, y_right);
+    }
+
+    // Draw lanes
+    cv::polylines(canvas, left_poly, false, cv::Scalar(0, 255, 255), 2);
+    cv::polylines(canvas, right_poly, false, cv::Scalar(0, 0, 255), 2);
+
+    // Draw lane center
+    cv::circle(canvas, cv::Point(lane_center_.x, lane_center_.y), 4,
+               cv::Scalar(0, 255, 0), -1);
+
+    // Draw target point (straight centerline reference)
+    cv::circle(canvas, cv::Point(canvas.cols / 2, lane_center_.y), 4,
+               cv::Scalar(255, 0, 0), -1);
+
+    // Draw lane points
+    for (auto& point : left_lane_pos_)
+        cv::circle(canvas, cv::Point(point.x, point.y), 1,
+                   cv::Scalar(0, 255, 255), 1);
+    for (auto& point : right_lane_pos_)
+        cv::circle(canvas, cv::Point(point.x, point.y), 1,
+                   cv::Scalar(0, 0, 255), 1);
+    // Publish
+    cv_bridge::CvImage out_msg;
+    out_msg.header.stamp = now();
+    out_msg.encoding = "bgr8";
+    out_msg.image = canvas;
+    processed_img_pub_.publish(out_msg.toImageMsg());
 }
 
 /**

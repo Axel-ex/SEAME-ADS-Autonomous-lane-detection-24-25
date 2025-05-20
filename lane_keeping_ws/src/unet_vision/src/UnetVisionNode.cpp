@@ -33,6 +33,7 @@ bool UnetVisionNode::init()
     image_transport::ImageTransport it(shared_from_this());
     edge_mask_pub_ = it.advertise("edge_img", 1);
     tresholded_mask_pub_ = it.advertise("tresholded_mask", 1);
+    ipm_pub_ = it.advertise("ipm_mask", 1);
 
     RCLCPP_INFO(get_logger(), "MLVisionNode initiated.");
 
@@ -73,11 +74,16 @@ void UnetVisionNode::rawImageCallback(
 
     image_processor_->applyTreshold(gpu_img, TRESHOLD);
     publishDebug(gpu_img, tresholded_mask_pub_);
-    image_processor_->applyErosionDilation(gpu_img);
-    image_processor_->applyCannyEdge(gpu_img);
-    publishDebug(gpu_img, edge_mask_pub_);
 
-    auto lines = image_processor_->getLines(gpu_img);
+    cv::cuda::GpuMat transformed =
+        image_processor_->applyPerspectiveTransform(gpu_img);
+    publishDebug(transformed, ipm_pub_);
+
+    image_processor_->applyErosionDilation(transformed);
+    image_processor_->applyCannyEdge(transformed);
+    publishDebug(transformed, edge_mask_pub_);
+
+    auto lines = image_processor_->getLines(transformed);
     publishLanePositions(lines);
 }
 

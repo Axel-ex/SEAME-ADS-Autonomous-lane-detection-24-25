@@ -39,6 +39,7 @@ class UnetVisionNode : public rclcpp::Node
             lane_pos_pub_;
         image_transport::Publisher tresholded_mask_pub_;
         image_transport::Publisher edge_mask_pub_;
+        image_transport::Publisher ipm_pub_;
 
         // ML and CV
         std::unique_ptr<InferenceEngine> inference_engine_;
