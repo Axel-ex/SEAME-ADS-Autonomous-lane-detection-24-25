@@ -3,6 +3,8 @@
 #include <deque>
 #include <vector>
 
+constexpr int ROAD_WIDTH = 256;
+
 class LaneBuffer
 {
     public:
@@ -11,6 +13,9 @@ class LaneBuffer
 
         std::vector<double> getLastLeft();
         std::vector<double> getLastRight();
+
+        std::vector<double> estimateOtherLane(std::vector<double>& coefs,
+                                              bool from_left);
 
         void addCoeffs(std::vector<double>& left_coefs,
                        std::vector<double>& right_coefs);

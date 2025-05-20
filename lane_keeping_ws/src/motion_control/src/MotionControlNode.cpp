@@ -85,6 +85,7 @@ void MotionControlNode::lanePositionCallback(
  * - Separates and sorts lane coordinates by y-position.
  * - Uses buffered coefficients if current lane detection fails.
  * - Requires ≥3 points per lane for new fits.
+ *   it can return empty coefficients. The error is then catch later
  *
  * @param left_coefs Output vector for left lane coefficients [a, b, c]
  * (ax²+bx+c).
@@ -113,21 +114,19 @@ void MotionControlNode::calculatePolyfitCoefs(
     {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                              "Left lane missing → using buffered left lane");
-        left_coefs = lane_buffer_.getLastLeft();
         right_coefs =
             calculate(right_y.data(), right_x.data(), degree, right_x.size());
+        left_coefs = lane_buffer_.estimateOtherLane(right_coefs, false);
     }
     else if (right_x.size() < 3 && lane_buffer_.hasRightLane() &&
              left_x.size() >= 3)
     {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                              "Right lane missing → using buffered right lane");
-        right_coefs = lane_buffer_.getLastRight();
         left_coefs =
             calculate(left_y.data(), left_x.data(), degree, left_x.size());
+        right_coefs = lane_buffer_.estimateOtherLane(left_coefs, true);
     }
-    // If non of the condition are met, no lane are detected, the coefs stay
-    // empty and the error is catch later in the program.
 }
 
 /**
