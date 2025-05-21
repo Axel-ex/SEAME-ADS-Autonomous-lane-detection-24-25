@@ -39,10 +39,9 @@ double PIDController::calculate(double error)
     last_time_ = current_time;
 
     // TODO: adjust using max steering
-    // RCLCPP_WARN_THROTTLE(node_ptr_->get_logger(), *node_ptr_->get_clock(),
-    // 3000,
-    //                      "integral: %.2f, derivative: %.2f", integral_err_,
-    //                      derivative);
-    //
+    RCLCPP_WARN_THROTTLE(node_ptr_->get_logger(), *node_ptr_->get_clock(), 3000,
+                         "proportional: %.2f, integral: %.2f, derivative: %.2f",
+                         kp * error, ki * integral_err_, kd * derivative);
+
     return output;
 }

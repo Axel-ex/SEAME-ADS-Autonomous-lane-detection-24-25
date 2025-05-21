@@ -25,9 +25,9 @@ MotionControlNode::MotionControlNode()
 
     declare_parameter("kp", 1.0);
     declare_parameter("ki", 0.0);
-    declare_parameter("kd", 0.0);
+    declare_parameter("kd", 0.2);
     declare_parameter("base_speed", 0.4);
-    declare_parameter("lookahead_index", 130);
+    declare_parameter("lookahead_index", 240);
     RCLCPP_INFO(get_logger(), "Motion control started.");
 }
 
@@ -145,7 +145,7 @@ MotionControlNode::findLaneCenter(const std::vector<double>& left_coefs,
                                   const std::vector<double>& right_coefs,
                                   int img_height)
 {
-    if (left_coefs.size() < 3 && right_coefs.size() < 3)
+    if (left_coefs.size() < 3 || right_coefs.size() < 3)
         return Point32();
 
     // choose a distance to look at
@@ -206,15 +206,19 @@ void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
                                                     int img_width)
 {
     double error = heading_point.x - lane_center.x;
-    error = error / (img_width / 2.0);
+    error = (error / (img_width / 2.0)) * 1.5;
 
     double steering = pid_controller_.calculate(error);
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                          "lane_center: %.2f, error: %.2f, steering %.2f",
                          lane_center.x, error, steering);
 
+    double speed = get_parameter("base_speed").as_double();
+    if (steering > 0.6 || steering < -0.6)
+        speed += 0.2;
+
     geometry_msgs::msg::Twist msg;
-    msg.linear.x = get_parameter("base_speed").as_double();
+    msg.linear.x = speed;
     msg.angular.z = steering;
     cmd_vel_pub_->publish(msg);
 }

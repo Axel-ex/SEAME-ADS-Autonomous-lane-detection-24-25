@@ -35,9 +35,9 @@ std::vector<double> LaneBuffer::estimateOtherLane(std::vector<double>& coefs,
     {
         // Just shift the constant term (c) horizontally
         if (from_left)
-            projected[2] += ROAD_WIDTH; // left + width = right
+            projected[0] += ROAD_WIDTH; // left + width = right
         else
-            projected[2] -= ROAD_WIDTH; // right - width = left
+            projected[0] -= ROAD_WIDTH; // right - width = left
     }
     return projected;
 }
