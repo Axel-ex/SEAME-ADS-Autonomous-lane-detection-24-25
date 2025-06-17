@@ -11,10 +11,21 @@ using namespace rclcpp;
  * - `kp`, `ki`, `kd`: PID gains.
  * - `base_speed`: Default forward velocity.
  * - `lookahead_index`: Vertical pixel offset for lane center calculation.
+ *
+ * Allow for dependency injection in case of runing the code in testing context
  */
-MotionControlNode::MotionControlNode()
-    : Node("motion_control_node"), kalmman_filter_(0.1, 0.5), lane_buffer_(3)
+MotionControlNode::MotionControlNode(
+    std::shared_ptr<PIDController> pid_controller,
+    std::shared_ptr<KalmanFilter> kalman_filter,
+    std::shared_ptr<LaneBuffer> lane_buffer)
+    : Node("motion_control_node")
 {
+    pid_controller_ =
+        pid_controller ? pid_controller : std::make_shared<PIDController>();
+    kalman_filter_ = kalman_filter ? kalman_filter
+                                   : std::make_shared<KalmanFilter>(0.1, 0.4);
+    lane_buffer_ = lane_buffer ? lane_buffer : std::make_shared<LaneBuffer>(3);
+
     lane_pos_sub_ = this->create_subscription<custom_msgs::msg::LanePositions>(
         "lane_position", 1,
         [this](custom_msgs::msg::LanePositions::SharedPtr lane_msg)
@@ -35,7 +46,7 @@ MotionControlNode::~MotionControlNode() { stopVehicle(); }
 
 void MotionControlNode::initPIDController()
 {
-    pid_controller_.initializePID(shared_from_this());
+    pid_controller_->initializePID(shared_from_this());
 }
 
 /**
@@ -54,7 +65,7 @@ void MotionControlNode::lanePositionCallback(
     std::vector<double> left_coefs, right_coefs;
 
     calculatePolyfitCoefs(left_coefs, right_coefs, lane_msg);
-    lane_buffer_.addCoeffs(left_coefs, right_coefs);
+    lane_buffer_->addCoeffs(left_coefs, right_coefs);
     auto lane_center =
         findLaneCenter(left_coefs, right_coefs, lane_msg->image_height.data);
 
@@ -66,7 +77,7 @@ void MotionControlNode::lanePositionCallback(
         return;
     }
 
-    lane_center.x = kalmman_filter_.update(lane_center.x);
+    lane_center.x = kalman_filter_->update(lane_center.x);
     auto heading_point = findHeadingPoint(lane_msg->image_width.data,
                                           lane_msg->image_height.data);
     calculateAndPublishControls(lane_center, heading_point,
@@ -109,23 +120,23 @@ void MotionControlNode::calculatePolyfitCoefs(
         right_coefs =
             calculate(right_y.data(), right_x.data(), degree, right_y.size());
     }
-    else if (left_x.size() < 3 && lane_buffer_.hasLeftLane() &&
+    else if (left_x.size() < 3 && lane_buffer_->hasLeftLane() &&
              right_x.size() >= 3)
     {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                              "Left lane missing → using buffered left lane");
         right_coefs =
             calculate(right_y.data(), right_x.data(), degree, right_x.size());
-        left_coefs = lane_buffer_.estimateOtherLane(right_coefs, false);
+        left_coefs = lane_buffer_->estimateOtherLane(right_coefs, false);
     }
-    else if (right_x.size() < 3 && lane_buffer_.hasRightLane() &&
+    else if (right_x.size() < 3 && lane_buffer_->hasRightLane() &&
              left_x.size() >= 3)
     {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                              "Right lane missing → using buffered right lane");
         left_coefs =
             calculate(left_y.data(), left_x.data(), degree, left_x.size());
-        right_coefs = lane_buffer_.estimateOtherLane(left_coefs, true);
+        right_coefs = lane_buffer_->estimateOtherLane(left_coefs, true);
     }
 }
 
@@ -208,7 +219,7 @@ void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
     double error = heading_point.x - lane_center.x;
     error = (error / (img_width / 2.0)) * 1.5;
 
-    double steering = pid_controller_.calculate(error);
+    double steering = pid_controller_->calculate(error);
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                          "lane_center: %.2f, error: %.2f, steering %.2f",
                          lane_center.x, error, steering);

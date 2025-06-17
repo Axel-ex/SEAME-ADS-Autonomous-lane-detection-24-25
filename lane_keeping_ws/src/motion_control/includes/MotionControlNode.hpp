@@ -28,14 +28,20 @@ constexpr int WARN_FREQ = 3000;
 class MotionControlNode : public rclcpp::Node
 {
     public:
-        MotionControlNode();
+        MotionControlNode(
+            std::shared_ptr<PIDController> pid_controller = nullptr,
+            std::shared_ptr<KalmanFilter> kalman_filter = nullptr,
+            std::shared_ptr<LaneBuffer> lane_buffer = nullptr);
         ~MotionControlNode();
         void initPIDController();
 
     private:
-        LaneBuffer lane_buffer_;       // in case one of the lane is missing
-        PIDController pid_controller_; // smooth out the steering
-        KalmanFilter kalmman_filter_;  // filter absurd lane center measurements
+        std::shared_ptr<LaneBuffer>
+            lane_buffer_; // in case one of the lane is missing
+        std::shared_ptr<PIDController>
+            pid_controller_; // smooth out the steering
+        std::shared_ptr<KalmanFilter>
+            kalman_filter_; // filter absurd lane center measurements
 
         // ROS communication
         rclcpp::Subscription<custom_msgs::msg::LanePositions>::SharedPtr

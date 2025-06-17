@@ -45,6 +45,8 @@ if(BUILD_TESTING)
 	  ${src_dir}LaneBuffer.cpp
 	  test/src/KalmanFilterTest.cpp
 	  ${src_dir}KalmanFilter.cpp
+	  test/src/PIDControllerTest.cpp
+	  ${src_dir}PIDController.cpp
   )
   
   target_include_directories(${PROJECT_NAME}_test PUBLIC
