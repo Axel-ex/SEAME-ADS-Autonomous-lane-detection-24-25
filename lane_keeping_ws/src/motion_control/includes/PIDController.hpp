@@ -9,8 +9,8 @@ class PIDController
         PIDController();
         ~PIDController() = default;
 
-        void initializePID(std::shared_ptr<rclcpp::Node> node);
-        double calculate(double error);
+        virtual void initializePID(std::shared_ptr<rclcpp::Node> node);
+        virtual double calculate(double error);
 
     private:
         // kp, ki, kd are parametrised

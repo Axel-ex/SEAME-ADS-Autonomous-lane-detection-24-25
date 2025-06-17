@@ -22,7 +22,7 @@ class KalmanFilter
         KalmanFilter(double process_variance_, double measurement_variance);
         ~KalmanFilter() = default;
 
-        double update(double lane_center);
+        virtual double update(double lane_center);
 
     private:
         double x_; // Estimated position

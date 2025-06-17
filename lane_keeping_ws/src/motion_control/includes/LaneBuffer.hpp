@@ -11,17 +11,17 @@ class LaneBuffer
         LaneBuffer(size_t max_size);
         ~LaneBuffer() = default;
 
-        std::vector<double> getLastLeft();
-        std::vector<double> getLastRight();
+        virtual std::vector<double> getLastLeft();
+        virtual std::vector<double> getLastRight();
 
         std::vector<double> estimateOtherLane(std::vector<double>& coefs,
                                               bool from_left);
 
-        void addCoeffs(std::vector<double>& left_coefs,
-                       std::vector<double>& right_coefs);
+        virtual void addCoeffs(const std::vector<double>& left_coefs,
+                               const std::vector<double>& right_coefs);
 
-        bool hasLeftLane();
-        bool hasRightLane();
+        virtual bool hasLeftLane();
+        virtual bool hasRightLane();
 
         size_t getLeftSize();
         size_t getRightSize();

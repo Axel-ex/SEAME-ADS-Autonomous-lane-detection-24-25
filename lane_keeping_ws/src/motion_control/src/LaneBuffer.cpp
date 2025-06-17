@@ -2,8 +2,8 @@
 
 LaneBuffer::LaneBuffer(size_t max_size) : max_size_(max_size) {}
 
-void LaneBuffer::addCoeffs(std::vector<double>& left_coefs,
-                           std::vector<double>& right_coefs)
+void LaneBuffer::addCoeffs(const std::vector<double>& left_coefs,
+                           const std::vector<double>& right_coefs)
 {
     if (right_coefs.size() >= 3)
         right_lane_.push_back(right_coefs);
