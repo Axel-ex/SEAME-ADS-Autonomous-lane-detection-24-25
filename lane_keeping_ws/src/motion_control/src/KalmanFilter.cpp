@@ -27,9 +27,13 @@ double KalmanFilter::update(double lane_center)
     p_ = p_ + q_;
 
     // Kalman gain
+    // can be seen as a trust factor:  how much should I believe the measurement
+    // vs my current estimate?
     k_ = p_ / (p_ + r_);
 
     // Update the estimate with the measurement
+    // correct the estimate using weighted difference between measurements and
+    // current estimate
     x_ = x_ + k_ * (lane_center - x_);
 
     // Update uncertainty
