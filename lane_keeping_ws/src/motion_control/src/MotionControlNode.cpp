@@ -25,9 +25,9 @@ MotionControlNode::MotionControlNode()
 
     declare_parameter("kp", 1.0);
     declare_parameter("ki", 0.0);
-    declare_parameter("kd", 0.0);
-    declare_parameter("base_speed", 0.2);
-    declare_parameter("lookahead_index", 130);
+    declare_parameter("kd", 0.2);
+    declare_parameter("base_speed", 0.4);
+    declare_parameter("lookahead_index", 240);
     RCLCPP_INFO(get_logger(), "Motion control started.");
 }
 
@@ -85,6 +85,7 @@ void MotionControlNode::lanePositionCallback(
  * - Separates and sorts lane coordinates by y-position.
  * - Uses buffered coefficients if current lane detection fails.
  * - Requires ≥3 points per lane for new fits.
+ *   it can return empty coefficients. The error is then catch later
  *
  * @param left_coefs Output vector for left lane coefficients [a, b, c]
  * (ax²+bx+c).
@@ -104,28 +105,28 @@ void MotionControlNode::calculatePolyfitCoefs(
     if (left_x.size() >= 3 && right_x.size() >= 3)
     {
         left_coefs =
-            calculate(left_x.data(), left_y.data(), degree, left_x.size());
+            calculate(left_y.data(), left_x.data(), degree, left_y.size());
         right_coefs =
-            calculate(right_x.data(), right_y.data(), degree, right_x.size());
+            calculate(right_y.data(), right_x.data(), degree, right_y.size());
     }
-    else if (left_x.size() < 3 && lane_buffer_.hasLeftLane())
+    else if (left_x.size() < 3 && lane_buffer_.hasLeftLane() &&
+             right_x.size() >= 3)
     {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                              "Left lane missing → using buffered left lane");
-        left_coefs = lane_buffer_.getLastLeft();
         right_coefs =
-            calculate(right_x.data(), right_y.data(), degree, right_x.size());
+            calculate(right_y.data(), right_x.data(), degree, right_x.size());
+        left_coefs = lane_buffer_.estimateOtherLane(right_coefs, false);
     }
-    else if (right_x.size() < 3 && lane_buffer_.hasRightLane())
+    else if (right_x.size() < 3 && lane_buffer_.hasRightLane() &&
+             left_x.size() >= 3)
     {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                              "Right lane missing → using buffered right lane");
-        right_coefs = lane_buffer_.getLastRight();
         left_coefs =
-            calculate(left_x.data(), left_y.data(), degree, left_x.size());
+            calculate(left_y.data(), left_x.data(), degree, left_x.size());
+        right_coefs = lane_buffer_.estimateOtherLane(left_coefs, true);
     }
-    // If non of the condition are met, no lane are detected, the coefs stay
-    // empty and the error is catch later in the program.
 }
 
 /**
@@ -144,7 +145,7 @@ MotionControlNode::findLaneCenter(const std::vector<double>& left_coefs,
                                   const std::vector<double>& right_coefs,
                                   int img_height)
 {
-    if (left_coefs.size() < 3 && right_coefs.size() < 3)
+    if (left_coefs.size() < 3 || right_coefs.size() < 3)
         return Point32();
 
     // choose a distance to look at
@@ -153,10 +154,9 @@ MotionControlNode::findLaneCenter(const std::vector<double>& left_coefs,
     lookahead = std::max(0, std::min(lookahead, img_height));
 
     double y = static_cast<double>(lookahead);
-    double x_left =
-        solveQuadratic(left_coefs[2], left_coefs[1], left_coefs[0] - y, false);
-    double x_right = solveQuadratic(right_coefs[2], right_coefs[1],
-                                    right_coefs[0] - y, true);
+    double x_left = left_coefs[2] * y * y + left_coefs[1] * y + left_coefs[0];
+    double x_right =
+        right_coefs[2] * y * y + right_coefs[1] * y + right_coefs[0];
 
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                          "x_left: %.2f, x_right: %.2f", x_left, x_right);
@@ -206,15 +206,19 @@ void MotionControlNode::calculateAndPublishControls(Point32& lane_center,
                                                     int img_width)
 {
     double error = heading_point.x - lane_center.x;
-    error = error / (img_width / 2.0);
+    error = (error / (img_width / 2.0)) * 1.5;
 
     double steering = pid_controller_.calculate(error);
     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), WARN_FREQ,
                          "lane_center: %.2f, error: %.2f, steering %.2f",
                          lane_center.x, error, steering);
 
+    double speed = get_parameter("base_speed").as_double();
+    if (steering > 0.6 || steering < -0.6)
+        speed += 0.2;
+
     geometry_msgs::msg::Twist msg;
-    msg.linear.x = get_parameter("base_speed").as_double();
+    msg.linear.x = speed;
     msg.angular.z = steering;
     cmd_vel_pub_->publish(msg);
 }

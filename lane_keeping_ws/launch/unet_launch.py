@@ -15,11 +15,11 @@ def generate_launch_description():
             node_executable='unet_vision_node',
             node_name='unet_vision_node',
         ),
-        # Node(
-        #     package='motion_control',
-        #     node_executable='motion_control_node',  
-        #     node_name='motion_control',  
-        # ),
+        Node(
+            package='motion_control',
+            node_executable='motion_control_node',  
+            node_name='motion_control',  
+        ),
         Node(
             package='lane_visualization',
             node_executable='lane_visualization_node',  

@@ -1,3 +1,4 @@
+#include "Config.hpp"
 #include <ImageProcessor.hpp>
 #include <opencv2/opencv.hpp>
 
@@ -12,7 +13,8 @@
  */
 ImageProcessor::ImageProcessor(const cv::Size& input_size,
                                const cv::Size& output_size)
-    : input_size_(input_size), output_size_(output_size)
+    : input_size_(input_size), output_size_(output_size),
+      ipm_(INPUT_IMG_SIZE, OUTPUT_IMG_SIZE)
 {
     canny_edge_detector_ =
         cv::cuda::createCannyEdgeDetector(LOW_CANNY, HIGH_CANNY);
@@ -120,4 +122,10 @@ void ImageProcessor::applyErosionDilation(cv::cuda::GpuMat& gpu_img)
 void ImageProcessor::applyCannyEdge(cv::cuda::GpuMat& gpu_img)
 {
     canny_edge_detector_->detect(gpu_img, gpu_img);
+}
+
+cv::cuda::GpuMat
+ImageProcessor::applyPerspectiveTransform(cv::cuda::GpuMat& gpu_img)
+{
+    return ipm_.applyPerspectiveTransform(gpu_img);
 }

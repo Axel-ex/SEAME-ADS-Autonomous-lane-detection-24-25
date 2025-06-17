@@ -1,3 +1,4 @@
+#include "Config.hpp"
 #include <Logger.hpp>
 #include <UnetVisionNode.hpp>
 #include <cv_bridge/cv_bridge.h>
@@ -31,8 +32,8 @@ bool UnetVisionNode::init()
     // For debug purpose
     image_transport::ImageTransport it(shared_from_this());
     edge_mask_pub_ = it.advertise("edge_img", 1);
-    raw_mask_pub_ = it.advertise("raw_mask", 1);
     tresholded_mask_pub_ = it.advertise("tresholded_mask", 1);
+    ipm_pub_ = it.advertise("ipm_mask", 1);
 
     RCLCPP_INFO(get_logger(), "MLVisionNode initiated.");
 
@@ -71,14 +72,18 @@ void UnetVisionNode::rawImageCallback(
     cv::cuda::GpuMat gpu_img(OUTPUT_IMG_SIZE, CV_32FC1, gpu_data);
     cv::cuda::normalize(gpu_img, gpu_img, 0, 255, cv::NORM_MINMAX, CV_8UC1);
 
-    publishDebug(gpu_img, raw_mask_pub_);
     image_processor_->applyTreshold(gpu_img, TRESHOLD);
     publishDebug(gpu_img, tresholded_mask_pub_);
-    image_processor_->applyErosionDilation(gpu_img);
-    image_processor_->applyCannyEdge(gpu_img);
-    publishDebug(gpu_img, edge_mask_pub_);
 
-    auto lines = image_processor_->getLines(gpu_img);
+    cv::cuda::GpuMat transformed =
+        image_processor_->applyPerspectiveTransform(gpu_img);
+    publishDebug(transformed, ipm_pub_);
+
+    image_processor_->applyErosionDilation(transformed);
+    image_processor_->applyCannyEdge(transformed);
+    publishDebug(transformed, edge_mask_pub_);
+
+    auto lines = image_processor_->getLines(transformed);
     publishLanePositions(lines);
 }
 

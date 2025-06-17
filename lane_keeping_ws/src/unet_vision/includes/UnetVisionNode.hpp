@@ -11,10 +11,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 
-constexpr int LOG_FREQ = 5000;
-const cv::Size INPUT_IMG_SIZE(256, 256);
-const cv::Size OUTPUT_IMG_SIZE(256, 256);
-
 /**
  * @class MlVisionNode
  * @brief Performs lane detection using a deep learning model
@@ -41,9 +37,9 @@ class UnetVisionNode : public rclcpp::Node
         rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr raw_img_sub_;
         rclcpp::Publisher<custom_msgs::msg::LanePositions>::SharedPtr
             lane_pos_pub_;
-        image_transport::Publisher raw_mask_pub_;
         image_transport::Publisher tresholded_mask_pub_;
         image_transport::Publisher edge_mask_pub_;
+        image_transport::Publisher ipm_pub_;
 
         // ML and CV
         std::unique_ptr<InferenceEngine> inference_engine_;

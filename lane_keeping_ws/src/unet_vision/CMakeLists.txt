@@ -33,6 +33,7 @@ add_executable(${PROJECT_NAME}_node
   src/InferenceEngine.cpp
   src/ImageProcessor.cpp
   src/Logger.cpp
+  src/PerspectiveMapper.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}_node

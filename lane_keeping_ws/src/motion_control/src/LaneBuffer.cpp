@@ -25,3 +25,19 @@ bool LaneBuffer::hasRightLane() { return !right_lane_.empty(); }
 
 size_t LaneBuffer::getRightSize() { return right_lane_.size(); }
 size_t LaneBuffer::getLeftSize() { return left_lane_.size(); }
+
+std::vector<double> LaneBuffer::estimateOtherLane(std::vector<double>& coefs,
+                                                  bool from_left)
+{
+    std::vector<double> projected = coefs;
+
+    if (projected.size() >= 3)
+    {
+        // Just shift the constant term (c) horizontally
+        if (from_left)
+            projected[0] += ROAD_WIDTH; // left + width = right
+        else
+            projected[0] -= ROAD_WIDTH; // right - width = left
+    }
+    return projected;
+}
