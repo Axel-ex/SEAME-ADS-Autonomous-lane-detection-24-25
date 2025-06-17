@@ -43,6 +43,8 @@ if(BUILD_TESTING)
   ament_add_gmock(${PROJECT_NAME}_test 
 	  test/src/LaneBufferTest.cpp
 	  ${src_dir}LaneBuffer.cpp
+	  test/src/KalmanFilterTest.cpp
+	  ${src_dir}KalmanFilter.cpp
   )
   
   target_include_directories(${PROJECT_NAME}_test PUBLIC
