@@ -47,6 +47,9 @@ if(BUILD_TESTING)
 	  ${src_dir}KalmanFilter.cpp
 	  test/src/PIDControllerTest.cpp
 	  ${src_dir}PIDController.cpp
+	  test/src/MotionControlTest.cpp
+	  ${src_dir}MotionControlNode.cpp
+	  ${src_dir}PolyFit.cpp
   )
   
   target_include_directories(${PROJECT_NAME}_test PUBLIC

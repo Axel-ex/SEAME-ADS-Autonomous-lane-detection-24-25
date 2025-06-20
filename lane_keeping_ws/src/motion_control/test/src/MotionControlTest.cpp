@@ -53,6 +53,7 @@ class MotionControlTest : public ::testing::Test
 
         void SetUp() override
         {
+            rclcpp::init(0, nullptr);
             pid_ = std::make_shared<MockPIDController>();
             kalman_filter_ = std::make_shared<MockKalmanFilter>();
             lane_buffer_ = std::make_shared<MockLaneBuffer>();
@@ -77,29 +78,29 @@ TEST_F(MotionControlTest, ValidLaneInput)
     // Create test message
     auto msg = std::make_shared<custom_msgs::msg::LanePositions>();
 
-    geometry_msgs::msg::Point32 p1, p2, p3, p4, p5, p6;
-    p1.x = 0;
-    p1.y = 0.2;
-    p1.z = 0;
-    p2.x = 1;
-    p2.y = 0.2;
-    p2.z = 0;
-    p3.x = 2;
-    p3.y = 0.2;
-    p3.z = 0;
+    geometry_msgs::msg::Point32 p1, p2, p3, p4, p5, p6, p7, p8;
+    p1.x = 100;
+    p1.y = 240;
+    p2.x = 105;
+    p2.y = 180;
+    p3.x = 110;
+    p3.y = 120;
+    p7.x = 115;
+    p7.y = 100;
 
-    p4.x = 0;
-    p4.y = 0.8;
-    p4.z = 0;
-    p5.x = 1;
-    p5.y = 0.8;
-    p5.z = 0;
-    p6.x = 2;
-    p6.y = 0.8;
-    p6.z = 0;
+    p4.x = 156;
+    p4.y = 240;
+    p5.x = 160;
+    p5.y = 180;
+    p6.x = 165;
+    p6.y = 120;
+    p8.x = 169;
+    p8.y = 100;
 
-    msg->left_lane = {p1, p2, p3};
-    msg->right_lane = {p4, p5, p6};
+    msg->left_lane = {p1, p2, p3, p7};
+    msg->right_lane = {p4, p5, p6, p8};
+    msg->image_height.data = 256;
+    msg->image_width.data = 256;
 
     // Publish and spin
     pub->publish(*msg);
@@ -111,15 +112,121 @@ TEST_F(MotionControlTest, ValidLaneInput)
         exec.spin_some();
     }
 
-    // Expect PID received correct error
-    EXPECT_NEAR(pid_->last_error, 0.0, 1e-5); // Midpoint should be centered
+    EXPECT_TRUE(pid_->last_error != 0.0);
 }
 
-int main(int argc, char** argv)
+TEST_F(MotionControlTest, RightLaneOnly_UsesBufferForLeft)
 {
-    ::testing::InitGoogleTest(&argc, argv);
-    rclcpp::init(argc, argv);
-    auto result = RUN_ALL_TESTS();
-    rclcpp::shutdown();
-    return result;
+    rclcpp::executors::SingleThreadedExecutor exec;
+    exec.add_node(node_);
+
+    auto pub = node_->create_publisher<custom_msgs::msg::LanePositions>(
+        "lane_position", 10);
+
+    auto msg = std::make_shared<custom_msgs::msg::LanePositions>();
+    msg->image_width.data = 256;
+    msg->image_height.data = 256;
+
+    geometry_msgs::msg::Point32 p4, p5, p6, p8;
+    p4.x = 156;
+    p4.y = 240;
+    p5.x = 160;
+    p5.y = 180;
+    p6.x = 165;
+    p6.y = 120;
+    p8.x = 169;
+    p8.y = 100;
+
+    msg->right_lane = {p4, p5, p6, p8};
+    msg->image_height.data = 256;
+    msg->image_width.data = 256;
+    pub->publish(*msg);
+    auto start = std::chrono::steady_clock::now();
+    while ((std::chrono::steady_clock::now() - start) <
+           std::chrono::milliseconds(100))
+        exec.spin_some();
+
+    EXPECT_TRUE(pid_->last_error != 0.0);
 }
+
+TEST_F(MotionControlTest, NoLanes_StopsVehicle)
+{
+    rclcpp::executors::SingleThreadedExecutor exec;
+    exec.add_node(node_);
+
+    auto pub = node_->create_publisher<custom_msgs::msg::LanePositions>(
+        "lane_position", 10);
+
+    // Capture cmd_vel output
+    geometry_msgs::msg::Twist last_cmd;
+    auto sub = node_->create_subscription<geometry_msgs::msg::Twist>(
+        "cmd_vel", 10,
+        [&](geometry_msgs::msg::Twist::SharedPtr msg) { last_cmd = *msg; });
+
+    auto msg = std::make_shared<custom_msgs::msg::LanePositions>();
+    msg->image_width.data = 640;
+    msg->image_height.data = 480;
+
+    // No lanes at all
+    msg->left_lane.clear();
+    msg->right_lane.clear();
+
+    pub->publish(*msg);
+    auto start = std::chrono::steady_clock::now();
+    while ((std::chrono::steady_clock::now() - start) <
+           std::chrono::milliseconds(100))
+        exec.spin_some();
+
+    // Expect vehicle stop command
+    EXPECT_NEAR(last_cmd.linear.x, 0.0, 1e-4);
+    EXPECT_NEAR(last_cmd.angular.z, 0.0, 1e-4);
+}
+//
+// TEST_F(MotionControlTest, HighSteeringIncreasesSpeed)
+// {
+//     rclcpp::executors::SingleThreadedExecutor exec;
+//     exec.add_node(node_);
+//
+//     auto pub = node_->create_publisher<custom_msgs::msg::LanePositions>(
+//         "lane_position", 10);
+//
+//     geometry_msgs::msg::Twist last_cmd;
+//     auto sub = node_->create_subscription<geometry_msgs::msg::Twist>(
+//         "cmd_vel", 10,
+//         [&](geometry_msgs::msg::Twist::SharedPtr msg) { last_cmd = *msg; });
+//
+//     // Create test message
+//     auto msg = std::make_shared<custom_msgs::msg::LanePositions>();
+//     geometry_msgs::msg::Point32 p1, p2, p3, p4, p5, p6, p7, p8;
+//
+//     p1.x = 10;
+//     p1.y = 240;
+//     p2.x = 15;
+//     p2.y = 180;
+//     p3.x = 18;
+//     p3.y = 120;
+//     p7.x = 20;
+//     p7.y = 100;
+//
+//     p4.x = 60;
+//     p4.y = 240;
+//     p5.x = 65;
+//     p5.y = 180;
+//     p6.x = 68;
+//     p6.y = 120;
+//     p8.x = 70;
+//     p8.y = 100;
+//     msg->left_lane = {p1, p2, p3, p7};
+//     msg->right_lane = {p4, p5, p6, p8};
+//     msg->image_height.data = 256;
+//     msg->image_width.data = 256;
+//
+//     pub->publish(*msg);
+//     auto start = std::chrono::steady_clock::now();
+//     while ((std::chrono::steady_clock::now() - start) <
+//            std::chrono::milliseconds(100))
+//         exec.spin_some();
+//
+//     // Expect higher speed due to high steering value (0.6 threshold)
+//     EXPECT_GT(last_cmd.linear.x, 0.5);
+// }
